@@ -617,7 +617,7 @@ public class SubScene extends Node {
         getRoot().parentResolvedOrientationInvalidated();
     }
 
-    /***********************************************************************
+    /* *********************************************************************
      *                         CSS                                         *
      **********************************************************************/
     /*
@@ -646,7 +646,8 @@ public class SubScene extends Node {
 
     private ObjectProperty<String> userAgentStylesheet = null;
     /**
-     * @return the userAgentStylesheet property.
+     * Gets the userAgentStylesheet property.
+     * @return the userAgentStylesheet property
      * @see #getUserAgentStylesheet()
      * @see #setUserAgentStylesheet(String)
      * @since  JavaFX 8u20
@@ -733,7 +734,7 @@ public class SubScene extends Node {
         return bounds;
     }
 
-    /***********************************************************************
+    /* *********************************************************************
      *                         Dirty Bits                                  *
      **********************************************************************/
     boolean dirtyLayout = false;
@@ -809,7 +810,7 @@ public class SubScene extends Node {
         setDirty(dirtyBit);
     }
 
-    /***********************************************************************
+    /* *********************************************************************
      *                           Picking                                   *
      **********************************************************************/
 

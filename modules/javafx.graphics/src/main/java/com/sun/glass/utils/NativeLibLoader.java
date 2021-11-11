@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -233,7 +233,7 @@ public class NativeLibLoader {
     }
 
     private static String cacheLibrary(InputStream is, String name, Class caller) throws IOException {
-        String jfxVersion = System.getProperty("javafx.version", "versionless");
+        String jfxVersion = System.getProperty("javafx.runtime.version", "versionless");
         String userCache = System.getProperty("javafx.cachedir", "");
         if (userCache.isEmpty()) {
             userCache = System.getProperty("user.home") + "/.openjfx/cache/" + jfxVersion;

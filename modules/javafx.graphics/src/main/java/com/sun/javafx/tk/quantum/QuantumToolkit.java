@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -366,7 +366,8 @@ public final class QuantumToolkit extends Toolkit {
                 }
 
                 @Override public boolean handleThemeChanged(String themeName) {
-                    return PlatformImpl.setAccessibilityTheme(themeName);
+                    String highContrastSchemeName = Application.GetApplication().getHighContrastScheme(themeName);
+                    return PlatformImpl.setAccessibilityTheme(highContrastSchemeName);
                 }
             });
         }
@@ -375,6 +376,7 @@ public final class QuantumToolkit extends Toolkit {
         launchLatch.countDown();
         try {
             Application.invokeAndWait(this.userRunnable);
+            this.userRunnable = null;
 
             if (getPrimaryTimer().isFullspeed()) {
                 /*

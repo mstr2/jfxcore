@@ -842,7 +842,7 @@ public class Scene implements EventTarget {
         PerformanceTracker.logEvent("Scene.initPeer finished");
     }
 
-    public void disposePeer() {
+    void disposePeer() {
         if (peer == null) {
             // This is fine, the window is either not shown yet and there is no
             // need in disposing scene peer, or is hidden and disposePeer()
@@ -1662,7 +1662,8 @@ public class Scene implements EventTarget {
     private ObjectProperty<String> userAgentStylesheet = null;
 
     /**
-     * @return the userAgentStylesheet property.
+     * Gets the userAgentStylesheet property.
+     * @return the userAgentStylesheet property
      * @see #getUserAgentStylesheet()
      * @see #setUserAgentStylesheet(String)
      * @since  JavaFX 8u20
@@ -2067,7 +2068,7 @@ public class Scene implements EventTarget {
         }
     }
 
-    /***************************************************************************
+    /* *************************************************************************
      *                                                                         *
      * Key Events and Focus Traversal                                          *
      *                                                                         *
@@ -2135,7 +2136,7 @@ public class Scene implements EventTarget {
         traverse(node, Direction.NEXT);
     }
 
-    public void processKeyEvent(KeyEvent e) {
+    void processKeyEvent(KeyEvent e) {
         if (dndGesture != null) {
             if (!dndGesture.processKey(e)) {
                 dndGesture = null;
@@ -2221,7 +2222,7 @@ public class Scene implements EventTarget {
         }
     }
 
-    public void enableInputMethodEvents(boolean enable) {
+    void enableInputMethodEvents(boolean enable) {
        if (peer != null) {
            peer.enableInputMethodEvents(enable);
        }
@@ -2344,7 +2345,7 @@ public class Scene implements EventTarget {
 
     //INNER CLASSES
 
-    /*******************************************************************************
+    /* *****************************************************************************
      *                                                                             *
      * Scene Pulse Listener                                                        *
      *                                                                             *
@@ -2568,7 +2569,7 @@ public class Scene implements EventTarget {
         }
     }
 
-    /*******************************************************************************
+    /* *****************************************************************************
      *                                                                             *
      * Scene Peer Listener                                                         *
      *                                                                             *
@@ -2898,7 +2899,7 @@ public class Scene implements EventTarget {
         }
     }
 
-    /*******************************************************************************
+    /* *****************************************************************************
      *                                                                             *
      * Drag and Drop                                                               *
      *                                                                             *
@@ -3438,7 +3439,7 @@ public class Scene implements EventTarget {
         }
     }
 
-    /*******************************************************************************
+    /* *****************************************************************************
      *                                                                             *
      * Mouse Event Handling                                                        *
      *                                                                             *
@@ -4025,7 +4026,7 @@ public class Scene implements EventTarget {
         }
     }
 
-    /*******************************************************************************
+    /* *****************************************************************************
      *                                                                             *
      * Key Event Handling                                                          *
      *                                                                             *
@@ -4095,7 +4096,7 @@ public class Scene implements EventTarget {
             setFocusOwner(node);
         }
     }
-    /***************************************************************************
+    /* *************************************************************************
      *                                                                         *
      *                         Event Dispatch                                  *
      *                                                                         *
@@ -4385,7 +4386,7 @@ public class Scene implements EventTarget {
         return tail;
     }
 
-    /***************************************************************************
+    /* *************************************************************************
      *                                                                         *
      *                             Context Menus                               *
      *                                                                         *
@@ -4430,7 +4431,7 @@ public class Scene implements EventTarget {
         return onContextMenuRequested;
     }
 
-    /***************************************************************************
+    /* *************************************************************************
      *                                                                         *
      *                             Mouse Handling                              *
      *                                                                         *
@@ -4883,7 +4884,7 @@ public class Scene implements EventTarget {
     }
 
 
-    /***************************************************************************
+    /* *************************************************************************
      *                                                                         *
      *                           Gestures Handling                             *
      *                                                                         *
@@ -5373,7 +5374,7 @@ public class Scene implements EventTarget {
         return onSwipeRight;
     }
 
-    /***************************************************************************
+    /* *************************************************************************
      *                                                                         *
      *                            Touch Handling                               *
      *                                                                         *
@@ -5611,7 +5612,7 @@ public class Scene implements EventTarget {
     }
 
 
-    /***************************************************************************
+    /* *************************************************************************
      *                                                                         *
      *                         Drag and Drop Handling                          *
      *                                                                         *
@@ -5924,7 +5925,7 @@ public class Scene implements EventTarget {
                 + "mouse button is not pressed");
     }
 
-    /***************************************************************************
+    /* *************************************************************************
      *                                                                         *
      *                           Keyboard Handling                             *
      *                                                                         *
@@ -6051,7 +6052,7 @@ public class Scene implements EventTarget {
         return onKeyTyped;
     }
 
-    /***************************************************************************
+    /* *************************************************************************
      *                                                                         *
      *                           Input Method Handling                         *
      *                                                                         *
@@ -6184,7 +6185,7 @@ public class Scene implements EventTarget {
         }
     }
 
-    /*************************************************************************
+    /* ***********************************************************************
     *                                                                        *
     *                                                                        *
     *                                                                        *
@@ -6248,7 +6249,7 @@ public class Scene implements EventTarget {
         return getProperties().get(USER_DATA_KEY);
     }
 
-    /***************************************************************************
+    /* *************************************************************************
      *                                                                         *
      *                       Component Orientation Properties                  *
      *                                                                         *
