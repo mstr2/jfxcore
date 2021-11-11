@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +26,9 @@
 
 package javafx.beans.value;
 
+import com.sun.javafx.binding.ExpressionHelper;
+import javafx.beans.InvalidationListener;
+
 /**
  * An observable double value.
  *
@@ -42,4 +46,68 @@ public interface ObservableDoubleValue extends ObservableNumberValue {
      * @return The current value
      */
     double get();
+
+    /**
+     * Returns a new {@link ObservableDoubleValue} that wraps a constant double value.
+     *
+     * @param value the constant double value
+     * @return the new {@link ObservableDoubleValue}
+     *
+     * @since JFXcore 18
+     */
+    static ObservableDoubleValue observableDoubleValue(Number value) {
+        return new ObservableDoubleValue() {
+            private ExpressionHelper<Number> helper;
+
+            @Override
+            public double get() {
+                return value != null ? value.doubleValue() : 0;
+            }
+
+            @Override
+            public Number getValue() {
+                return value;
+            }
+
+            @Override
+            public int intValue() {
+                return value != null ? value.intValue() : 0;
+            }
+
+            @Override
+            public long longValue() {
+                return value != null ? value.longValue() : 0;
+            }
+
+            @Override
+            public float floatValue() {
+                return value != null ? value.floatValue() : 0;
+            }
+
+            @Override
+            public double doubleValue() {
+                return value != null ? value.doubleValue() : 0;
+            }
+
+            @Override
+            public void addListener(ChangeListener<? super Number> listener) {
+                helper = ExpressionHelper.addListener(helper, this, listener);
+            }
+
+            @Override
+            public void removeListener(ChangeListener<? super Number> listener) {
+                helper = ExpressionHelper.removeListener(helper, listener);
+            }
+
+            @Override
+            public void addListener(InvalidationListener listener) {
+                helper = ExpressionHelper.addListener(helper, this, listener);
+            }
+
+            @Override
+            public void removeListener(InvalidationListener listener) {
+                helper = ExpressionHelper.removeListener(helper, listener);
+            }
+        };
+    }
 }

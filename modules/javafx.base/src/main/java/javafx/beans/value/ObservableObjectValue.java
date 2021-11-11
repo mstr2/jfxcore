@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +26,8 @@
 
 package javafx.beans.value;
 
+import javafx.beans.InvalidationListener;
+
 /**
  * An observable typed {@code Object} value.
  *
@@ -41,4 +44,36 @@ public interface ObservableObjectValue<T> extends ObservableValue<T> {
      * @return The current value
      */
     T get();
+
+    /**
+     * Returns a new {@link ObservableObjectValue} that wraps a constant value.
+     *
+     * @param value the constant value
+     * @return the new {@link ObservableObjectValue}
+     */
+    static <T> ObservableObjectValue<T> observableObjectValue(T value) {
+        return new ObservableObjectValue<>() {
+            @Override
+            public T get() {
+                return value;
+            }
+
+            @Override
+            public T getValue() {
+                return value;
+            }
+
+            @Override
+            public void addListener(ChangeListener<? super T> listener) {}
+
+            @Override
+            public void removeListener(ChangeListener<? super T> listener) {}
+
+            @Override
+            public void addListener(InvalidationListener listener) {}
+
+            @Override
+            public void removeListener(InvalidationListener listener) {}
+        };
+    }
 }
