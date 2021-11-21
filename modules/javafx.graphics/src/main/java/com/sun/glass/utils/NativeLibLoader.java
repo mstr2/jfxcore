@@ -236,7 +236,7 @@ public class NativeLibLoader {
         String jfxVersion = System.getProperty("javafx.runtime.version", "versionless");
         String userCache = System.getProperty("javafx.cachedir", "");
         if (userCache.isEmpty()) {
-            userCache = System.getProperty("user.home") + "/.openjfx/cache/" + jfxVersion;
+            userCache = System.getProperty("user.home") + "/.jfxcore/cache/" + jfxVersion;
         }
         File cacheDir = new File(userCache);
         boolean cacheDirOk = true;
@@ -257,7 +257,7 @@ public class NativeLibLoader {
         }
         if (!cacheDirOk) {
             String username = System.getProperty("user.name", "anonymous");
-            String tmpCache = System.getProperty("java.io.tmpdir") + "/.openjfx_" + username + "/cache/" + jfxVersion;
+            String tmpCache = System.getProperty("java.io.tmpdir") + "/.jfxcore_" + username + "/cache/" + jfxVersion;
             cacheDir = new File(tmpCache);
             if (cacheDir.exists()) {
                 if (!cacheDir.isDirectory()) {

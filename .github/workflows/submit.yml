@@ -34,7 +34,7 @@
 # building the media and webkit libraries.
 #
 
-name: JavaFX pre-submit tests
+name: JFXcore pre-submit tests
 
 on:
   # Run GitHub actions on every push to all branches except the main production branches, also

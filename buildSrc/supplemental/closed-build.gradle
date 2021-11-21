@@ -1,0 +1,43 @@
+def buildPublicationsTask = task("buildPublications", group: "build", dependsOn: javadoc)
+
+def copyJavafxPomFile = project(":base").task("copyJavafxPomFile", group: "build", type: Copy) {
+    dependsOn "generatePomFileForJavafxPublication"
+    from "${project(':base').buildDir}/publications/javafx"
+    into "${rootProject.buildDir}/publications"
+    rename "pom-default.xml", "javafx.pom"
+}
+buildPublicationsTask.dependsOn(copyJavafxPomFile)
+
+moduleProjList.each { project ->
+    def copyPublicationPomFile = project.task("copyPublicationPomFile", group: "build", type: Copy) {
+        dependsOn "generatePomFileForMavenPublication"
+        from "${project.buildDir}/publications/maven"
+        into "${rootProject.buildDir}/publications"
+        rename "pom-default.xml", "${project.ext.moduleName}.pom"
+    }
+
+    def publicationSourcesJar = project.task("publicationSourcesJar", group: "build", type: Jar) {
+        destinationDirectory = file("${rootProject.buildDir}/publications")
+        archiveFileName = "${project.ext.moduleName}-sources.jar"
+        from "${rootProject.buildDir}/modular-sdk/modules_src/${project.ext.moduleName}"
+    }
+
+    buildPublicationsTask.dependsOn(copyPublicationPomFile, publicationSourcesJar)
+
+    def publicationJavadocJar = project.tasks.findByName("publicationJavadocJar")
+    if (publicationJavadocJar == null && project.ext.moduleName.startsWith("javafx.")) {
+        publicationJavadocJar = project.task("publicationJavadocJar", group: "build", type: Jar) {
+            destinationDirectory = file("${rootProject.buildDir}/publications")
+            archiveFileName = "${project.ext.moduleName}-javadoc.jar"
+            from "${rootProject.buildDir}/javadoc"
+        }
+    }
+
+    if (publicationJavadocJar != null) {
+        buildPublicationsTask.dependsOn(publicationJavadocJar)
+    }
+}
+
+compileTargets { t ->
+    buildPublicationsTask.dependsOn(rootProject.tasks.findByName("buildModules${t.capital}"))
+}

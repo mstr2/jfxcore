@@ -1,0 +1,214 @@
+name: JFXcore release
+
+on:
+  release:
+    types: [created]
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  validation:
+    name: "Gradle Wrapper Validation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: gradle/wrapper-validation-action@v1
+
+  linux_build:
+    name: Linux x64
+    needs: validation
+    runs-on: "ubuntu-20.04"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '16.0.2'
+
+      - name: Install libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install libgl1-mesa-dev libx11-dev libxxf86vm-dev libxt-dev pkg-config libgtk2.0-dev libgtk-3-dev libxtst-dev libasound2-dev gperf gcc-10=10.3.0-1ubuntu1~20.04 g++-10=10.3.0-1ubuntu1~20.04
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+
+      - name: Get tag name
+        id: tagName
+        uses: little-core-labs/get-git-tag@v3.0.1
+        if: github.event_name == 'release'
+
+      - name: Build snapshot
+        run: ./gradlew buildPublications -x test -PCONF=Release -PCOMPILE_WEBKIT=true -PCOMPILE_MEDIA=true -PBUILD_LIBAV_STUBS=true -PMAVEN_PUBLISH=true -PTAG_VERSION=SNAPSHOT
+        if: github.event_name == 'push'
+
+      - name: Build release
+        run: ./gradlew buildPublications -x test -PCONF=Release -PCOMPILE_WEBKIT=true -PCOMPILE_MEDIA=true -PBUILD_LIBAV_STUBS=true -PMAVEN_PUBLISH=true -PTAG_VERSION="${{ steps.tagName.outputs.tag }}"
+        if: github.event_name == 'release'
+
+      - name: Export build artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: artifacts-linux
+          path: build/publications
+
+  macos_build:
+    name: macOS x64
+    needs: validation
+    runs-on: "macos-10.15"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '16.0.2'
+
+      - name: Get tag name
+        id: tagName
+        uses: little-core-labs/get-git-tag@v3.0.1
+        if: github.event_name == 'release'
+
+      - name: Build snapshot
+        run: ./gradlew buildPublications -x test -PCONF=Release -PCOMPILE_WEBKIT=true -PCOMPILE_MEDIA=true -PBUILD_LIBAV_STUBS=true -PMAVEN_PUBLISH=true -PTAG_VERSION=SNAPSHOT
+        if: github.event_name == 'push'
+
+      - name: Build release
+        run: ./gradlew buildPublications -x test -PCONF=Release -PCOMPILE_WEBKIT=true -PCOMPILE_MEDIA=true -PBUILD_LIBAV_STUBS=true -PMAVEN_PUBLISH=true -PTAG_VERSION="${{ steps.tagName.outputs.tag }}"
+        if: github.event_name == 'release'
+
+      - name: Export build artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: artifacts-mac
+          path: build/publications
+
+  windows_build:
+    name: Windows x64
+    needs: validation
+    runs-on: "windows-2019"
+    env:
+      VS150COMNTOOLS: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\\Auxiliary\\Build"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '16.0.2'
+
+      - name: Install gperf
+        run: choco install gperf
+
+      - name: Install cygwin
+        run: |
+          New-Item -Force -ItemType directory -Path "C:\cygwin"
+          & curl -L "https://www.cygwin.com/setup-x86_64.exe" -o "C:/cygwin/setup-x86_64.exe"
+          Start-Process -FilePath "C:\cygwin\setup-x86_64.exe" -ArgumentList "--quiet-mode --packages make,makedepend,zip,unzip --root C:\cygwin\cygwin64 --local-package-dir C:\cygwin\packages --site http://mirrors.kernel.org/sourceware/cygwin --no-desktop --no-shortcuts --no-startmenu --no-admin" -Wait -NoNewWindow
+
+      - name: Set up environment
+        run: echo "WORKING_DIR=$(Resolve-Path .\)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Get tag name
+        id: tagName
+        uses: little-core-labs/get-git-tag@v3.0.1
+        if: github.event_name == 'release'
+
+      - name: Build snapshot
+        shell: C:\cygwin\cygwin64\bin\bash.exe --login --norc -eo pipefail -o igncr '{0}'
+        run: |
+          cd $WORKING_DIR
+          ./gradlew buildPublications -x test -PCONF=Release -PCOMPILE_WEBKIT=true -PCOMPILE_MEDIA=true -PBUILD_LIBAV_STUBS=true -PMAVEN_PUBLISH=true -PTAG_VERSION=SNAPSHOT
+        if: github.event_name == 'push'
+
+      - name: Build release
+        shell: C:\cygwin\cygwin64\bin\bash.exe --login --norc -eo pipefail -o igncr '{0}'
+        run: |
+          cd $WORKING_DIR
+          ./gradlew buildPublications -x test -PCONF=Release -PCOMPILE_WEBKIT=true -PCOMPILE_MEDIA=true -PBUILD_LIBAV_STUBS=true -PMAVEN_PUBLISH=true -PTAG_VERSION="${{ steps.tagName.outputs.tag }}"
+        if: github.event_name == 'release'
+
+      - name: Export build artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: artifacts-win
+          path: build/publications
+
+  deploy:
+    name: Deployment
+    needs: [linux_build, macos_build, windows_build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Import Windows artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: artifacts-win
+          path: ./
+
+      - name: Import macOS artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: artifacts-mac
+          path: ./
+
+      - name: Import Linux artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: artifacts-linux
+          path: ./
+
+      - name: Locate local repository
+        id: localRepository
+        run: echo ::set-output name=location::$(mvn help:evaluate "-Dexpression=settings.localRepository" "-q" "-DforceStdout")
+
+      - name: Locate remote repository
+        id: remoteRepository
+        run: echo ::set-output name=location::$([ "${{ github.event_name }}" = "release" ] && echo "${STAGING}" || echo "${SNAPSHOT}")
+        env:
+          SNAPSHOT: https://oss.sonatype.org/content/repositories/snapshots
+          STAGING: https://oss.sonatype.org/service/local/staging/deploy/maven2
+
+      - name: Configure Maven
+        run: |
+          cat <<EOT >> ${{ steps.localRepository.outputs.location }}/../settings.xml
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd">
+            <servers>
+              <server>
+                <id>nexus</id>
+                <username>${{ secrets.SONATYPE_USERNAME }}</username>
+                <password>${{ secrets.SONATYPE_PASSWORD }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOT
+
+      - name: Configure GPG
+        run: |
+          cat <<EOT >> ./gpgkey
+          ${{ secrets.SIGNING_KEY }}
+          EOT
+          gpg --batch --import ./gpgkey
+          cat <<EOT >> ~/.gnupg/gpg.conf
+          pinentry-mode loopback
+          default-key 0x${{ secrets.SIGNING_KEYNAME }}
+          EOT
+
+      - name: Deploy artifacts
+        run: |
+          mvn gpg:sign-and-deploy-file -DrepositoryId=nexus -Durl=${URL} -Dgpg.passphrase=${{ secrets.SIGNING_PASSWORD }} -DpomFile=javafx.pom -Dfile=javafx.pom
+          mvn gpg:sign-and-deploy-file -DrepositoryId=nexus -Durl=${URL} -Dgpg.passphrase=${{ secrets.SIGNING_PASSWORD }} -DpomFile=javafx.base.pom -Dfile=javafx.base.jar -Dsources=javafx.base-sources.jar -Djavadoc=javafx.base-javadoc.jar
+          mvn gpg:sign-and-deploy-file -DrepositoryId=nexus -Durl=${URL} -Dgpg.passphrase=${{ secrets.SIGNING_PASSWORD }} -DpomFile=javafx.fxml.pom -Dfile=javafx.fxml.jar -Dsources=javafx.fxml-sources.jar -Djavadoc=javafx.fxml-javadoc.jar
+          mvn gpg:sign-and-deploy-file -DrepositoryId=nexus -Durl=${URL} -Dgpg.passphrase=${{ secrets.SIGNING_PASSWORD }} -DpomFile=javafx.controls.pom -Dfile=javafx.controls.jar -Dsources=javafx.controls-sources.jar -Djavadoc=javafx.controls-javadoc.jar
+          mvn gpg:sign-and-deploy-file -DrepositoryId=nexus -Durl=${URL} -Dgpg.passphrase=${{ secrets.SIGNING_PASSWORD }} -DpomFile=javafx.graphics.pom -Dfile=javafx.graphics.jar -Dsources=javafx.graphics-sources.jar -Djavadoc=javafx.graphics-javadoc.jar -Dfiles=javafx.graphics-win.jar,javafx.graphics-mac.jar,javafx.graphics-linux.jar -Dtypes=jar,jar,jar -Dclassifiers=win,mac,linux
+          mvn gpg:sign-and-deploy-file -DrepositoryId=nexus -Durl=${URL} -Dgpg.passphrase=${{ secrets.SIGNING_PASSWORD }} -DpomFile=javafx.media.pom -Dfile=javafx.media.jar -Dsources=javafx.media-sources.jar -Djavadoc=javafx.media-javadoc.jar -Dfiles=javafx.media-win.jar,javafx.media-mac.jar,javafx.media-linux.jar -Dtypes=jar,jar,jar -Dclassifiers=win,mac,linux
+          mvn gpg:sign-and-deploy-file -DrepositoryId=nexus -Durl=${URL} -Dgpg.passphrase=${{ secrets.SIGNING_PASSWORD }} -DpomFile=javafx.swing.pom -Dfile=javafx.swing.jar -Dsources=javafx.swing-sources.jar -Djavadoc=javafx.swing-javadoc.jar -Dfiles=javafx.swing-win.jar,javafx.swing-mac.jar,javafx.swing-linux.jar -Dtypes=jar,jar,jar -Dclassifiers=win,mac,linux
+          mvn gpg:sign-and-deploy-file -DrepositoryId=nexus -Durl=${URL} -Dgpg.passphrase=${{ secrets.SIGNING_PASSWORD }} -DpomFile=javafx.web.pom -Dfile=javafx.web.jar -Dsources=javafx.web-sources.jar -Djavadoc=javafx.web-javadoc.jar -Dfiles=javafx.web-win.jar,javafx.web-mac.jar,javafx.web-linux.jar -Dtypes=jar,jar,jar -Dclassifiers=win,mac,linux
+        env:
+          URL: ${{ steps.remoteRepository.outputs.location }}

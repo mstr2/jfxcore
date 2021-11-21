@@ -1,0 +1,22 @@
+if (project.hasProperty("TAG_VERSION")) {
+    if (TAG_VERSION == "SNAPSHOT") {
+        defineProperty("HUDSON_JOB_NAME", "jfx")
+        defineProperty("RELEASE_SUFFIX", "-SNAPSHOT")
+    } else {
+        def version = Runtime.Version.parse(TAG_VERSION)
+
+        defineProperty("HUDSON_JOB_NAME", "jfx")
+        defineProperty("PROMOTED_BUILD_NUMBER", Integer.toString(version.build().orElse(0)))
+        defineProperty("MILESTONE_FCS", Boolean.toString(version.pre().isEmpty()))
+        defineProperty("RELEASE_VERSION", version.version().join("."))
+        defineProperty("RELEASE_VERSION_PADDED", Arrays.copyOf(version.version().toArray(), 4).collect({ it ?: "0" }).join("."))
+        defineProperty("RELEASE_SUFFIX", version.pre().isPresent() ? "-" + version.pre().get() : "")
+        defineProperty("RELEASE_VERSION_SHORT", "${RELEASE_VERSION}${RELEASE_SUFFIX}")
+
+        if (version.build().isPresent()) {
+            defineProperty("RELEASE_VERSION_LONG", "${RELEASE_VERSION}${RELEASE_SUFFIX}+${PROMOTED_BUILD_NUMBER}")
+        } else {
+            defineProperty("RELEASE_VERSION_LONG", "${RELEASE_VERSION}${RELEASE_SUFFIX}")
+        }
+    }
+}

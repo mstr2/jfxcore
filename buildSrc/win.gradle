@@ -299,10 +299,10 @@ else {
 
 // Product version variables passed to RC:
 def rcVer = "$RELEASE_VERSION"
-def rcVerMajor = Integer.parseInt(jfxReleaseMajorVersion)
-def rcVerMinor = Integer.parseInt(jfxReleaseMinorVersion)
-def rcVerSecurity = Integer.parseInt(jfxReleaseSecurityVersion)
-def rcVerPatch = Integer.parseInt(jfxReleasePatchVersion)
+def rcVerMajor = Integer.parseInt(RELEASE_VERSION_PADDED.split('\\.')[0])
+def rcVerMinor = Integer.parseInt(RELEASE_VERSION_PADDED.split('\\.')[1])
+def rcVerSecurity = Integer.parseInt(RELEASE_VERSION_PADDED.split('\\.')[2])
+def rcVerPatch = Integer.parseInt(RELEASE_VERSION_PADDED.split('\\.')[3])
 def rcVerFile = "${rcVerMajor},${rcVerMinor},${rcVerSecurity},${rcVerPatch}"
 def rcVerBuild = "$RELEASE_VERSION_LONG"
 def rcVerCopyrYear = "${Calendar.getInstance().get(Calendar.YEAR)}"
