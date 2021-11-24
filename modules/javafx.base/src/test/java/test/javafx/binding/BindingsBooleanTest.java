@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,8 +31,7 @@ import javafx.beans.InvalidationListener;
 import test.javafx.beans.InvalidationListenerMock;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableBooleanValue;
 
@@ -420,5 +420,44 @@ public class BindingsBooleanTest {
             this.listener = null;
         }
 
+    }
+
+    @Test
+    public void testToBoolean() {
+        var boolOp = new SimpleBooleanProperty(false);
+        var binding = Bindings.toBoolean(boolOp);
+        assertFalse(binding.get());
+        boolOp.set(true);
+        assertTrue(binding.get());
+
+        var intOp = new SimpleIntegerProperty(0);
+        binding = Bindings.toBoolean(intOp);
+        assertFalse(binding.get());
+        intOp.set(5);
+        assertTrue(binding.get());
+
+        var longOp = new SimpleLongProperty(0);
+        binding = Bindings.toBoolean(longOp);
+        assertFalse(binding.get());
+        longOp.set(5);
+        assertTrue(binding.get());
+
+        var floatOp = new SimpleFloatProperty(0);
+        binding = Bindings.toBoolean(floatOp);
+        assertFalse(binding.get());
+        floatOp.set(5);
+        assertTrue(binding.get());
+
+        var doubleOp = new SimpleDoubleProperty(0);
+        binding = Bindings.toBoolean(doubleOp);
+        assertFalse(binding.get());
+        doubleOp.set(5);
+        assertTrue(binding.get());
+
+        var objOp = new SimpleObjectProperty<Double>();
+        binding = Bindings.toBoolean(objOp);
+        assertFalse(binding.get());
+        objOp.set(5.0);
+        assertTrue(binding.get());
     }
 }

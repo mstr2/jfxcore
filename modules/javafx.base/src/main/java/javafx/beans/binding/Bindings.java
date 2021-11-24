@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -4839,6 +4840,93 @@ public final class Bindings {
             @Override
             public ObservableList<?> getDependencies() {
                 return new ImmutableObservableList<ObservableBooleanValue>(op1, op2);
+            }
+        };
+    }
+
+    /**
+     * Creates a new {@link BooleanBinding} that holds {@code false} if the dependent
+     * observable is either {@code null}, {@code false} or 0; {@code true} otherwise.
+     *
+     * @param observable the dependent observable
+     * @return the new {@link BooleanBinding}
+     * @throws NullPointerException if the observable is {@code null}
+     */
+    public static BooleanBinding toBoolean(final ObservableValue<?> observable) {
+        return new BooleanBinding() {
+            {
+                if (observable == null) {
+                    throw new NullPointerException("Observable cannot be null.");
+                }
+
+                if (observable instanceof ObservableBooleanValue) {
+                    evaluator = ((ObservableBooleanValue)observable)::get;
+                } else if (observable instanceof ObservableIntegerValue) {
+                    evaluator = () -> ((ObservableIntegerValue)observable).intValue() != 0;
+                } else if (observable instanceof ObservableLongValue) {
+                    evaluator = () -> ((ObservableLongValue)observable).longValue() != 0;
+                } else if (observable instanceof ObservableFloatValue) {
+                    evaluator = () -> ((ObservableFloatValue)observable).floatValue() != 0;
+                } else if (observable instanceof ObservableDoubleValue) {
+                    evaluator = () -> ((ObservableDoubleValue)observable).doubleValue() != 0;
+                } else {
+                    evaluator = () -> {
+                        Object value = observable.getValue();
+
+                        if (value instanceof Boolean) {
+                            return (Boolean)value;
+                        }
+
+                        if (value instanceof Number) {
+                            if (value instanceof Integer) {
+                                return (Integer)value != 0;
+                            }
+
+                            if (value instanceof Double) {
+                                return (Double)value != 0;
+                            }
+
+                            if (value instanceof Long) {
+                                return (Long)value != 0;
+                            }
+
+                            if (value instanceof Byte) {
+                                return (Byte)value != 0;
+                            }
+
+                            if (value instanceof Float) {
+                                return (Float)value != 0;
+                            }
+
+                            return (Short)value != 0;
+                        }
+
+                        if (value instanceof Character) {
+                            return (Character)value != 0;
+                        }
+
+                        return value != null;
+                    };
+                }
+
+                bind(observable);
+            }
+
+            private final java.util.function.BooleanSupplier evaluator;
+
+            @Override
+            protected boolean computeValue() {
+                return evaluator.getAsBoolean();
+            }
+
+            @Override
+            public void dispose() {
+                super.unbind(observable);
+            }
+
+            @Override
+            public ObservableList<?> getDependencies() {
+                return FXCollections.singletonObservableList(observable);
             }
         };
     }
