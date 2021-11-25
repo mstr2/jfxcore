@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,6 +27,7 @@
 package javafx.scene.control.skin;
 
 import com.sun.javafx.scene.control.Properties;
+import com.sun.javafx.scene.control.template.TemplateObserver;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.WeakInvalidationListener;
@@ -151,6 +153,8 @@ public class TreeViewSkin<T> extends VirtualContainerBase<TreeView<T>, TreeCell<
      */
     public TreeViewSkin(final TreeView control) {
         super(control);
+
+        TemplateObserver.install(control);
 
         // install default input map for the TreeView control
         behavior = new TreeViewBehavior<>(control);

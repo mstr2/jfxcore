@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.sun.javafx.scene.control.Properties;
+import com.sun.javafx.scene.control.template.TemplateObserver;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.collections.FXCollections;
@@ -190,6 +192,8 @@ public class ListViewSkin<T> extends VirtualContainerBase<ListView<T>, ListCell<
      */
     public ListViewSkin(final ListView<T> control) {
         super(control);
+
+        TemplateObserver.install(control);
 
         // install default input map for the ListView control
         behavior = new ListViewBehavior<>(control);
