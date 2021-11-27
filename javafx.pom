@@ -9,6 +9,7 @@
     <packaging>pom</packaging>
     <name>jfxcore</name>
     <description>JFXcore</description>
+    <url>https://github.com/jfxcore/jfx</url>
     <properties>
         <javafx.version>@VERSION@</javafx.version>
     </properties>
@@ -60,4 +61,25 @@
             </properties>
         </profile>
     </profiles>
+    <licenses>
+        <license>
+            <name>GPLv2+CE</name>
+            <url>https://openjdk.java.net/legal/gplv2+ce.html</url>
+            <distribution>repo</distribution>
+            <comments>GNU General Public License version 2 with the Classpath Exception</comments>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>jfxcore</id>
+            <name>JFXcore</name>
+            <organization>JFXcore</organization>
+            <organizationUrl>https://github.com/jfxcore</organizationUrl>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/jfxcore/jfx.git</connection>
+        <developerConnection>scm:git:https://github.com/jfxcore/jfx.git</developerConnection>
+        <url>https://github.com/jfxcore/jfx</url>
+    </scm>
 </project>
