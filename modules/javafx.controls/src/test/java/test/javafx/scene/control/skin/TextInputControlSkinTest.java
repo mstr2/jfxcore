@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,7 +33,12 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.skin.TextAreaSkin;
 import javafx.scene.control.skin.TextFieldSkin;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.NodeState;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import test.com.sun.javafx.scene.control.infrastructure.KeyEventFirer;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -103,6 +109,27 @@ public class TextInputControlSkinTest {
         // and that the default point is returned.
         Point2D point = textField.getInputMethodRequests().getTextLocation(0);
         assertEquals(new Point2D(0, 0), point);
+    }
+
+    @Test public void userModifiedWhenTextIsTyped() {
+        TextField textField = new TextField();
+        textField.setSkin(new TextFieldSkin(textField));
+        assertFalse(NodeState.isUserModified(textField));
+
+        KeyEventFirer firer = new KeyEventFirer(textField.getSkin().getNode());
+        firer.doKeyTyped(KeyCode.A);
+        assertEquals("A", textField.getText());
+        assertTrue(NodeState.isUserModified(textField));
+    }
+
+    @Test public void notUserModifiedWhenTextIsChangedProgrammatically() {
+        TextField textField = new TextField();
+        textField.setSkin(new TextFieldSkin(textField));
+        assertFalse(NodeState.isUserModified(textField));
+
+        textField.setText("A");
+        assertEquals("A", textField.getText());
+        assertFalse(NodeState.isUserModified(textField));
     }
 
     public class FocusableTextField extends TextField {

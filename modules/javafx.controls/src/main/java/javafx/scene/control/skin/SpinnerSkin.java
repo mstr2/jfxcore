@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,13 +26,10 @@
 package javafx.scene.control.skin;
 
 import com.sun.javafx.scene.ParentHelper;
-import com.sun.javafx.scene.control.behavior.BehaviorBase;
 import com.sun.javafx.scene.traversal.Algorithm;
 import com.sun.javafx.scene.control.FakeFocusTextField;
 import com.sun.javafx.scene.traversal.Direction;
 import com.sun.javafx.scene.traversal.ParentTraversalEngine;
-import javafx.scene.control.Accordion;
-import javafx.scene.control.Button;
 import javafx.scene.control.Control;
 import javafx.scene.control.SkinBase;
 import com.sun.javafx.scene.control.behavior.SpinnerBehavior;
@@ -47,10 +45,12 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.NodeState;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Default skin implementation for the {@link Spinner} control.
@@ -86,6 +86,7 @@ public class SpinnerSkin<T> extends SkinBase<Spinner<T>> {
 
     private final SpinnerBehavior behavior;
 
+    private T valueOnFocused;
 
 
     /* *************************************************************************
@@ -125,7 +126,14 @@ public class SpinnerSkin<T> extends SkinBase<Spinner<T>> {
         incrementArrowButton = new StackPane() {
             public void executeAccessibleAction(AccessibleAction action, Object... parameters) {
                 switch (action) {
-                    case FIRE: getSkinnable().increment(); break;
+                    case FIRE:
+                        T oldValue = getSkinnable().getValue();
+                        getSkinnable().increment();
+                        T newValue = getSkinnable().getValue();
+                        if (!Objects.equals(oldValue, newValue)) {
+                            NodeState.setUserModified(getSkinnable(), true);
+                        }
+                        break;
                     default: super.executeAccessibleAction(action, parameters);
                 }
             }
@@ -150,7 +158,14 @@ public class SpinnerSkin<T> extends SkinBase<Spinner<T>> {
         decrementArrowButton = new StackPane() {
             public void executeAccessibleAction(AccessibleAction action, Object... parameters) {
                 switch (action) {
-                    case FIRE: getSkinnable().decrement(); break;
+                    case FIRE:
+                        T oldValue = getSkinnable().getValue();
+                        getSkinnable().decrement();
+                        T newValue = getSkinnable().getValue();
+                        if (!Objects.equals(oldValue, newValue)) {
+                            NodeState.setUserModified(getSkinnable(), true);
+                        }
+                        break;
                     default: super.executeAccessibleAction(action, parameters);
                 }
             }
@@ -173,6 +188,12 @@ public class SpinnerSkin<T> extends SkinBase<Spinner<T>> {
         control.focusedProperty().addListener((ov, t, hasFocus) -> {
             // Fix for the regression noted in a comment in RT-29885.
             ((FakeFocusTextField)textField).setFakeFocus(hasFocus);
+
+            if (hasFocus) {
+                valueOnFocused = control.getValue();
+            } else if (!Objects.equals(control.getValue(), valueOnFocused)) {
+                NodeState.setUserModified(control, true);
+            }
         });
 
         control.addEventFilter(KeyEvent.ANY, ke -> {

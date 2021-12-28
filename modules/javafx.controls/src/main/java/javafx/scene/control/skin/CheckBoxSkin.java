@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +26,7 @@
 
 package javafx.scene.control.skin;
 
-import com.sun.javafx.scene.control.behavior.BehaviorBase;
+import com.sun.javafx.scene.control.behavior.CheckBoxBehavior;
 import com.sun.javafx.scene.control.skin.Utils;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -52,7 +53,7 @@ public class CheckBoxSkin extends LabeledSkinBase<CheckBox> {
 
     private final StackPane box = new StackPane();
     private StackPane innerbox;
-    private final BehaviorBase<CheckBox> behavior;
+    private final CheckBoxBehavior behavior;
 
 
 
@@ -73,7 +74,7 @@ public class CheckBoxSkin extends LabeledSkinBase<CheckBox> {
         super(control);
 
         // install default input map for the CheckBox control
-        behavior = new ButtonBehavior<>(control);
+        behavior = new CheckBoxBehavior(control);
 //        control.setInputMap(behavior.getInputMap());
 
         box.getStyleClass().setAll("box");

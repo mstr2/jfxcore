@@ -57,12 +57,14 @@ module javafx.base {
         javafx.graphics;
     exports com.sun.javafx.binding to
         javafx.controls,
-        javafx.graphics;
+        javafx.graphics,
+        javafx.validation;
     exports com.sun.javafx.collections to
         javafx.controls,
         javafx.graphics,
         javafx.media,
-        javafx.swing;
+        javafx.swing,
+        javafx.validation;
     exports com.sun.javafx.event to
         javafx.controls,
         javafx.graphics;
@@ -71,7 +73,8 @@ module javafx.base {
         javafx.graphics,
         javafx.fxml,
         javafx.swing,
-        javafx.web;
+        javafx.web,
+        javafx.validation;
     exports com.sun.javafx.property to
         javafx.controls;
     exports com.sun.javafx.reflect to

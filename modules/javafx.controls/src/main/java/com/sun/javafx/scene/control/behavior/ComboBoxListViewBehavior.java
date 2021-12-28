@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +29,7 @@ package com.sun.javafx.scene.control.behavior;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ComboBoxBase;
 import javafx.scene.control.SelectionModel;
+import javafx.scene.input.NodeState;
 import com.sun.javafx.scene.control.inputmap.InputMap;
 
 import static javafx.scene.input.KeyCode.DOWN;
@@ -69,12 +71,20 @@ public class ComboBoxListViewBehavior<T> extends ComboBoxBaseBehavior<T> {
     private void selectPrevious() {
         SelectionModel<T> sm = getComboBox().getSelectionModel();
         if (sm == null) return;
+        int oldIndex = sm.getSelectedIndex();
         sm.selectPrevious();
+        if (oldIndex != sm.getSelectedIndex()) {
+            NodeState.setUserModified(getComboBox(), true);
+        }
     }
 
     private void selectNext() {
         SelectionModel<T> sm = getComboBox().getSelectionModel();
         if (sm == null) return;
+        int oldIndex = sm.getSelectedIndex();
         sm.selectNext();
+        if (oldIndex != sm.getSelectedIndex()) {
+            NodeState.setUserModified(getComboBox(), true);
+        }
     }
 }

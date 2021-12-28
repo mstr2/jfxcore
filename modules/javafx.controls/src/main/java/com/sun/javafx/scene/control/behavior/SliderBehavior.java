@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +32,7 @@ import javafx.scene.control.Slider;
 import com.sun.javafx.scene.control.inputmap.InputMap;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.NodeState;
 import com.sun.javafx.util.Utils;
 import static javafx.scene.input.KeyCode.*;
 
@@ -39,6 +41,7 @@ public class SliderBehavior extends BehaviorBase<Slider> {
     private final InputMap<Slider> sliderInputMap;
 
     private TwoLevelFocusBehavior tlFocus;
+    private double thumbPressedValue;
 
     public SliderBehavior(Slider slider) {
         super(slider);
@@ -109,12 +112,17 @@ public class SliderBehavior extends BehaviorBase<Slider> {
         // determine the percentage of the way between min and max
         // represented by this mouse event
         final Slider slider = getNode();
+        double oldValue = slider.getValue();
         // If not already focused, request focus
         if (!slider.isFocused()) slider.requestFocus();
         if (slider.getOrientation().equals(Orientation.HORIZONTAL)) {
             slider.adjustValue(position * (slider.getMax() - slider.getMin()) + slider.getMin());
         } else {
             slider.adjustValue((1-position) * (slider.getMax() - slider.getMin()) + slider.getMin());
+        }
+        double newValue = slider.getValue();
+        if (oldValue != newValue) {
+            NodeState.setUserModified(slider, true);
         }
     }
 
@@ -127,6 +135,7 @@ public class SliderBehavior extends BehaviorBase<Slider> {
         final Slider slider = getNode();
         if (!slider.isFocused())  slider.requestFocus();
         slider.setValueChanging(true);
+        thumbPressedValue = slider.getValue();
     }
 
     /**
@@ -147,15 +156,24 @@ public class SliderBehavior extends BehaviorBase<Slider> {
         // RT-15207 When snapToTicks is true, slider value calculated in drag
         // is then snapped to the nearest tick on mouse release.
         slider.adjustValue(slider.getValue());
+        if (thumbPressedValue != slider.getValue()) {
+            NodeState.setUserModified(slider, true);
+        }
     }
 
     void home() {
         final Slider slider = getNode();
+        double oldValue = slider.getValue();
         slider.adjustValue(slider.getMin());
+        double newValue = slider.getValue();
+        if (oldValue != newValue) {
+            NodeState.setUserModified(slider, true);
+        }
     }
 
     void decrementValue() {
         final Slider slider = getNode();
+        double oldValue = slider.getValue();
         // RT-8634 If snapToTicks is true and block increment is less than
         // tick spacing, tick spacing is used as the decrement value.
         if (slider.isSnapToTicks()) {
@@ -163,22 +181,35 @@ public class SliderBehavior extends BehaviorBase<Slider> {
         } else {
             slider.decrement();
         }
-
+        double newValue = slider.getValue();
+        if (oldValue != newValue) {
+            NodeState.setUserModified(slider, true);
+        }
     }
 
     void end() {
         final Slider slider = getNode();
+        double oldValue = slider.getValue();
         slider.adjustValue(slider.getMax());
+        double newValue = slider.getValue();
+        if (oldValue != newValue) {
+            NodeState.setUserModified(slider, true);
+        }
     }
 
     void incrementValue() {
         final Slider slider = getNode();
+        double oldValue = slider.getValue();
         // RT-8634 If snapToTicks is true and block increment is less than
         // tick spacing, tick spacing is used as the increment value.
         if (slider.isSnapToTicks()) {
             slider.adjustValue(slider.getValue()+ computeIncrement());
         } else {
             slider.increment();
+        }
+        double newValue = slider.getValue();
+        if (oldValue != newValue) {
+            NodeState.setUserModified(slider, true);
         }
     }
 
