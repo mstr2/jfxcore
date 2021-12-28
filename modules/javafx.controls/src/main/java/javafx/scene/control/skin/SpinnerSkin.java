@@ -126,14 +126,7 @@ public class SpinnerSkin<T> extends SkinBase<Spinner<T>> {
         incrementArrowButton = new StackPane() {
             public void executeAccessibleAction(AccessibleAction action, Object... parameters) {
                 switch (action) {
-                    case FIRE:
-                        T oldValue = getSkinnable().getValue();
-                        getSkinnable().increment();
-                        T newValue = getSkinnable().getValue();
-                        if (!Objects.equals(oldValue, newValue)) {
-                            NodeState.setUserModified(getSkinnable(), true);
-                        }
-                        break;
+                    case FIRE: behavior.increment(1); break;
                     default: super.executeAccessibleAction(action, parameters);
                 }
             }
@@ -158,14 +151,7 @@ public class SpinnerSkin<T> extends SkinBase<Spinner<T>> {
         decrementArrowButton = new StackPane() {
             public void executeAccessibleAction(AccessibleAction action, Object... parameters) {
                 switch (action) {
-                    case FIRE:
-                        T oldValue = getSkinnable().getValue();
-                        getSkinnable().decrement();
-                        T newValue = getSkinnable().getValue();
-                        if (!Objects.equals(oldValue, newValue)) {
-                            NodeState.setUserModified(getSkinnable(), true);
-                        }
-                        break;
+                    case FIRE: behavior.decrement(1); break;
                     default: super.executeAccessibleAction(action, parameters);
                 }
             }

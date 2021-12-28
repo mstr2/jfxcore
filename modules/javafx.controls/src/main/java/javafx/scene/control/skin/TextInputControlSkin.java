@@ -395,7 +395,6 @@ public abstract class TextInputControlSkin<T extends TextInputControl> extends S
             }
         });
 
-        // Only set the modified flag on the TextField when the text was changed as a result of user interaction.
         registerInvalidationListener(control.focusedProperty(), e -> {
             if (control.isFocused()) {
                 textWhenFocused = control.getText();

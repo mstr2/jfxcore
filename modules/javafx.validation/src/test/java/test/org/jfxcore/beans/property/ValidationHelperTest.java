@@ -21,6 +21,7 @@
 
 package test.org.jfxcore.beans.property;
 
+import com.sun.javafx.logging.PlatformLogger;
 import com.sun.javafx.tk.Toolkit;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -75,6 +76,7 @@ public class ValidationHelperTest {
 
     @BeforeAll
     static void setupAll() {
+        PlatformLogger.getLogger("javafx.validation").disableLogging();
         Toolkit.getToolkit();
     }
 
