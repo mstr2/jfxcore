@@ -24,7 +24,7 @@ package org.jfxcore.beans.property.validation;
 import javafx.beans.property.ReadOnlyDoublePropertyBase;
 
 public abstract class DoublePropertyImpl
-        extends ReadOnlyDoublePropertyBase implements ValidationHelper.WritableProperty<Number> {
+        extends ReadOnlyDoublePropertyBase implements WritableProperty<Number> {
 
     private double value;
 

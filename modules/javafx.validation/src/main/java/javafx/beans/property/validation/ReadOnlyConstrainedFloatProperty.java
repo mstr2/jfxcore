@@ -21,6 +21,7 @@
 
 package javafx.beans.property.validation;
 
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.FloatExpression;
 import javafx.beans.property.ReadOnlyFloatProperty;
 
@@ -39,6 +40,11 @@ public abstract class ReadOnlyConstrainedFloatProperty<E>
     @Override
     public Float getConstrainedValue() {
         return constrainedValueProperty().getValue();
+    }
+
+    @Override
+    public String toString() {
+        return PropertyHelper.toString(this);
     }
 
 }

@@ -21,6 +21,7 @@
 
 package javafx.beans.property.validation;
 
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.MapExpression;
 import javafx.beans.property.ReadOnlyMapProperty;
 import javafx.collections.ObservableMap;
@@ -38,5 +39,10 @@ public abstract class ReadOnlyConstrainedMapProperty<K, V, E>
 
     @Override
     public abstract ReadOnlyMapProperty<K, V> constrainedValueProperty();
+
+    @Override
+    public String toString() {
+        return PropertyHelper.toString(this);
+    }
 
 }

@@ -19,31 +19,30 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package javafx.beans.property.validation;
+package javafx.beans.property.validation.function;
 
-import java.util.concurrent.CompletableFuture;
+import javafx.beans.property.validation.ValidationResult;
 
 /**
- * Defines a constraint validator that validates a value asynchronously.
+ * Represents a validation function with eight dependencies.
  *
- * @param <T> value type
- * @param <E> error information type
- * @since JFXcore 18
+ * @param <T> the type of the value to be validated
+ * @param <D1> the type of the first dependency
+ * @param <D2> the type of the second dependency
+ * @param <D3> the type of the third dependency
+ * @param <D4> the type of the fourth dependency
+ * @param <D5> the type of the fifth dependency
+ * @param <D6> the type of the sixth dependency
+ * @param <D7> the type of the seventh dependency
+ * @param <D8> the type of the eighth dependency
+ * @param <E> the error information type
  */
-public interface AsyncValidator<T, E> {
+@FunctionalInterface
+public interface ValidationFunction8<T, D1, D2, D3, D4, D5, D6, D7, D8, E> {
 
     /**
-     * Asynchronously determines whether the specified value is valid.
-     * <p>
-     * If the value is not valid, the returned {@link ValidationResult} may contain an error
-     * information object of type {@code E}, which contains application-specified information about
-     * the constraint violation. If the error information object is not {@code null}, it will be
-     * added to the {@link ReadOnlyConstrainedProperty#errorsProperty()} of the property that
-     * invoked this constraint validator.
-     *
-     * @param value the value to be tested
-     * @return a future that produces a {@link ValidationResult}
+     * Applies this function to the given arguments.
      */
-    CompletableFuture<ValidationResult<E>> validate(T value);
+    ValidationResult<E> apply(T value, D1 dependency1, D2 dependency2, D3 dependency3, D4 dependency4, D5 dependency5, D6 dependency6, D7 dependency7, D8 dependency8);
 
 }

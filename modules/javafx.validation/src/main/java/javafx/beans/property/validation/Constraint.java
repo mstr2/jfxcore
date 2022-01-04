@@ -21,7 +21,6 @@
 
 package javafx.beans.property.validation;
 
-import org.jfxcore.beans.property.validation.ValidatorWrapper;
 import javafx.beans.Observable;
 import java.util.concurrent.Executor;
 
@@ -37,41 +36,19 @@ public final class Constraint<V, E> {
 
     private static final Observable[] EMPTY = new Observable[0];
 
-    private final AsyncValidator<V, E> validator;
-    private final Executor invocationExecutor;
+    private final Validator<V, E> validator;
     private final Executor completionExecutor;
     private final Observable[] dependencies;
 
     /**
-     * Creates a new instance of the {@code Constraint} class that synchronously
-     * validates the constraint.
+     * Creates a new instance of the {@code Constraint} class.
      *
      * @param validator the validator
-     * @param dependencies the constraint dependencies or {@code null}
-     */
-    public Constraint(Validator<V, E> validator, Observable[] dependencies) {
-        if (validator == null) {
-            throw new NullPointerException("validator cannot be null");
-        }
-
-        this.validator = new ValidatorWrapper<>(validator);
-        this.dependencies = dependencies != null ? dependencies : EMPTY;
-        this.invocationExecutor = null;
-        this.completionExecutor = null;
-    }
-
-    /**
-     * Creates a new instance of the {@code Constraint} class that asynchronously
-     * validates the constraint.
-     *
-     * @param validator the validator
-     * @param invocationExecutor the executor that invokes the {@link AsyncValidator}, or {@code null}
-     * @param completionExecutor the executor that yields the validation result, or {@code null}
-     * @param dependencies the constraint dependencies or {@code null}
+     * @param completionExecutor the executor that completes the future returned by the validator, or {@code null}
+     * @param dependencies the constraint dependencies, or {@code null}
      */
     public Constraint(
-            AsyncValidator<V, E> validator,
-            Executor invocationExecutor,
+            Validator<V, E> validator,
             Executor completionExecutor,
             Observable[] dependencies) {
         if (validator == null) {
@@ -79,35 +56,20 @@ public final class Constraint<V, E> {
         }
 
         this.validator = validator;
-        this.invocationExecutor = invocationExecutor;
         this.completionExecutor = completionExecutor;
         this.dependencies = dependencies != null ? dependencies : EMPTY;
     }
 
     /**
      * Returns the validator.
-     *
-     * @return the validator
      */
-    public AsyncValidator<V, E> getValidator() {
+    public Validator<V, E> getValidator() {
         return validator;
     }
 
     /**
-     * Returns the executor that invokes the {@link #getValidator() validator},
+     * Returns the executor that completes the future returned by {@link Validator#validate(Object)},
      * or {@code null} if no executor was specified.
-     *
-     * @return the executor or {@code null}
-     */
-    public Executor getInvocationExecutor() {
-        return invocationExecutor;
-    }
-
-    /**
-     * Returns the executor that completes the future returned by {@link AsyncValidator#validate(Object)},
-     * or {@code null} if no executor was specified.
-     *
-     * @return the executor or {@code null}
      */
     public Executor getCompletionExecutor() {
         return completionExecutor;
@@ -115,18 +77,13 @@ public final class Constraint<V, E> {
 
     /**
      * Returns the constraint dependencies.
-     *
-     * @return the constraint dependencies or an empty array
      */
     public Observable[] getDependencies() {
         return dependencies;
     }
 
     /**
-     * Determines whether the specified observable is a dependency of this constraint.
-     *
-     * @param observable the observable
-     * @return {@code true} if the observable is a dependency of this constraint, {@code false} otherwise
+     * Determines whether the specified {@link Observable observable} is a dependency of this constraint.
      */
     public boolean isDependency(Observable observable) {
         for (Observable dep : dependencies) {

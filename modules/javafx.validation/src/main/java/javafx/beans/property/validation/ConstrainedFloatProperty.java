@@ -28,21 +28,22 @@ package javafx.beans.property.validation;
 
 import com.sun.javafx.binding.BidirectionalBinding;
 import com.sun.javafx.binding.Logging;
+import com.sun.javafx.logging.PlatformLogger;
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.Property;
 import javafx.beans.value.WritableFloatValue;
-
 import java.util.Objects;
 
 /**
- * Implements a constrained property that wraps a float value.
+ * Defines a constrained property that wraps a float value.
  *
  * @param <E> error information type
  * @since JFXcore 18
  */
 public abstract class ConstrainedFloatProperty<E>
         extends ReadOnlyConstrainedFloatProperty<E>
-        implements Property<Number>, WritableFloatValue {
+        implements ConstrainedProperty<Number, E>, WritableFloatValue {
 
     /**
      * Creates a default {@code ConstrainedFloatProperty}.
@@ -53,7 +54,13 @@ public abstract class ConstrainedFloatProperty<E>
     @Override
     public void setValue(Number v) {
         if (v == null) {
-            Logging.getLogger().fine("Attempt to set float property to null, using default value instead.", new NullPointerException());
+            var logger = Logging.getLogger();
+            if (logger.isLoggable(PlatformLogger.Level.FINE)) {
+                logger.fine(
+                    "Attempt to set float property to null, using default value instead.",
+                    new NullPointerException());
+            }
+
             set(0);
         } else {
             set(v.floatValue());
@@ -72,17 +79,7 @@ public abstract class ConstrainedFloatProperty<E>
 
     @Override
     public String toString() {
-        final Object bean = getBean();
-        final String name = getName();
-        final StringBuilder result = new StringBuilder("ConstrainedFloatProperty [");
-        if (bean != null) {
-            result.append("bean: ").append(bean).append(", ");
-        }
-        if ((name != null) && (!name.equals(""))) {
-            result.append("name: ").append(name).append(", ");
-        }
-        result.append("value: ").append(get()).append("]");
-        return result.toString();
+        return PropertyHelper.toString(this);
     }
     
     /**

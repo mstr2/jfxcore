@@ -26,6 +26,7 @@
 package javafx.beans.property.validation;
 
 import com.sun.javafx.binding.MapExpressionHelper;
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import org.jfxcore.beans.property.validation.ValidationHelper;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -43,6 +44,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableMap;
+import org.jfxcore.beans.property.validation.WritableProperty;
+
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashMap;
@@ -265,9 +268,9 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
     @Override
     public void set(ObservableMap<K, V> newValue) {
         if (isBound()) {
-            throw new RuntimeException((getBean() != null && getName() != null ?
-                    getBean().getClass().getSimpleName() + "." + getName() + " : ": "") + "A bound value cannot be set.");
+            throw PropertyHelper.cannotSetBoundProperty(this);
         }
+
         if (value != newValue) {
             final ObservableMap<K, V> oldValue = value;
             value = newValue;
@@ -283,8 +286,9 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
     @Override
     public void bind(final ObservableValue<? extends ObservableMap<K, V>> source) {
         if (source == null) {
-            throw new NullPointerException("Cannot bind to null");
+            throw PropertyHelper.cannotBindNull(this);
         }
+
         if (source != observable) {
             unbind();
             observable = source;
@@ -307,27 +311,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
 
     @Override
     public String toString() {
-        final Object bean = getBean();
-        final String name = getName();
-        final StringBuilder result = new StringBuilder("ConstrainedMapProperty [");
-        if (bean != null) {
-            result.append("bean: ").append(bean).append(", ");
-        }
-        if ((name != null) && (!name.equals(""))) {
-            result.append("name: ").append(name).append(", ");
-        }
-        if (isBound()) {
-            result.append("bound, ");
-            if (valid) {
-                result.append("value: ").append(get());
-            } else {
-                result.append("invalid");
-            }
-        } else {
-            result.append("value: ").append(get());
-        }
-        result.append("]");
-        return result.toString();
+        return PropertyHelper.toString(this, valid);
     }
 
     private static class SizeProperty extends ReadOnlyIntegerPropertyBase {
@@ -410,7 +394,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
     }
 
     private class ConstrainedValuePropertyImpl
-            extends ReadOnlyMapPropertyBase<K, V> implements ValidationHelper.WritableProperty<ObservableMap<K, V>> {
+            extends ReadOnlyMapPropertyBase<K, V> implements WritableProperty<ObservableMap<K, V>> {
         private final ObservableMap<K, V> set;
         private final ObservableMap<K, V> unmodifiableSet;
         private SizeProperty size0;

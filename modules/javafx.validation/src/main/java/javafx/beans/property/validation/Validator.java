@@ -21,6 +21,8 @@
 
 package javafx.beans.property.validation;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * Defines a constraint validator.
  *
@@ -40,8 +42,8 @@ public interface Validator<T, E> {
      * invoked this validator.
      *
      * @param value the value to be tested
-     * @return the {@link ValidationResult}
+     * @return a future that produces a {@link ValidationResult}
      */
-    ValidationResult<E> validate(T value);
+    CompletableFuture<ValidationResult<E>> validate(T value);
 
 }

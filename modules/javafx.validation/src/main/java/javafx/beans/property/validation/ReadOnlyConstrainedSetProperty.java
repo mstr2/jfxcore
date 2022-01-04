@@ -21,6 +21,7 @@
 
 package javafx.beans.property.validation;
 
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.SetExpression;
 import javafx.beans.property.ReadOnlySetProperty;
 import javafx.collections.ObservableSet;
@@ -37,5 +38,10 @@ public abstract class ReadOnlyConstrainedSetProperty<T, E>
 
     @Override
     public abstract ReadOnlySetProperty<T> constrainedValueProperty();
+
+    @Override
+    public String toString() {
+        return PropertyHelper.toString(this);
+    }
 
 }

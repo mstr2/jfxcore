@@ -21,6 +21,7 @@
 
 package javafx.beans.property.validation;
 
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.ListExpression;
 import javafx.beans.property.ReadOnlyListProperty;
 import javafx.collections.ObservableList;
@@ -37,5 +38,10 @@ public abstract class ReadOnlyConstrainedListProperty<T, E>
 
     @Override
     public abstract ReadOnlyListProperty<T> constrainedValueProperty();
+
+    @Override
+    public String toString() {
+        return PropertyHelper.toString(this);
+    }
 
 }

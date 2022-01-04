@@ -24,7 +24,7 @@ package org.jfxcore.beans.property.validation;
 import javafx.beans.property.ReadOnlyObjectPropertyBase;
 
 public abstract class ObjectPropertyImpl<T>
-        extends ReadOnlyObjectPropertyBase<T> implements ValidationHelper.WritableProperty<T> {
+        extends ReadOnlyObjectPropertyBase<T> implements WritableProperty<T> {
 
     private T value;
 

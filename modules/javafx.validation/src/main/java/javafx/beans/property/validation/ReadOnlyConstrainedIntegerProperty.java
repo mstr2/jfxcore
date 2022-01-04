@@ -21,6 +21,7 @@
 
 package javafx.beans.property.validation;
 
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.IntegerExpression;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 
@@ -39,6 +40,11 @@ public abstract class ReadOnlyConstrainedIntegerProperty<E>
     @Override
     public Integer getConstrainedValue() {
         return constrainedValueProperty().getValue();
+    }
+
+    @Override
+    public String toString() {
+        return PropertyHelper.toString(this);
     }
 
 }

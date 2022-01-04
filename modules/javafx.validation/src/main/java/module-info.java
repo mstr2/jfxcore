@@ -30,5 +30,6 @@ module javafx.validation {
     requires transitive javafx.graphics;
 
     exports javafx.beans.property.validation;
+    exports javafx.beans.property.validation.function;
     exports javafx.scene.validation;
 }

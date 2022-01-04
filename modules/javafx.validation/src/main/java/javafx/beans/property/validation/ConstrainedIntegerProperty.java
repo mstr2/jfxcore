@@ -28,21 +28,22 @@ package javafx.beans.property.validation;
 
 import com.sun.javafx.binding.BidirectionalBinding;
 import com.sun.javafx.binding.Logging;
+import com.sun.javafx.logging.PlatformLogger;
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.Property;
 import javafx.beans.value.WritableIntegerValue;
-
 import java.util.Objects;
 
 /**
- * Implements a constrained property that wraps an integer value.
+ * Defines a constrained property that wraps an integer value.
  *
  * @param <E> error information type
  * @since JFXcore 18
  */
 public abstract class ConstrainedIntegerProperty<E>
         extends ReadOnlyConstrainedIntegerProperty<E>
-        implements Property<Number>, WritableIntegerValue {
+        implements ConstrainedProperty<Number, E>, WritableIntegerValue {
 
     /**
      * Creates a default {@code ConstrainedIntegerProperty}.
@@ -53,7 +54,13 @@ public abstract class ConstrainedIntegerProperty<E>
     @Override
     public void setValue(Number v) {
         if (v == null) {
-            Logging.getLogger().fine("Attempt to set integer property to null, using default value instead.", new NullPointerException());
+            var logger = Logging.getLogger();
+            if (logger.isLoggable(PlatformLogger.Level.FINE)) {
+                logger.fine(
+                    "Attempt to set integer property to null, using default value instead.",
+                    new NullPointerException());
+            }
+
             set(0);
         } else {
             set(v.intValue());
@@ -72,17 +79,7 @@ public abstract class ConstrainedIntegerProperty<E>
 
     @Override
     public String toString() {
-        final Object bean = getBean();
-        final String name = getName();
-        final StringBuilder result = new StringBuilder("ConstrainedIntegerProperty [");
-        if (bean != null) {
-            result.append("bean: ").append(bean).append(", ");
-        }
-        if ((name != null) && (!name.equals(""))) {
-            result.append("name: ").append(name).append(", ");
-        }
-        result.append("value: ").append(get()).append("]");
-        return result.toString();
+        return PropertyHelper.toString(this);
     }
 
     /**

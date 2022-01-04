@@ -21,6 +21,7 @@
 
 package javafx.beans.property.validation;
 
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.ObjectExpression;
 import javafx.beans.property.ReadOnlyObjectProperty;
 
@@ -36,5 +37,10 @@ public abstract class ReadOnlyConstrainedObjectProperty<T, E>
 
     @Override
     public abstract ReadOnlyObjectProperty<T> constrainedValueProperty();
+
+    @Override
+    public String toString() {
+        return PropertyHelper.toString(this);
+    }
 
 }

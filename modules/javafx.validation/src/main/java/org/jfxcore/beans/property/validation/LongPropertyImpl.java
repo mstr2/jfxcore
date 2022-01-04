@@ -24,7 +24,7 @@ package org.jfxcore.beans.property.validation;
 import javafx.beans.property.ReadOnlyLongPropertyBase;
 
 public abstract class LongPropertyImpl
-        extends ReadOnlyLongPropertyBase implements ValidationHelper.WritableProperty<Number> {
+        extends ReadOnlyLongPropertyBase implements WritableProperty<Number> {
 
     private long value;
 

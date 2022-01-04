@@ -24,11 +24,9 @@ package org.jfxcore.beans.property.validation;
 import javafx.beans.property.ReadOnlyBooleanPropertyBase;
 
 public abstract class BooleanPropertyImpl
-        extends ReadOnlyBooleanPropertyBase implements ValidationHelper.WritableProperty<Boolean> {
+        extends ReadOnlyBooleanPropertyBase implements WritableProperty<Boolean> {
 
     private boolean value;
-
-    public BooleanPropertyImpl() {}
 
     public BooleanPropertyImpl(boolean initialValue) {
         this.value = initialValue;

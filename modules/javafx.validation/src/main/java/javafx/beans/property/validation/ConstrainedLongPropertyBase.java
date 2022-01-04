@@ -28,6 +28,7 @@ package javafx.beans.property.validation;
 
 import com.sun.javafx.binding.ExpressionHelper;
 import org.jfxcore.beans.property.validation.LongPropertyImpl;
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import org.jfxcore.beans.property.validation.ValidationHelper;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -189,9 +190,9 @@ public abstract class ConstrainedLongPropertyBase<E> extends ConstrainedLongProp
     @Override
     public void set(long newValue) {
         if (isBound()) {
-            throw new RuntimeException((getBean() != null && getName() != null ?
-                    getBean().getClass().getSimpleName() + "." + getName() + " : ": "") + "A bound value cannot be set.");
+            throw PropertyHelper.cannotSetBoundProperty(this);
         }
+
         if (value != newValue) {
             value = newValue;
             markInvalid();
@@ -206,7 +207,7 @@ public abstract class ConstrainedLongPropertyBase<E> extends ConstrainedLongProp
     @Override
     public void bind(final ObservableValue<? extends Number> source) {
         if (source == null) {
-            throw new NullPointerException("Cannot bind to null");
+            throw PropertyHelper.cannotBindNull(this);
         }
 
         ObservableLongValue newObservable;
@@ -255,27 +256,7 @@ public abstract class ConstrainedLongPropertyBase<E> extends ConstrainedLongProp
 
     @Override
     public String toString() {
-        final Object bean = getBean();
-        final String name = getName();
-        final StringBuilder result = new StringBuilder("ConstrainedLongProperty [");
-        if (bean != null) {
-            result.append("bean: ").append(bean).append(", ");
-        }
-        if ((name != null) && (!name.equals(""))) {
-            result.append("name: ").append(name).append(", ");
-        }
-        if (isBound()) {
-            result.append("bound, ");
-            if (valid) {
-                result.append("value: ").append(get());
-            } else {
-                result.append("invalid");
-            }
-        } else {
-            result.append("value: ").append(get());
-        }
-        result.append("]");
-        return result.toString();
+        return PropertyHelper.toString(this, valid);
     }
 
     private static class Listener<E> implements InvalidationListener, WeakListener {

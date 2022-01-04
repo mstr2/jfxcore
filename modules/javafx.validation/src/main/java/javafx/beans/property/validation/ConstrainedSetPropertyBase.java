@@ -26,6 +26,7 @@
 package javafx.beans.property.validation;
 
 import com.sun.javafx.binding.SetExpressionHelper;
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import org.jfxcore.beans.property.validation.ValidationHelper;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -43,6 +44,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
+import org.jfxcore.beans.property.validation.WritableProperty;
+
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashSet;
@@ -264,9 +267,9 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     @Override
     public void set(ObservableSet<T> newValue) {
         if (isBound()) {
-            throw new RuntimeException((getBean() != null && getName() != null ?
-                    getBean().getClass().getSimpleName() + "." + getName() + " : ": "") + "A bound value cannot be set.");
+            throw PropertyHelper.cannotSetBoundProperty(this);
         }
+
         if (value != newValue) {
             final ObservableSet<T> oldValue = value;
             value = newValue;
@@ -282,7 +285,7 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     @Override
     public void bind(final ObservableValue<? extends ObservableSet<T>> source) {
         if (source == null) {
-            throw new NullPointerException("Cannot bind to null");
+            throw PropertyHelper.cannotBindNull(this);
         }
 
         if (source != this.observable) {
@@ -307,27 +310,7 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
 
     @Override
     public String toString() {
-        final Object bean = getBean();
-        final String name = getName();
-        final StringBuilder result = new StringBuilder("ConstrainedSetProperty [");
-        if (bean != null) {
-            result.append("bean: ").append(bean).append(", ");
-        }
-        if ((name != null) && (!name.equals(""))) {
-            result.append("name: ").append(name).append(", ");
-        }
-        if (isBound()) {
-            result.append("bound, ");
-            if (valid) {
-                result.append("value: ").append(get());
-            } else {
-                result.append("invalid");
-            }
-        } else {
-            result.append("value: ").append(get());
-        }
-        result.append("]");
-        return result.toString();
+        return PropertyHelper.toString(this, valid);
     }
 
     private static class SizeProperty extends ReadOnlyIntegerPropertyBase {
@@ -410,7 +393,7 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     }
 
     private class ConstrainedValuePropertyImpl
-            extends ReadOnlySetPropertyBase<T> implements ValidationHelper.WritableProperty<ObservableSet<T>> {
+            extends ReadOnlySetPropertyBase<T> implements WritableProperty<ObservableSet<T>> {
         private final ObservableSet<T> set;
         private final ObservableSet<T> unmodifiableSet;
         private SizeProperty size0;

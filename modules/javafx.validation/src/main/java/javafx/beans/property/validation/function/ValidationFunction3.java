@@ -19,25 +19,25 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package org.jfxcore.beans.property.validation;
+package javafx.beans.property.validation.function;
 
-import javafx.beans.property.validation.AsyncValidator;
 import javafx.beans.property.validation.ValidationResult;
-import javafx.beans.property.validation.Validator;
 
-import java.util.concurrent.CompletableFuture;
+/**
+ * Represents a validation function with three dependencies.
+ *
+ * @param <T> the type of the value to be validated
+ * @param <D1> the type of the first dependency
+ * @param <D2> the type of the second dependency
+ * @param <D3> the type of the third dependency
+ * @param <E> the error information type
+ */
+@FunctionalInterface
+public interface ValidationFunction3<T, D1, D2, D3, E> {
 
-public final class ValidatorWrapper<T, E> implements AsyncValidator<T, E> {
-
-    private final Validator<T, E> constraint;
-
-    public ValidatorWrapper(Validator<T, E> constraint) {
-        this.constraint = constraint;
-    }
-
-    @Override
-    public CompletableFuture<ValidationResult<E>> validate(T value) {
-        return CompletableFuture.completedFuture(constraint.validate(value));
-    }
+    /**
+     * Applies this function to the given arguments.
+     */
+    ValidationResult<E> apply(T value, D1 dependency1, D2 dependency2, D3 dependency3);
 
 }

@@ -24,11 +24,9 @@ package org.jfxcore.beans.property.validation;
 import javafx.beans.property.ReadOnlyIntegerPropertyBase;
 
 public abstract class IntegerPropertyImpl
-        extends ReadOnlyIntegerPropertyBase implements ValidationHelper.WritableProperty<Number> {
+        extends ReadOnlyIntegerPropertyBase implements WritableProperty<Number> {
 
     private int value;
-
-    public IntegerPropertyImpl() {}
 
     public IntegerPropertyImpl(int initialValue) {
         this.value = initialValue;

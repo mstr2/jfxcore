@@ -21,6 +21,7 @@
 
 package javafx.beans.property.validation;
 
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.BooleanExpression;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 
@@ -35,5 +36,10 @@ public abstract class ReadOnlyConstrainedBooleanProperty<E>
 
     @Override
     public abstract ReadOnlyBooleanProperty constrainedValueProperty();
+
+    @Override
+    public String toString() {
+        return PropertyHelper.toString(this);
+    }
 
 }

@@ -21,6 +21,7 @@
 
 package javafx.beans.property.validation;
 
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.LongExpression;
 import javafx.beans.property.ReadOnlyLongProperty;
 
@@ -39,6 +40,11 @@ public abstract class ReadOnlyConstrainedLongProperty<E>
     @Override
     public Long getConstrainedValue() {
         return constrainedValueProperty().getValue();
+    }
+
+    @Override
+    public String toString() {
+        return PropertyHelper.toString(this);
     }
 
 }

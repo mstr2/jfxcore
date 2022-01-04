@@ -21,6 +21,7 @@
 
 package javafx.beans.property.validation;
 
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.DoubleExpression;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 
@@ -39,6 +40,11 @@ public abstract class ReadOnlyConstrainedDoubleProperty<E>
     @Override
     public Double getConstrainedValue() {
         return constrainedValueProperty().getValue();
+    }
+
+    @Override
+    public String toString() {
+        return PropertyHelper.toString(this);
     }
 
 }

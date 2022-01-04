@@ -26,7 +26,6 @@ import com.sun.javafx.tk.Toolkit;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.beans.property.validation.AsyncValidator;
 import javafx.beans.property.validation.Constraint;
 import javafx.beans.property.validation.ValidationResult;
 import javafx.beans.property.validation.Validator;
@@ -35,7 +34,6 @@ import org.jfxcore.beans.property.validation.ValidationHelper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -96,7 +94,8 @@ public class ValidationHelperTest {
     @Test
     public void testAlwaysValidValidator() {
         var helper = new ValidationHelper<String, String>(value, constrainedValue, new Constraint[] {
-            new Constraint<>((Validator<String, String>)value -> ValidationResult.valid(), null)
+            new Constraint<>((Validator<String, String>)value ->
+                CompletableFuture.completedFuture(ValidationResult.valid()), null, null)
         });
 
         value.set("foo");
@@ -107,7 +106,8 @@ public class ValidationHelperTest {
     @Test
     public void testAlwaysInvalidValidator() {
         var helper = new ValidationHelper<String, String>(value, constrainedValue, new Constraint[] {
-            new Constraint<>((Validator<String, String>)value -> ValidationResult.invalid(), null)
+            new Constraint<>((Validator<String, String>)value ->
+                CompletableFuture.completedFuture(ValidationResult.invalid()), null, null)
         });
 
         value.set("foo");
@@ -118,7 +118,7 @@ public class ValidationHelperTest {
     @Test
     public void testValidatingIsTrueWhileValidatorIsRunning() {
         var helper = new ValidationHelper<String, String>(value, constrainedValue, new Constraint[] {
-            new Constraint<>(new AsyncValidator<String, String>() {
+            new Constraint<>(new Validator<String, String>() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     return CompletableFuture.supplyAsync(() -> {
@@ -126,7 +126,7 @@ public class ValidationHelperTest {
                         return ValidationResult.valid();
                     });
                 }
-            }, null, Platform::runLater, null)
+            }, Platform::runLater, null)
         });
 
         assertValidationState(helper, true, false, false, false, false);
@@ -145,12 +145,12 @@ public class ValidationHelperTest {
     @Test
     public void testExceptionInValidatorStopsValidation() {
         var helper = new ValidationHelper<String, String>(value, constrainedValue, new Constraint[] {
-            new Constraint<>(new AsyncValidator<String, String>() {
+            new Constraint<>(new Validator<String, String>() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     throw new RuntimeException();
                 }
-            }, null, Platform::runLater, null)
+            }, Platform::runLater, null)
         });
 
         assertValidationState(helper, false, false, false, false, false);
@@ -159,15 +159,15 @@ public class ValidationHelperTest {
     @Test
     public void testExceptionInValidatorFutureStopsValidation() {
         var helper = new ValidationHelper<String, String>(value, constrainedValue, new Constraint[] {
-                new Constraint<>(new AsyncValidator<String, String>() {
-                    @Override
-                    public CompletableFuture<ValidationResult<String>> validate(String value) {
-                        return CompletableFuture.supplyAsync(() -> {
-                            sleep(50);
-                            throw new RuntimeException();
-                        });
-                    }
-                }, null, Platform::runLater, null)
+            new Constraint<>(new Validator<String, String>() {
+                @Override
+                public CompletableFuture<ValidationResult<String>> validate(String value) {
+                    return CompletableFuture.supplyAsync(() -> {
+                        sleep(50);
+                        throw new RuntimeException();
+                    });
+                }
+            }, Platform::runLater, null)
         });
 
         assertValidationState(helper, true, false, false, false, false);

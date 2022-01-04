@@ -26,7 +26,7 @@ import javafx.beans.property.ReadOnlyStringPropertyBase;
 import java.util.Objects;
 
 public abstract class StringPropertyImpl
-        extends ReadOnlyStringPropertyBase implements ValidationHelper.WritableProperty<String> {
+        extends ReadOnlyStringPropertyBase implements WritableProperty<String> {
 
     private String value;
 

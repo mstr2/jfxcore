@@ -28,10 +28,11 @@ package javafx.beans.property.validation;
 
 import com.sun.javafx.binding.BidirectionalBinding;
 import com.sun.javafx.binding.Logging;
+import com.sun.javafx.logging.PlatformLogger;
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.Property;
 import javafx.beans.value.WritableBooleanValue;
-
 import java.util.Objects;
 
 /**
@@ -42,7 +43,7 @@ import java.util.Objects;
  */
 public abstract class ConstrainedBooleanProperty<E>
         extends ReadOnlyConstrainedBooleanProperty<E>
-        implements Property<Boolean>, WritableBooleanValue {
+        implements ConstrainedProperty<Boolean, E>, WritableBooleanValue {
 
     /**
      * Creates a default {@code ConstrainedBooleanProperty}.
@@ -53,7 +54,13 @@ public abstract class ConstrainedBooleanProperty<E>
     @Override
     public void setValue(Boolean v) {
         if (v == null) {
-            Logging.getLogger().fine("Attempt to set boolean property to null, using default value instead.", new NullPointerException());
+            var logger = Logging.getLogger();
+            if (logger.isLoggable(PlatformLogger.Level.FINE)) {
+                logger.fine(
+                    "Attempt to set boolean property to null, using default value instead.",
+                    new NullPointerException());
+            }
+
             set(false);
         } else {
             set(v);
@@ -72,17 +79,7 @@ public abstract class ConstrainedBooleanProperty<E>
 
     @Override
     public String toString() {
-        final Object bean = getBean();
-        final String name = getName();
-        final StringBuilder result = new StringBuilder("ConstrainedBooleanProperty [");
-        if (bean != null) {
-            result.append("bean: ").append(bean).append(", ");
-        }
-        if ((name != null) && (!name.equals(""))) {
-            result.append("name: ").append(name).append(", ");
-        }
-        result.append("value: ").append(get()).append("]");
-        return result.toString();
+        return PropertyHelper.toString(this);
     }
 
     /**

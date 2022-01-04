@@ -21,14 +21,13 @@
 
 package org.jfxcore.beans.property.validation;
 
-import com.sun.javafx.logging.PlatformLogger;
+import com.sun.javafx.binding.Logging;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyListProperty;
 import javafx.beans.property.ReadOnlyListWrapper;
-import javafx.beans.property.validation.AsyncValidator;
 import javafx.beans.property.validation.Constraint;
 import javafx.beans.property.validation.ReadOnlyConstrainedProperty;
 import javafx.beans.property.validation.ValidationResult;
@@ -42,13 +41,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.Executor;
 
 public class ValidationHelper<T, E> implements InvalidationListener {
-
-    private static final PlatformLogger LOGGER = PlatformLogger.getLogger("javafx.validation");
 
     private static final List<Pair<Class<?>, Accessor>> accessors = new ArrayList<>();
 
@@ -70,10 +65,14 @@ public class ValidationHelper<T, E> implements InvalidationListener {
         ValidationHelper<?, ?> getValidationHelper(ReadOnlyConstrainedProperty<?, ?> property);
     }
 
+    @SuppressWarnings("rawtypes")
+    private static final SerializedConstraintValidator[] EMPTY_CONSTRAINT_VALIDATORS =
+        new SerializedConstraintValidator[0];
+
     @SuppressWarnings("FieldCanBeLocal")
     private final WeakInvalidationListener weakInvalidationListener = new WeakInvalidationListener(this);
+    private final SerializedConstraintValidator<? super T, E>[] constraintValidators;
     private final ObservableValue<T> observable;
-    private final Constraint<? super T, E>[] constraints;
     private final WritableProperty<T> constrainedValue;
     private final BooleanPropertyImpl valid;
     private final BooleanPropertyImpl invalid;
@@ -83,10 +82,8 @@ public class ValidationHelper<T, E> implements InvalidationListener {
     private final ReadOnlyListWrapper<E> errors;
 
     private ReadOnlyBooleanProperty userModified;
-    private List<CompletableFuture<ValidationResult<E>>> currentlyValidating;
     private Map<Constraint<? super T, E>, E> errorMap;
     private int currentlyValidatingCount;
-    private boolean cancelCurrentlyValidating;
 
     @SuppressWarnings("unchecked")
     public ValidationHelper(
@@ -95,29 +92,34 @@ public class ValidationHelper<T, E> implements InvalidationListener {
             Constraint<? super T, E>[] constraints) {
         this.observable = observable;
         this.constrainedValue = constrainedValue;
-        this.constraints = constraints != null && constraints.length > 0 ? new Constraint[constraints.length] : null;
+
+        if (constraints != null && constraints.length > 0) {
+            this.constraintValidators = new SerializedConstraintValidator[constraints.length];
+        } else {
+            this.constraintValidators = EMPTY_CONSTRAINT_VALIDATORS;
+        }
 
         valid = new BooleanPropertyImpl(constraints == null || constraints.length == 0) {
             @Override public String getName() { return "valid"; }
             @Override public Object getBean() { return ValidationHelper.this; }
         };
 
-        invalid = new BooleanPropertyImpl() {
+        invalid = new BooleanPropertyImpl(false) {
             @Override public String getName() { return "invalid"; }
             @Override public Object getBean() { return ValidationHelper.this; }
         };
 
-        userValid = new BooleanPropertyImpl() {
+        userValid = new BooleanPropertyImpl(false) {
             @Override public String getName() { return "userValid"; }
             @Override public Object getBean() { return ValidationHelper.this; }
         };
 
-        userInvalid = new BooleanPropertyImpl() {
+        userInvalid = new BooleanPropertyImpl(false) {
             @Override public String getName() { return "userInvalid"; }
             @Override public Object getBean() { return ValidationHelper.this; }
         };
 
-        validating = new BooleanPropertyImpl() {
+        validating = new BooleanPropertyImpl(false) {
             @Override public String getName() { return "validating"; }
             @Override public Object getBean() { return ValidationHelper.this; }
         };
@@ -133,10 +135,25 @@ public class ValidationHelper<T, E> implements InvalidationListener {
                     }
                 }
 
-                this.constraints[i] = constraints[i];
+                this.constraintValidators[i] = new SerializedConstraintValidator<>(constraints[i]) {
+                    @Override
+                    protected void onAsyncValidationStarted() {
+                        ValidationHelper.this.incrementValidatingCount();
+                    }
+
+                    @Override
+                    protected void onAsyncValidationEnded() {
+                        ValidationHelper.this.decrementValidatingCount();
+                    }
+
+                    @Override
+                    protected void onValidationCompleted(
+                            Constraint<? super T, E> constraint, T value, ValidationResult<E> result, Throwable ex) {
+                        ValidationHelper.this.onValidationCompleted(constraint, value, result, ex);
+                    }
+                };
             }
 
-            currentlyValidating = new ArrayList<>(constraints.length);
             invalidated(observable);
         }
 
@@ -206,7 +223,7 @@ public class ValidationHelper<T, E> implements InvalidationListener {
     private void onDependencyInvalidated(Observable dependency) {
         T value = observable.getValue();
 
-        if (constraints == null) {
+        if (constraintValidators.length == 0) {
             boolean constrainedValueChanged = constrainedValue.setValue(value);
             if (constrainedValueChanged) {
                 constrainedValue.fireValueChangedEvent();
@@ -215,28 +232,8 @@ public class ValidationHelper<T, E> implements InvalidationListener {
             return;
         }
 
-        try {
-            cancelCurrentlyValidating = true;
-
-            for (CompletableFuture<ValidationResult<E>> future : currentlyValidating) {
-                future.cancel(false);
-            }
-        } finally {
-            cancelCurrentlyValidating = false;
-        }
-
-        boolean validateAll = currentlyValidating.size() > 0;
-
-        currentlyValidating.clear();
-        currentlyValidatingCount = 0;
-
-        boolean validatingChanged = validating.set(true);
         boolean validChanged = valid.set(false);
         boolean userValidChanged = userValid.set(false);
-
-        if (validatingChanged) {
-            validating.fireValueChangedEvent();
-        }
 
         if (validChanged) {
             valid.fireValueChangedEvent();
@@ -246,75 +243,20 @@ public class ValidationHelper<T, E> implements InvalidationListener {
             userValid.fireValueChangedEvent();
         }
 
-        if (validateAll) {
-            currentlyValidatingCount = constraints.length;
-        } else {
-            boolean validationDependency = false;
-
-            for (Constraint<? super T, E> constraint : constraints) {
-                if (constraint.isDependency(dependency)) {
-                    currentlyValidatingCount++;
-                    validationDependency = true;
-                }
-            }
-
-            if (!validationDependency) {
-                validateAll = true;
-                currentlyValidatingCount = constraints.length;
-            }
-        }
-
-        for (Constraint<? super T, E> constraint : constraints) {
-            if (!validateAll && !constraint.isDependency(dependency)) {
-                continue;
-            }
-
-            try {
-                Executor invocationExecutor = constraint.getInvocationExecutor();
-                Executor completionExecutor = constraint.getCompletionExecutor();
-                AsyncValidator<? super T, E> validator = constraint.getValidator();
-                CompletableFuture<ValidationResult<E>> future;
-
-                if (invocationExecutor != null) {
-                    future = CompletableFuture.completedFuture(value).thenComposeAsync(validator::validate, invocationExecutor);
-                } else {
-                    future = validator.validate(value);
-                }
-
-                currentlyValidating.add(future);
-
-                if (completionExecutor != null) {
-                    future.whenComplete((result, exception) ->
-                        completionExecutor.execute(() -> onValidationCompleted(future, constraint, value, result, exception)));
-                } else {
-                    future.whenComplete((result, exception) ->
-                        onValidationCompleted(future, constraint, value, result, exception));
-                }
-            } catch (Throwable ex) {
-                decrementValidatingCount();
-                LOGGER.severe("Exception in constraint validator", ex);
+        for (SerializedConstraintValidator<? super T, E> constraintValidator : constraintValidators) {
+            if (dependency == observable || constraintValidator.isDependency(dependency)) {
+                constraintValidator.validate(value);
             }
         }
     }
 
-    private void onValidationCompleted(
-            CompletableFuture<ValidationResult<E>> future,
-            Constraint<? super T, E> constraint,
-            T value,
-            ValidationResult<E> result,
-            Throwable exception) {
-        if (cancelCurrentlyValidating || !currentlyValidating.remove(future)) {
-            return;
-        }
-
-        decrementValidatingCount();
-
+    private void onValidationCompleted(Constraint<? super T, E> constraint, T value, ValidationResult<E> result, Throwable exception) {
         if (exception instanceof CancellationException) {
             return;
         }
 
         if (exception != null) {
-            LOGGER.severe(
+            Logging.getLogger().severe(
                 "Exception in constraint validator",
                 exception instanceof CompletionException ? exception.getCause() : exception);
         } else if (result != null && result.isValid()) {
@@ -404,6 +346,14 @@ public class ValidationHelper<T, E> implements InvalidationListener {
         errors.retainAll(distinctErrors);
     }
 
+    private void incrementValidatingCount() {
+        currentlyValidatingCount++;
+
+        if (validating.set(true)) {
+            validating.fireValueChangedEvent();
+        }
+    }
+
     private void decrementValidatingCount() {
         currentlyValidatingCount--;
 
@@ -413,22 +363,17 @@ public class ValidationHelper<T, E> implements InvalidationListener {
     }
 
     private boolean isRecurringDependency(Observable dependency) {
-        for (Constraint<?, ?> constraint : constraints) {
-            if (constraint == null) {
+        for (SerializedConstraintValidator<?, ?> constraintValidator : constraintValidators) {
+            if (constraintValidator == null) {
                 return false;
             }
 
-            if (constraint.isDependency(dependency)) {
+            if (constraintValidator.isDependency(dependency)) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    public interface WritableProperty<T> {
-        boolean setValue(T value);
-        void fireValueChangedEvent();
     }
 
 }

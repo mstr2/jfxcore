@@ -21,19 +21,41 @@
 
 package javafx.beans.property.validation;
 
+import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.WeakInvalidationListener;
+import javafx.beans.property.validation.function.CancellableValidationFunction0;
+import javafx.beans.property.validation.function.CancellableValidationFunction1;
+import javafx.beans.property.validation.function.CancellableValidationFunction2;
+import javafx.beans.property.validation.function.CancellableValidationFunction3;
+import javafx.beans.property.validation.function.CancellableValidationFunction4;
+import javafx.beans.property.validation.function.CancellableValidationFunction5;
+import javafx.beans.property.validation.function.CancellableValidationFunction6;
+import javafx.beans.property.validation.function.CancellableValidationFunction7;
+import javafx.beans.property.validation.function.CancellableValidationFunction8;
+import javafx.beans.property.validation.function.ValidationFunction0;
+import javafx.beans.property.validation.function.ValidationFunction1;
+import javafx.beans.property.validation.function.ValidationFunction2;
+import javafx.beans.property.validation.function.ValidationFunction3;
+import javafx.beans.property.validation.function.ValidationFunction4;
+import javafx.beans.property.validation.function.ValidationFunction5;
+import javafx.beans.property.validation.function.ValidationFunction6;
+import javafx.beans.property.validation.function.ValidationFunction7;
+import javafx.beans.property.validation.function.ValidationFunction8;
 import javafx.beans.value.ObservableDoubleValue;
 import javafx.beans.value.ObservableFloatValue;
 import javafx.beans.value.ObservableIntegerValue;
 import javafx.beans.value.ObservableLongValue;
 import javafx.beans.value.ObservableStringValue;
-
+import javafx.beans.value.ObservableValue;
+import org.jfxcore.beans.property.validation.ValidateCancellableTask;
+import org.jfxcore.beans.property.validation.ValidateInterruptibleTask;
+import org.jfxcore.beans.property.validation.ValidateTask;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -49,14 +71,15 @@ public final class Constraints {
     private Constraints() {}
 
     /**
-     * Creates a constraint that synchronously validates a value, and specifies its dependencies.
+     * Creates a constraint that validates a value by applying a validation function,
+     * and specifies its dependencies.
      * <p>
      * A constrained property that validates its value can be defined as follows:
      * <blockquote><pre>
      * var minLength = new SimpleIntegerProperty(5);
      *
      * var text = new SimpleConstrainedStringProperty&lt;String>(
-     *     Constraints.validate(
+     *     Constraints.apply(
      *         value -> {
      *             if (value != null &amp;&amp; value.length() >= minLength.get()) {
      *                 return ValidationResult.valid();
@@ -73,21 +96,34 @@ public final class Constraints {
      * @param <E> error information type
      * @return the new constraint
      */
-    public static <T, E> Constraint<T, E> validate(Function<T, ValidationResult<E>> validationFunc, Observable... dependencies) {
-        return new Constraint<>(validationFunc::apply, dependencies);
+    public static <T, E> Constraint<T, E> apply(
+            ValidationFunction0<T, E> validationFunc, Observable... dependencies) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        return new Constraint<>(value -> {
+            try {
+                return CompletableFuture.completedFuture(validationFunc.apply(value));
+            } catch (Throwable ex) {
+                return CompletableFuture.failedFuture(ex);
+            }
+        }, null, dependencies);
     }
 
     /**
-     * Creates a constraint that asynchronously validates a value.
+     * Creates a constraint that asynchronously validates a value by applying a validation function.
      * <p>
-     * The validation function will be invoked by a task running in {@link ForkJoinPool#commonPool()}.
-     * After the validation function returns, the {@link ValidationResult} will be yielded by {@code completionExecutor}.
-     * It is important that {@code completionExecutor} can safely access the constrained property to prevent data races.
+     * The constraint will be re-evaluated whenever the underlying property value changes.
+     * Importantly, the property value must only be changed on the JavaFX application thread; doing so
+     * on any other thread may introduce subtle bugs and inconsistencies due to data races.
      * <p>
-     * A constrained property that is safe to use on the JavaFX application thread can be defined as follows:
+     * The validation function will be invoked with the specified {@link Executor executor}.
+     * If the validation function runs concurrently with the JavaFX application thread, it is generally
+     * not safe to access any other properties or shared state within this function without implementing
+     * appropriate synchronization mechanisms.
+     * <p>
+     * A constrained property that uses this type of constraint can be defined as follows:
      * <blockquote><pre>
      * var property = new SimpleConstrainedDoubleProperty&lt;String>(
-     *     Constraints.validateAsync(
+     *     Constraints.applyAsync(
      *         value -> {
      *             try {
      *                 // takes a long time, throws if invalid
@@ -97,274 +133,1620 @@ public final class Constraints {
      *                 return new ValidationResult&lt;>(false, e.getMessage());
      *             }
      *         },
-     *         Platform::runLater));
+     *         ForkJoinPool.commonPool()));
      * </pre></blockquote>
-     * In this example, {@code Platform::runLater} is used to yield the {@code ValidationResult} back to the JavaFX
-     * application thread after being returned from the validation function.
+     * Note that long-running validation operations may have significant performance implications.
+     * When the constraint is re-evaluated while the validation function has not yet completed,
+     * the next invocation of the validation function will not be scheduled until the current
+     * invocation completes. This might happen if the property value is modified in short succession
+     * and the validation function takes a considerable amount of time to complete.
+     * Allowing the validation system to cancel an invocation of the validation function helps
+     * to reduce the response time in these cases.
+     * <p>
+     * See {@link #applyCancellableAsync} and {@link #applyInterruptibleAsync} for more information.
      *
+     * @see #applyCancellableAsync
+     * @see #applyInterruptibleAsync
      * @param validationFunc the function that validates the value
-     * @param completionExecutor the executor that yields the validation result
+     * @param executor the executor that invokes the validation function
      * @param <T> value type
      * @param <E> error information type
      * @return the new constraint
      */
-    public static <T, E> Constraint<T, E> validateAsync(
-            Function<T, ValidationResult<E>> validationFunc, Executor completionExecutor) {
-        return validateAsync(validationFunc, completionExecutor, (Observable[])null);
-    }
+    public static <T, E> Constraint<T, E> applyAsync(ValidationFunction0<T, E> validationFunc, Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
 
-    /**
-     * Creates a constraint that asynchronously validates a value and specifies its dependencies.
-     * <p>
-     * The constraint will be re-evaluated whenever the underlying property value or the values of
-     * the constraint dependencies change.
-     * <p>
-     * The validation function will be invoked by a task running in {@link ForkJoinPool#commonPool()}.
-     * After the validation function returns, the {@link ValidationResult} will be yielded by {@code completionExecutor}.
-     * It is important that {@code completionExecutor} can safely access the constrained property to prevent data races.
-     * <p>
-     * A constrained property that is safe to use on the JavaFX application thread can be defined as follows:
-     * <blockquote><pre>
-     * var dependency1 = new SimpleDoubleProperty();
-     * var dependency2 = new SimpleDoubleProperty();
-     *
-     * var property = new SimpleConstrainedDoubleProperty&lt;String>(
-     *     Constraints.validateAsync(
-     *         value -> {
-     *             try {
-     *                 // takes a long time, throws if invalid
-     *                 complexValidation(value, dependency1.get(), dependency2.get());
-     *                 return ValidationResult.valid();
-     *             } catch (RuntimeException e) {
-     *                 return new ValidationResult&lt;>(false, e.getMessage());
-     *             }
-     *         },
-     *         Platform::runLater,
-     *         dependency1, dependency2));
-     * </pre></blockquote>
-     * In this example, {@code Platform::runLater} is used to yield the {@code ValidationResult} back to the JavaFX
-     * application thread after being returned from the validation function.
-     *
-     * @param validationFunc the function that validates the value
-     * @param completionExecutor the executor that yields the validation result
-     * @param dependencies the dependencies of the constraint
-     * @param <T> value type
-     * @param <E> error information type
-     * @return the new constraint
-     */
-    public static <T, E> Constraint<T, E> validateAsync(
-            Function<T, ValidationResult<E>> validationFunc, Executor completionExecutor, Observable... dependencies) {
         return new Constraint<>(
-            value -> CompletableFuture.supplyAsync(() -> validationFunc.apply(value)),
-            null,
-            completionExecutor,
-            dependencies);
+            value -> {
+                var task = new ValidateTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value) {
+                        return validationFunc.apply(value);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            null);
     }
 
     /**
-     * Creates a delayed constraint that asynchronously validates a value.
+     * Creates a constraint that asynchronously validates a value by applying a validation function,
+     * and specifies a dependency on another {@link ObservableValue}.
      * <p>
-     * When the underlying property value changes, constraint validation will be delayed by the specified duration.
-     * If the property value changes again within the delay period, the existing validation request is cancelled
-     * and a new delayed validation request is scheduled.
-     * This allows a rapidly changing value to settle before a computationally expensive validation function is invoked.
-     * In practice, a small delay should be used if the source of the value change is a UI control that allows rapid
-     * data input, like a value spinner.
+     * The constraint will be re-evaluated whenever the underlying property value or the value of
+     * the constraint dependency changes. Importantly, the property value or dependency value must
+     * only be changed on the JavaFX application thread; doing so on any other thread may introduce
+     * subtle bugs and inconsistencies due to data races.
      * <p>
-     * The validation function will be invoked by a task running in {@link ForkJoinPool#commonPool()}.
-     * After the validation function returns, the {@link ValidationResult} will be yielded by {@code completionExecutor}.
-     * It is important that {@code completionExecutor} can safely access the constrained property to prevent data races.
+     * The validation function will be invoked with the specified {@link Executor executor}.
+     * If the validation function runs concurrently with the JavaFX application thread, it is generally
+     * not safe to access any other properties or shared state within this function without implementing
+     * appropriate synchronization mechanisms.
      * <p>
-     * A constrained property that is safe to use on the JavaFX application thread can be defined as follows:
+     * The validation function accepts the value to be validated, as well as the value of the constraint
+     * dependency. It is generally safe to use these values within the validation function, as long as
+     * the values are immutable objects. If any of the values contain mutable state, appropriate data
+     * synchronization mechanisms should be implemented.
+     * <p>
+     * A constrained property that uses this type of constraint can be defined as follows:
      * <blockquote><pre>
+     * var maxValue = new SimpleDoubleProperty(10);
+     *
      * var property = new SimpleConstrainedDoubleProperty&lt;String>(
-     *     Constraints.validateAsync(
-     *         value -> {
+     *     Constraints.applyAsync(
+     *         (value, maxValue) -> {
      *             try {
      *                 // takes a long time, throws if invalid
      *                 complexValidation(value);
-     *                 return ValidationResult.valid();
+     *
+     *                 // use the dependency value for additional validation
+     *                 if (value.doubleValue() > maxValue.doubleValue()) {
+     *                     return new ValidationResult&lt;>(false, "Value too large");
+     *                 } else {
+     *                     return ValidationResult.valid();
+     *                 }
      *             } catch (RuntimeException e) {
      *                 return new ValidationResult&lt;>(false, e.getMessage());
      *             }
      *         },
-     *         Platform::runLater,
-     *         300));
+     *         maxValue,
+     *         ForkJoinPool.commonPool()));
      * </pre></blockquote>
-     * In this example, {@code Platform::runLater} is used to yield the {@code ValidationResult} back to the JavaFX
-     * application thread after being returned from the validation function. The validation function will be invoked
-     * 300 milliseconds after the most recent change of the property value.
+     * Note that long-running validation operations may have significant performance implications.
+     * When the constraint is re-evaluated while the validation function has not yet completed,
+     * the next invocation of the validation function will not be scheduled until the current
+     * invocation completes. This might happen if the property value is modified in short succession
+     * and the validation function takes a considerable amount of time to complete.
+     * Allowing the validation system to cancel an invocation of the validation function helps
+     * to reduce the response time in these cases.
+     * <p>
+     * See {@link #applyCancellableAsync} and {@link #applyInterruptibleAsync} for more information.
      *
+     * @see #applyCancellableAsync
+     * @see #applyInterruptibleAsync
      * @param validationFunc the function that validates the value
-     * @param completionExecutor the executor that yields the validation result
-     * @param delayMillis the delay that needs to elapse before the validator is invoked
+     * @param dependency the constraint dependency
+     * @param executor the executor that invokes the validation function
      * @param <T> value type
+     * @param <D1> dependency type
      * @param <E> error information type
      * @return the new constraint
      */
-    public static <T, E> Constraint<T, E> validateAsync(
-            Function<T, ValidationResult<E>> validationFunc, Executor completionExecutor, long delayMillis) {
-        return validateAsync(validationFunc, completionExecutor, delayMillis, TimeUnit.MILLISECONDS, (Observable[])null);
-    }
+    public static <T, E, D1> Constraint<T, E> applyAsync(
+            ValidationFunction1<T, D1, E> validationFunc, ObservableValue<D1> dependency, Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency, "dependency");
 
-    /**
-     * Creates a delayed constraint that asynchronously validates a value.
-     * <p>
-     * When the underlying property value changes, constraint validation will be delayed by the specified duration.
-     * If the property value changes again within the delay period, the existing validation request is cancelled
-     * and a new delayed validation request is scheduled.
-     * This allows a rapidly changing value to settle before a computationally expensive validation function is invoked.
-     * In practice, a small delay should be used if the source of the value change is a UI control that allows rapid
-     * data input, like a value spinner.
-     * <p>
-     * The validation function will be invoked by a task running in {@link ForkJoinPool#commonPool()}.
-     * After the validation function returns, the {@link ValidationResult} will be yielded by {@code completionExecutor}.
-     * It is important that {@code completionExecutor} can safely access the constrained property to prevent data races.
-     * <p>
-     * A constrained property that is safe to use on the JavaFX application thread can be defined as follows:
-     * <blockquote><pre>
-     * var property = new SimpleConstrainedDoubleProperty&lt;String>(
-     *     Constraints.validateAsync(
-     *         value -> {
-     *             try {
-     *                 // takes a long time, throws if invalid
-     *                 complexValidation(value);
-     *                 return ValidationResult.valid();
-     *             } catch (RuntimeException e) {
-     *                 return new ValidationResult&lt;>(false, e.getMessage());
-     *             }
-     *         },
-     *         Platform::runLater,
-     *         300, TimeUnit.MILLISECONDS));
-     * </pre></blockquote>
-     * In this example, {@code Platform::runLater} is used to yield the {@code ValidationResult} back to the JavaFX
-     * application thread after being returned from the validation function. The validation function will be invoked
-     * 300 milliseconds after the most recent change of the property value.
-     *
-     * @param validationFunc the function that validates the value
-     * @param completionExecutor the executor that yields the validation result
-     * @param delay the delay that needs to elapse before the validator is invoked
-     * @param unit the delay unit
-     * @param <T> value type
-     * @param <E> error information type
-     * @return the new constraint
-     */
-    public static <T, E> Constraint<T, E> validateAsync(
-            Function<T, ValidationResult<E>> validationFunc, Executor completionExecutor, long delay, TimeUnit unit) {
-        return validateAsync(validationFunc, completionExecutor, delay, unit, (Observable[])null);
-    }
-
-    /**
-     * Creates a delayed constraint that asynchronously validates a value  and specifies its dependencies.
-     * <p>
-     * The constraint will be re-evaluated whenever the underlying property value or the values of
-     * the constraint dependencies change.
-     * <p>
-     * When the underlying property value changes, constraint validation will be delayed by the specified duration.
-     * If the property value changes again within the delay period, the existing validation request is cancelled
-     * and a new delayed validation request is scheduled.
-     * This allows a rapidly changing value to settle before a computationally expensive validation function is invoked.
-     * In practice, a small delay should be used if the source of the value change is a UI control that allows rapid
-     * data input, like a value spinner.
-     * <p>
-     * The validation function will be invoked by a task running in {@link ForkJoinPool#commonPool()}.
-     * After the validation function returns, the {@link ValidationResult} will be yielded by {@code completionExecutor}.
-     * It is important that {@code completionExecutor} can safely access the constrained property to prevent data races.
-     * <p>
-     * A constrained property that is safe to use on the JavaFX application thread can be defined as follows:
-     * <blockquote><pre>
-     * var dependency1 = new SimpleDoubleProperty();
-     * var dependency2 = new SimpleDoubleProperty();
-     *
-     * var property = new SimpleConstrainedDoubleProperty&lt;String>(
-     *     Constraints.validateAsync(
-     *         value -> {
-     *             try {
-     *                 // takes a long time, throws if invalid
-     *                 complexValidation(value, dependency1.get(), dependency2.get());
-     *                 return ValidationResult.valid();
-     *             } catch (RuntimeException e) {
-     *                 return new ValidationResult&lt;>(false, e.getMessage());
-     *             }
-     *         },
-     *         Platform::runLater,
-     *         300,
-     *         dependency1, dependency2));
-     * </pre></blockquote>
-     * In this example, {@code Platform::runLater} is used to yield the {@code ValidationResult} back to the JavaFX
-     * application thread after being returned from the validation function. The validation function will be invoked
-     * 300 milliseconds after the most recent change of the property value.
-     *
-     * @param validationFunc the function that validates the value
-     * @param completionExecutor the executor that yields the validation result
-     * @param delayMillis the delay that needs to elapse before the validator is invoked
-     * @param dependencies the dependencies of the constraint
-     * @param <T> value type
-     * @param <E> error information type
-     * @return the new constraint
-     */
-    public static <T, E> Constraint<T, E> validateAsync(
-            Function<T, ValidationResult<E>> validationFunc, Executor completionExecutor, long delayMillis, Observable... dependencies) {
-        return validateAsync(validationFunc, completionExecutor, delayMillis, TimeUnit.MILLISECONDS, dependencies);
-    }
-
-    /**
-     * Creates a delayed constraint that asynchronously validates a value  and specifies its dependencies.
-     * <p>
-     * The constraint will be re-evaluated whenever the underlying property value or the values of
-     * the constraint dependencies change.
-     * <p>
-     * When the underlying property value changes, constraint validation will be delayed by the specified duration.
-     * If the property value changes again within the delay period, the existing validation request is cancelled
-     * and a new delayed validation request is scheduled.
-     * This allows a rapidly changing value to settle before a computationally expensive validation function is invoked.
-     * In practice, a small delay should be used if the source of the value change is a UI control that allows rapid
-     * data input, like a value spinner.
-     * <p>
-     * The validation function will be invoked by a task running in {@link ForkJoinPool#commonPool()}.
-     * After the validation function returns, the {@link ValidationResult} will be yielded by {@code completionExecutor}.
-     * It is important that {@code completionExecutor} can safely access the constrained property to prevent data races.
-     * <p>
-     * A constrained property that is safe to use on the JavaFX application thread can be defined as follows:
-     * <blockquote><pre>
-     * var dependency1 = new SimpleDoubleProperty();
-     * var dependency2 = new SimpleDoubleProperty();
-     *
-     * var property = new SimpleConstrainedDoubleProperty&lt;String>(
-     *     Constraints.validateAsync(
-     *         value -> {
-     *             try {
-     *                 // takes a long time, throws if invalid
-     *                 complexValidation(value, dependency1.get(), dependency2.get());
-     *                 return ValidationResult.valid();
-     *             } catch (RuntimeException e) {
-     *                 return new ValidationResult&lt;>(false, e.getMessage());
-     *             }
-     *         },
-     *         Platform::runLater,
-     *         300, TimeUnit.MILLISECONDS,
-     *         dependency1, dependency2));
-     * </pre></blockquote>
-     * In this example, {@code Platform::runLater} is used to yield the {@code ValidationResult} back to the JavaFX
-     * application thread after being returned from the validation function. The validation function will be invoked
-     * 300 milliseconds after the most recent change of the property value.
-     *
-     * @param validationFunc the function that validates the value
-     * @param completionExecutor the executor that yields the validation result
-     * @param delay the delay that needs to elapse before the validator is invoked
-     * @param unit the delay unit
-     * @param dependencies the dependencies of the constraint
-     * @param <T> value type
-     * @param <E> error information type
-     * @return the new constraint
-     */
-    public static <T, E> Constraint<T, E> validateAsync(
-            Function<T, ValidationResult<E>> validationFunc, Executor completionExecutor, long delay, TimeUnit unit, Observable... dependencies) {
         return new Constraint<>(
-            value -> CompletableFuture.supplyAsync(() -> validationFunc.apply(value)),
-            CompletableFuture.delayedExecutor(delay, unit),
-            completionExecutor,
-            dependencies);
+            value -> {
+                final var dep = dependency.getValue();
+                return CompletableFuture.supplyAsync(() -> validationFunc.apply(value, dep), executor);
+            },
+            Platform::runLater,
+            new Observable[] {dependency});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a validation function,
+     * and specifies dependencies on two {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyAsync(ValidationFunction1, ObservableValue, Executor)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2> Constraint<T, E> applyAsync(
+            ValidationFunction2<T, D1, D2, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+
+        return new Constraint<>(
+            value -> {
+                final var dep1 = dependency1.getValue();
+                final var dep2 = dependency2.getValue();
+                return CompletableFuture.supplyAsync(() -> validationFunc.apply(value, dep1, dep2), executor);
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a validation function,
+     * and specifies dependencies on three {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyAsync(ValidationFunction1, ObservableValue, Executor)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3> Constraint<T, E> applyAsync(
+            ValidationFunction3<T, D1, D2, D3, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+
+        return new Constraint<>(
+            value -> {
+                final var dep1 = dependency1.getValue();
+                final var dep2 = dependency2.getValue();
+                final var dep3 = dependency3.getValue();
+                return CompletableFuture.supplyAsync(() -> validationFunc.apply(value, dep1, dep2, dep3), executor);
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a validation function,
+     * and specifies dependencies on four {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyAsync(ValidationFunction1, ObservableValue, Executor)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4> Constraint<T, E> applyAsync(
+            ValidationFunction4<T, D1, D2, D3, D4, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+
+        return new Constraint<>(
+            value -> {
+                final var dep1 = dependency1.getValue();
+                final var dep2 = dependency2.getValue();
+                final var dep3 = dependency3.getValue();
+                final var dep4 = dependency4.getValue();
+                return CompletableFuture.supplyAsync(
+                    () -> validationFunc.apply(value, dep1, dep2, dep3, dep4), executor);
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a validation function,
+     * and specifies dependencies on five {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyAsync(ValidationFunction1, ObservableValue, Executor)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5> Constraint<T, E> applyAsync(
+            ValidationFunction5<T, D1, D2, D3, D4, D5, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+
+        return new Constraint<>(
+            value -> {
+                final var dep1 = dependency1.getValue();
+                final var dep2 = dependency2.getValue();
+                final var dep3 = dependency3.getValue();
+                final var dep4 = dependency4.getValue();
+                final var dep5 = dependency5.getValue();
+                return CompletableFuture.supplyAsync(
+                    () -> validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5), executor);
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a validation function,
+     * and specifies dependencies on six {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyAsync(ValidationFunction1, ObservableValue, Executor)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <D6> type of the sixth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5, D6> Constraint<T, E> applyAsync(
+            ValidationFunction6<T, D1, D2, D3, D4, D5, D6, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            ObservableValue<D6> dependency6,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+
+        return new Constraint<>(
+            value -> {
+                final var dep1 = dependency1.getValue();
+                final var dep2 = dependency2.getValue();
+                final var dep3 = dependency3.getValue();
+                final var dep4 = dependency4.getValue();
+                final var dep5 = dependency5.getValue();
+                final var dep6 = dependency6.getValue();
+                return CompletableFuture.supplyAsync(
+                    () -> validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6), executor);
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5, dependency6});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a validation function,
+     * and specifies dependencies on seven {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyAsync(ValidationFunction1, ObservableValue, Executor)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param dependency7 the seventh constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <D6> type of the sixth dependency
+     * @param <D7> type of the seventh dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5, D6, D7> Constraint<T, E> applyAsync(
+            ValidationFunction7<T, D1, D2, D3, D4, D5, D6, D7, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            ObservableValue<D6> dependency6,
+            ObservableValue<D7> dependency7,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(dependency7, "dependency7");
+
+        return new Constraint<>(
+            value -> {
+                final var dep1 = dependency1.getValue();
+                final var dep2 = dependency2.getValue();
+                final var dep3 = dependency3.getValue();
+                final var dep4 = dependency4.getValue();
+                final var dep5 = dependency5.getValue();
+                final var dep6 = dependency6.getValue();
+                final var dep7 = dependency7.getValue();
+                return CompletableFuture.supplyAsync(
+                    () -> validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6, dep7), executor);
+            },
+            Platform::runLater,
+            new Observable[] {
+                dependency1, dependency2, dependency3, dependency4,
+                dependency5, dependency6, dependency7
+            });
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a validation function,
+     * and specifies dependencies on eight {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyAsync(ValidationFunction1, ObservableValue, Executor)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param dependency7 the seventh constraint dependency
+     * @param dependency8 the eighth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <D6> type of the sixth dependency
+     * @param <D7> type of the seventh dependency
+     * @param <D8> type of the eighth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5, D6, D7, D8> Constraint<T, E> applyAsync(
+            ValidationFunction8<T, D1, D2, D3, D4, D5, D6, D7, D8, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            ObservableValue<D6> dependency6,
+            ObservableValue<D7> dependency7,
+            ObservableValue<D8> dependency8,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(dependency7, "dependency7");
+        Objects.requireNonNull(dependency8, "dependency8");
+
+        return new Constraint<>(
+            value -> {
+                final var dep1 = dependency1.getValue();
+                final var dep2 = dependency2.getValue();
+                final var dep3 = dependency3.getValue();
+                final var dep4 = dependency4.getValue();
+                final var dep5 = dependency5.getValue();
+                final var dep6 = dependency6.getValue();
+                final var dep7 = dependency7.getValue();
+                final var dep8 = dependency8.getValue();
+                return CompletableFuture.supplyAsync(
+                    () -> validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6, dep7, dep8), executor);
+            },
+            Platform::runLater,
+            new Observable[] {
+                dependency1, dependency2, dependency3, dependency4,
+                dependency5,dependency6, dependency7, dependency8
+            });
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a cooperatively
+     * cancellable validation function.
+     * <p>
+     * Cooperative cancellation works by repeatedly checking the value of a cancellation flag within
+     * the implementation of a long-running algorithm, and is thus best suited for computationally
+     * intensive validation functions. For I/O-bound validation functions that use thread interruption
+     * to cancel a blocking operation, consider using {@link #applyInterruptibleAsync} instead.
+     * <p>
+     * When cancellation is requested, the implementation should return from the validation function
+     * as soon as possible; in this case, the {@link ValidationResult} returned from the validation
+     * function will be ignored.
+     * <p>
+     * The constraint will be re-evaluated whenever the underlying property value changes.
+     * Importantly, the property value must only be changed on the JavaFX application thread; doing so
+     * on any other thread may introduce subtle bugs and inconsistencies due to data races.
+     * <p>
+     * The validation function will be invoked with the specified {@link Executor executor}.
+     * If the validation function runs concurrently with the JavaFX application thread, it is generally
+     * not safe to access any other properties or shared state within this function without implementing
+     * appropriate synchronization mechanisms.
+     * <p>
+     * A constrained property that uses this type of constraint can be defined as follows:
+     * <blockquote><pre>
+     * var property = new SimpleConstrainedDoubleProperty&lt;String>(
+     *     Constraints.applyCancellableAsync(
+     *         (Number value, AtomicBoolean cancellationRequested) -> {
+     *             // CHECKLIST is assumed to contain a large number of individual checks.
+     *             // After each check, we give the algorithm a chance to return early.
+     *             for (int i = 0; i < CHECKLIST.length && !cancellationRequested.get(); ++i) {
+     *                 if (!CHECKLIST[i].check(value)) {
+     *                     return ValidationResult.invalid();
+     *                 }
+     *             }
+     *             return ValidationResult.valid();
+     *         },
+     *         ForkJoinPool.commonPool()));
+     * </pre></blockquote>
+     *
+     * @see #applyAsync
+     * @see #applyInterruptibleAsync
+     * @param validationFunc the function that validates the value
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E> Constraint<T, E> applyCancellableAsync(
+            CancellableValidationFunction0<T, E> validationFunc, Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var task = new ValidateCancellableTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                        return validationFunc.apply(value, cancellationRequested);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            null);
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a cooperatively
+     * cancellable validation function, and specifies a dependency on another {@link ObservableValue}.
+     * <p>
+     * Cooperative cancellation works by repeatedly checking the value of a cancellation flag within
+     * the implementation of a long-running algorithm, and is thus best suited for computationally
+     * intensive validation functions. For I/O-bound validation functions that use thread interruption
+     * to cancel a blocking operation, consider using {@link #applyInterruptibleAsync} instead.
+     * <p>
+     * When cancellation is requested, the implementation should return from the validation function
+     * as soon as possible; in this case, the {@link ValidationResult} returned from the validation
+     * function will be ignored.
+     * <p>
+     * The constraint will be re-evaluated whenever the underlying property value or the value of
+     * the constraint dependency changes. Importantly, the property value or dependency value must
+     * only be changed on the JavaFX application thread; doing so on any other thread may introduce
+     * subtle bugs and inconsistencies due to data races.
+     * <p>
+     * The validation function will be invoked with the specified {@link Executor executor}.
+     * If the validation function runs concurrently with the JavaFX application thread, it is generally
+     * not safe to access any other properties or shared state within this function without implementing
+     * appropriate synchronization mechanisms.
+     * <p>
+     * The validation function accepts the value to be validated, as well as the value of the constraint
+     * dependency. It is generally safe to use these values within the validation function, as long as
+     * the values are immutable objects. If any of the values contain mutable state, appropriate data
+     * synchronization mechanisms should be implemented.
+     * <p>
+     * A constrained property that uses this type of constraint can be defined as follows:
+     * <blockquote><pre>
+     * var maxValue = new SimpleDoubleProperty(10);
+     *
+     * var property = new SimpleConstrainedDoubleProperty&lt;String>(
+     *     Constraints.applyCancellableAsync(
+     *         (Number value, Number maxValue, AtomicBoolean cancellationRequested) -> {
+     *             try {
+     *                 // CHECKLIST is assumed to contain a large number of individual checks.
+     *                 // After each check, we give the algorithm a chance to return early.
+     *                 for (int i = 0; i < CHECKLIST.length && !cancellationRequested.get(); ++i) {
+     *                     if (!CHECKLIST[i].check(value)) {
+     *                         return ValidationResult.invalid();
+     *                     }
+     *                 }
+     *
+     *                 // Use the dependency value for additional validation
+     *                 if (value.doubleValue() > maxValue.doubleValue()) {
+     *                     return new ValidationResult&lt;>(false, "Value too large");
+     *                 } else {
+     *                     return ValidationResult.valid();
+     *                 }
+     *             } catch (RuntimeException e) {
+     *                 return new ValidationResult&lt;>(false, e.getMessage());
+     *             }
+     *         },
+     *         maxValue,
+     *         ForkJoinPool.commonPool()));
+     * </pre></blockquote>
+     *
+     * @see #applyAsync
+     * @see #applyInterruptibleAsync
+     * @param validationFunc the function that validates the value
+     * @param dependency the constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> dependency type
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1> Constraint<T, E> applyCancellableAsync(
+            CancellableValidationFunction1<T, D1, E> validationFunc, ObservableValue<D1> dependency, Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency, "dependency");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep = dependency.getValue();
+                var task = new ValidateCancellableTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                        return validationFunc.apply(value, dep, cancellationRequested);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a cooperatively cancellable
+     * validation function, and specifies dependencies on two {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyCancellableAsync(CancellableValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2> Constraint<T, E> applyCancellableAsync(
+            CancellableValidationFunction2<T, D1, D2, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var task = new ValidateCancellableTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                        return validationFunc.apply(value, dep1, dep2, cancellationRequested);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a cooperatively cancellable
+     * validation function, and specifies dependencies on three {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyCancellableAsync(CancellableValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3> Constraint<T, E> applyCancellableAsync(
+            CancellableValidationFunction3<T, D1, D2, D3, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var task = new ValidateCancellableTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                        return validationFunc.apply(value, dep1, dep2, dep3, cancellationRequested);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a cooperatively cancellable
+     * validation function, and specifies dependencies on four {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyCancellableAsync(CancellableValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4> Constraint<T, E> applyCancellableAsync(
+            CancellableValidationFunction4<T, D1, D2, D3, D4, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var dep4 = dependency4.getValue();
+                var task = new ValidateCancellableTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                        return validationFunc.apply(value, dep1, dep2, dep3, dep4, cancellationRequested);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a cooperatively cancellable
+     * validation function, and specifies dependencies on five {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyCancellableAsync(CancellableValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5> Constraint<T, E> applyCancellableAsync(
+            CancellableValidationFunction5<T, D1, D2, D3, D4, D5, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var dep4 = dependency4.getValue();
+                var dep5 = dependency5.getValue();
+                var task = new ValidateCancellableTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                        return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, cancellationRequested);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a cooperatively cancellable
+     * validation function, and specifies dependencies on six {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyCancellableAsync(CancellableValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <D6> type of the sixth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5, D6> Constraint<T, E> applyCancellableAsync(
+            CancellableValidationFunction6<T, D1, D2, D3, D4, D5, D6, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            ObservableValue<D6> dependency6,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var dep4 = dependency4.getValue();
+                var dep5 = dependency5.getValue();
+                var dep6 = dependency6.getValue();
+                var task = new ValidateCancellableTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                        return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6, cancellationRequested);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5, dependency6});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a cooperatively cancellable
+     * validation function, and specifies dependencies on seven {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyCancellableAsync(CancellableValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param dependency7 the seventh constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <D6> type of the sixth dependency
+     * @param <D7> type of the seventh dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5, D6, D7> Constraint<T, E> applyCancellableAsync(
+            CancellableValidationFunction7<T, D1, D2, D3, D4, D5, D6, D7, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            ObservableValue<D6> dependency6,
+            ObservableValue<D7> dependency7,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(dependency7, "dependency7");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var dep4 = dependency4.getValue();
+                var dep5 = dependency5.getValue();
+                var dep6 = dependency6.getValue();
+                var dep7 = dependency7.getValue();
+                var task = new ValidateCancellableTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                        return validationFunc.apply(
+                            value, dep1, dep2, dep3, dep4, dep5, dep6, dep7, cancellationRequested);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7
+            });
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying a cooperatively cancellable
+     * validation function, and specifies dependencies on eight {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyCancellableAsync(CancellableValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param dependency7 the seventh constraint dependency
+     * @param dependency8 the eighth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <D6> type of the sixth dependency
+     * @param <D7> type of the seventh dependency
+     * @param <D8> type of the eighth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5, D6, D7, D8> Constraint<T, E> applyCancellableAsync(
+            CancellableValidationFunction8<T, D1, D2, D3, D4, D5, D6, D7, D8, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            ObservableValue<D6> dependency6,
+            ObservableValue<D7> dependency7,
+            ObservableValue<D8> dependency8,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(dependency7, "dependency7");
+        Objects.requireNonNull(dependency8, "dependency8");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var dep4 = dependency4.getValue();
+                var dep5 = dependency5.getValue();
+                var dep6 = dependency6.getValue();
+                var dep7 = dependency7.getValue();
+                var dep8 = dependency8.getValue();
+                var task = new ValidateCancellableTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                        return validationFunc.apply(
+                            value, dep1, dep2, dep3, dep4, dep5, dep6, dep7, dep8, cancellationRequested);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7, dependency8
+            });
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying an interruptible
+     * validation function.
+     * <p>
+     * Interruptible validation functions are useful for blocking I/O operations, since they support
+     * cancellation by thread interruption. For computationally intensive validation functions, consider
+     * using {@link #applyCancellableAsync} instead.
+     * <p>
+     * When the thread is interrupted, the implementation should return from the validation function
+     * as soon as possible; in this case, the {@link ValidationResult} returned from the validation
+     * function will be ignored.
+     * <p>
+     * The constraint will be re-evaluated whenever the underlying property value changes.
+     * Importantly, the property value must only be changed on the JavaFX application thread; doing so
+     * on any other thread may introduce subtle bugs and inconsistencies due to data races.
+     * <p>
+     * The validation function will be invoked with the specified {@link Executor executor}.
+     * If the validation function runs concurrently with the JavaFX application thread, it is generally
+     * not safe to access any other properties or shared state within this function without implementing
+     * appropriate synchronization mechanisms.
+     * <p>
+     * A constrained property that uses this type of constraint can be defined as follows:
+     * <blockquote><pre>
+     * var threadPool = Executors.newCachedThreadPool();
+     *
+     * var property = new SimpleConstrainedDoubleProperty&lt;String>(
+     *     Constraints.applyInterruptibleAsync(
+     *         value -> {
+     *             try {
+     *                 // Simulate a blocking operation
+     *                 Thread.sleep(5000);
+     *                 return ValidationResult.valid();
+     *             } catch (InterruptedException ex) {
+     *                 return ValidationResult.invalid();
+     *             }
+     *         },
+     *         threadPool));
+     * </pre></blockquote>
+     *
+     * @see #applyAsync
+     * @see #applyCancellableAsync
+     * @param validationFunc the function that validates the value
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E> Constraint<T, E> applyInterruptibleAsync(
+            ValidationFunction0<T, E> validationFunc, Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var task = new ValidateInterruptibleTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value) {
+                        return validationFunc.apply(value);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            null);
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying an interruptible
+     * validation function, and specifies a dependency on another {@link ObservableValue}.
+     * <p>
+     * Interruptible validation functions are useful for blocking I/O operations, since they support
+     * cancellation by thread interruption. For computationally intensive validation functions, consider
+     * using {@link #applyCancellableAsync} instead.
+     * <p>
+     * When the thread is interrupted, the implementation should return from the validation function
+     * as soon as possible; in this case, the {@link ValidationResult} returned from the validation
+     * function will be ignored.
+     * <p>
+     * The constraint will be re-evaluated whenever the underlying property value or the value of
+     * the constraint dependency changes. Importantly, the property value or dependency value must
+     * only be changed on the JavaFX application thread; doing so on any other thread may introduce
+     * subtle bugs and inconsistencies due to data races.
+     * <p>
+     * The validation function will be invoked with the specified {@link Executor executor}.
+     * If the validation function runs concurrently with the JavaFX application thread, it is generally
+     * not safe to access any other properties or shared state within this function without implementing
+     * appropriate synchronization mechanisms.
+     * <p>
+     * The validation function accepts the value to be validated, as well as the value of the constraint
+     * dependency. It is generally safe to use these values within the validation function, as long as
+     * the values are immutable objects. If any of the values contain mutable state, appropriate data
+     * synchronization mechanisms should be implemented.
+     * <p>
+     * A constrained property that uses this type of constraint can be defined as follows:
+     * <blockquote><pre>
+     * var threadPool = Executors.newCachedThreadPool();
+     * var maxValue = new SimpleDoubleProperty(10);
+     *
+     * var property = new SimpleConstrainedDoubleProperty&lt;String>(
+     *     Constraints.applyInterruptibleAsync(
+     *         (Number value, Number maxValue) -> {
+     *             try {
+     *                 // Simulate a blocking operation
+     *                 Thread.sleep(5000);
+     *
+     *                 return value.doubleValue() < maxValue.doubleValue() ?
+     *                     ValidationResult.valid() : ValidationResult.invalid();
+     *             } catch (InterruptedException ex) {
+     *                 return ValidationResult.invalid();
+     *             }
+     *         },
+     *         maxValue,
+     *         threadPool));
+     * </pre></blockquote>
+     *
+     * @see #applyAsync
+     * @see #applyCancellableAsync
+     * @param validationFunc the function that validates the value
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D> Constraint<T, E> applyInterruptibleAsync(
+            ValidationFunction1<T, D, E> validationFunc, ObservableValue<D> dependency, Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency, "dependency");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep = dependency.getValue();
+                var task = new ValidateInterruptibleTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value) {
+                        return validationFunc.apply(value, dep);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying an interruptible validation
+     * function, and specifies dependencies on two {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyInterruptibleAsync(ValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2> Constraint<T, E> applyInterruptibleAsync(
+            ValidationFunction2<T, D1, D2, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var task = new ValidateInterruptibleTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value) {
+                        return validationFunc.apply(value, dep1, dep2);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying an interruptible validation
+     * function, and specifies dependencies on three {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyInterruptibleAsync(ValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3> Constraint<T, E> applyInterruptibleAsync(
+            ValidationFunction3<T, D1, D2, D3, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var task = new ValidateInterruptibleTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value) {
+                        return validationFunc.apply(value, dep1, dep2, dep3);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying an interruptible validation
+     * function, and specifies dependencies on four {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyInterruptibleAsync(ValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4> Constraint<T, E> applyInterruptibleAsync(
+            ValidationFunction4<T, D1, D2, D3, D4, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var dep4 = dependency4.getValue();
+                var task = new ValidateInterruptibleTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value) {
+                        return validationFunc.apply(value, dep1, dep2, dep3, dep4);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying an interruptible validation
+     * function, and specifies dependencies on five {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyInterruptibleAsync(ValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5> Constraint<T, E> applyInterruptibleAsync(
+            ValidationFunction5<T, D1, D2, D3, D4, D5, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var dep4 = dependency4.getValue();
+                var dep5 = dependency5.getValue();
+                var task = new ValidateInterruptibleTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value) {
+                        return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying an interruptible validation
+     * function, and specifies dependencies on six {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyInterruptibleAsync(ValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <D6> type of the sixth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5, D6> Constraint<T, E> applyInterruptibleAsync(
+            ValidationFunction6<T, D1, D2, D3, D4, D5, D6, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            ObservableValue<D6> dependency6,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var dep4 = dependency4.getValue();
+                var dep5 = dependency5.getValue();
+                var dep6 = dependency6.getValue();
+                var task = new ValidateInterruptibleTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value) {
+                        return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5, dependency6});
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying an interruptible validation
+     * function, and specifies dependencies on seven {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyInterruptibleAsync(ValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param dependency7 the seventh constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <D6> type of the sixth dependency
+     * @param <D7> type of the seventh dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5, D6, D7> Constraint<T, E> applyInterruptibleAsync(
+            ValidationFunction7<T, D1, D2, D3, D4, D5, D6, D7, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            ObservableValue<D6> dependency6,
+            ObservableValue<D7> dependency7,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(dependency7, "dependency7");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var dep4 = dependency4.getValue();
+                var dep5 = dependency5.getValue();
+                var dep6 = dependency6.getValue();
+                var dep7 = dependency7.getValue();
+                var task = new ValidateInterruptibleTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value) {
+                        return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6, dep7);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7
+            });
+    }
+
+    /**
+     * Creates a constraint that asynchronously validates a value by applying an interruptible validation
+     * function, and specifies dependencies on eight {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #applyInterruptibleAsync(ValidationFunction1, ObservableValue, Executor)}
+     * for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param dependency7 the seventh constraint dependency
+     * @param dependency8 the eighth constraint dependency
+     * @param executor the executor that invokes the validation function
+     * @param <T> value type
+     * @param <D1> type of the first dependency
+     * @param <D2> type of the second dependency
+     * @param <D3> type of the third dependency
+     * @param <D4> type of the fourth dependency
+     * @param <D5> type of the fifth dependency
+     * @param <D6> type of the sixth dependency
+     * @param <D7> type of the seventh dependency
+     * @param <D8> type of the eighth dependency
+     * @param <E> error information type
+     * @return the new constraint
+     */
+    public static <T, E, D1, D2, D3, D4, D5, D6, D7, D8> Constraint<T, E> applyInterruptibleAsync(
+            ValidationFunction8<T, D1, D2, D3, D4, D5, D6, D7, D8, E> validationFunc,
+            ObservableValue<D1> dependency1,
+            ObservableValue<D2> dependency2,
+            ObservableValue<D3> dependency3,
+            ObservableValue<D4> dependency4,
+            ObservableValue<D5> dependency5,
+            ObservableValue<D6> dependency6,
+            ObservableValue<D7> dependency7,
+            ObservableValue<D8> dependency8,
+            Executor executor) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(dependency7, "dependency7");
+        Objects.requireNonNull(dependency8, "dependency8");
+        Objects.requireNonNull(executor, "executor");
+
+        return new Constraint<>(
+            value -> {
+                var dep1 = dependency1.getValue();
+                var dep2 = dependency2.getValue();
+                var dep3 = dependency3.getValue();
+                var dep4 = dependency4.getValue();
+                var dep5 = dependency5.getValue();
+                var dep6 = dependency6.getValue();
+                var dep7 = dependency7.getValue();
+                var dep8 = dependency8.getValue();
+                var task = new ValidateInterruptibleTask<T, E>(value) {
+                    @Override
+                    protected ValidationResult<E> apply(T value) {
+                        return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6, dep7, dep8);
+                    }
+                };
+                executor.execute(task);
+                return task;
+            },
+            Platform::runLater,
+            new Observable[] {
+                dependency1, dependency2, dependency3, dependency4,
+                dependency5, dependency6, dependency7, dependency8
+            });
     }
 
     /**
@@ -393,8 +1775,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v >= minInclusive && v < maxExclusive;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -423,8 +1806,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v >= minInclusive && v < maxExclusive;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -453,8 +1837,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v >= minInclusive && v < maxExclusive;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -483,8 +1868,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v >= minInclusive && v < maxExclusive;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -519,8 +1905,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minInclusive, maxExclusive});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minInclusive, maxExclusive});
     }
 
     /**
@@ -555,8 +1942,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minInclusive, maxExclusive});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minInclusive, maxExclusive});
     }
 
     /**
@@ -591,8 +1979,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minInclusive, maxExclusive});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minInclusive, maxExclusive});
     }
 
     /**
@@ -627,8 +2016,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minInclusive, maxExclusive});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minInclusive, maxExclusive});
     }
 
     /**
@@ -655,8 +2045,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v > minimum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -683,8 +2074,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v > minimum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -711,8 +2103,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v > minimum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -739,8 +2132,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v > minimum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -773,8 +2167,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v > minimum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minimum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minimum});
     }
 
     /**
@@ -807,8 +2202,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v > minimum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minimum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minimum});
     }
 
     /**
@@ -841,8 +2237,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v > minimum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minimum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minimum});
     }
 
     /**
@@ -875,8 +2272,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v > minimum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minimum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minimum});
     }
 
     /**
@@ -903,8 +2301,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v >= minimum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -931,8 +2330,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v >= minimum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -959,8 +2359,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v >= minimum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -987,8 +2388,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v >= minimum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -1021,8 +2423,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v >= minimum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minimum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minimum});
     }
 
     /**
@@ -1055,8 +2458,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v >= minimum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minimum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minimum});
     }
 
     /**
@@ -1089,8 +2493,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v >= minimum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minimum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minimum});
     }
 
     /**
@@ -1123,8 +2528,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v >= minimum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {minimum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {minimum});
     }
 
     /**
@@ -1151,8 +2557,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v < maximum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -1179,8 +2586,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v < maximum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -1207,8 +2615,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v < maximum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -1235,8 +2644,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v < maximum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -1269,8 +2679,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v < maximum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {maximum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {maximum});
     }
 
     /**
@@ -1303,8 +2714,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v < maximum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {maximum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {maximum});
     }
 
     /**
@@ -1337,8 +2749,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v < maximum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {maximum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {maximum});
     }
 
     /**
@@ -1371,8 +2784,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v < maximum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {maximum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {maximum});
     }
 
     /**
@@ -1399,8 +2813,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v <= maximum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null,null);
     }
 
     /**
@@ -1427,8 +2842,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v <= maximum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -1455,8 +2871,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v <= maximum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -1483,8 +2900,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v <= maximum;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, null);
     }
 
     /**
@@ -1517,8 +2935,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v <= maximum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {maximum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {maximum});
     }
 
     /**
@@ -1551,8 +2970,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v <= maximum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {maximum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {maximum});
     }
 
     /**
@@ -1585,8 +3005,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v <= maximum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {maximum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {maximum});
     }
 
     /**
@@ -1619,8 +3040,9 @@ public final class Constraints {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v <= maximum.get();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
-        }, new Observable[] {maximum});
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+        }, null, new Observable[] {maximum});
     }
 
     /**
@@ -1645,8 +3067,9 @@ public final class Constraints {
     public static <T, E> Constraint<T, E> notNull(Supplier<E> errorInfo) {
         return new Constraint<>(value -> {
             boolean valid = value != null;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.get() : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.get() : null));
+        }, null, null);
     }
 
     /**
@@ -1669,8 +3092,9 @@ public final class Constraints {
     public static <E> Constraint<String, E> notNullOrEmpty(Supplier<E> errorInfo) {
         return new Constraint<>(value -> {
             boolean valid = value != null && !value.isEmpty();
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.get() : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.get() : null));
+        }, null, null);
     }
 
     /**
@@ -1704,8 +3128,9 @@ public final class Constraints {
             }
 
             boolean valid = !blank;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.get() : null);
-        }, null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.get() : null));
+        }, null, null);
     }
 
     /**
@@ -1732,11 +3157,12 @@ public final class Constraints {
             final Pattern pattern = Pattern.compile(regex);
 
             @Override
-            public ValidationResult<E> validate(String value) {
+            public CompletableFuture<ValidationResult<E>> validate(String value) {
                 boolean valid = pattern.matcher(value != null ? value : "").matches();
-                return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
             }
-        }, null);
+        }, null, null);
     }
 
     /**
@@ -1765,7 +3191,7 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <E> Constraint<String, E> matchesPattern(ObservableStringValue regex, Function<String, E> errorInfo) {
-        return new Constraint<>(new ObservablePatternValidator<>(regex, errorInfo, false), new Observable[] {regex});
+        return new Constraint<>(new ObservablePatternValidator<>(regex, errorInfo, false), null, new Observable[] {regex});
     }
 
     /**
@@ -1792,11 +3218,12 @@ public final class Constraints {
             final Pattern pattern = Pattern.compile(regex);
 
             @Override
-            public ValidationResult<E> validate(String value) {
+            public CompletableFuture<ValidationResult<E>> validate(String value) {
                 boolean valid = !pattern.matcher(value != null ? value : "").matches();
-                return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
             }
-        }, null);
+        }, null, null);
     }
 
     /**
@@ -1825,7 +3252,7 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <E> Constraint<String, E> notMatchesPattern(ObservableStringValue regex, Function<String, E> errorInfo) {
-        return new Constraint<>(new ObservablePatternValidator<>(regex, errorInfo, true), new Observable[] {regex});
+        return new Constraint<>(new ObservablePatternValidator<>(regex, errorInfo, true), null, new Observable[] {regex});
     }
 
     private static final class ObservablePatternValidator<E> implements Validator<String, E>, InvalidationListener {
@@ -1849,9 +3276,10 @@ public final class Constraints {
         }
 
         @Override
-        public ValidationResult<E> validate(String value) {
+        public CompletableFuture<ValidationResult<E>> validate(String value) {
             boolean valid = (pattern != null && pattern.matcher(value != null ? value : "").matches()) ^ flip;
-            return new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null);
+            return CompletableFuture.completedFuture(
+                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
         }
     }
 

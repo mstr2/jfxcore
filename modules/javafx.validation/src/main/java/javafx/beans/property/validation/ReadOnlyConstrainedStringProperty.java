@@ -21,6 +21,7 @@
 
 package javafx.beans.property.validation;
 
+import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.StringExpression;
 import javafx.beans.property.ReadOnlyStringProperty;
 
@@ -39,6 +40,11 @@ public abstract class ReadOnlyConstrainedStringProperty<E>
     @Override
     public String getConstrainedValue() {
         return constrainedValueProperty().getValue();
+    }
+
+    @Override
+    public String toString() {
+        return PropertyHelper.toString(this);
     }
 
 }

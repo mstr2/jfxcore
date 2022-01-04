@@ -24,7 +24,7 @@ package org.jfxcore.beans.property.validation;
 import javafx.beans.property.ReadOnlyFloatPropertyBase;
 
 public abstract class FloatPropertyImpl
-        extends ReadOnlyFloatPropertyBase implements ValidationHelper.WritableProperty<Number> {
+        extends ReadOnlyFloatPropertyBase implements WritableProperty<Number> {
 
     private float value;
 
