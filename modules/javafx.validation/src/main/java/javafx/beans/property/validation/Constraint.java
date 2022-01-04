@@ -31,6 +31,7 @@ import java.util.concurrent.Executor;
  *
  * @param <V> data type
  * @param <E> error information type
+ * @since JFXcore 18
  */
 public final class Constraint<V, E> {
 

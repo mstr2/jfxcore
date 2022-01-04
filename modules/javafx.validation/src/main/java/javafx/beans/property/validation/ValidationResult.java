@@ -29,6 +29,7 @@ package javafx.beans.property.validation;
  * objects of their constraint validators in {@link ReadOnlyConstrainedProperty#errorsProperty()}.
  *
  * @param <E> error information type
+ * @since JFXcore 18
  */
 public class ValidationResult<E> {
 

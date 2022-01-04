@@ -29,6 +29,7 @@ import javafx.beans.property.validation.ValidationResult;
  * @param <T> the type of the value to be validated
  * @param <D> the type of the dependency
  * @param <E> the error information type
+ * @since JFXcore 18
  */
 @FunctionalInterface
 public interface ValidationFunction1<T, D, E> {

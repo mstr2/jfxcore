@@ -32,6 +32,7 @@ import javafx.beans.property.validation.ValidationResult;
  * @param <D3> the type of the third dependency
  * @param <D4> the type of the fourth dependency
  * @param <E> the error information type
+ * @since JFXcore 18
  */
 @FunctionalInterface
 public interface ValidationFunction4<T, D1, D2, D3, D4, E> {

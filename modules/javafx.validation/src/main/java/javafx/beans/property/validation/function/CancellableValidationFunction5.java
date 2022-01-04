@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @param <D4> the type of the fourth dependency
  * @param <D5> the type of the fifth dependency
  * @param <E> the error information type
+ * @since JFXcore 18
  */
 @FunctionalInterface
 public interface CancellableValidationFunction5<T, D1, D2, D3, D4, D5, E> {

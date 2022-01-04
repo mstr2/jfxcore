@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @param <T> the type of the value to be validated
  * @param <D> the type of the dependency
  * @param <E> the error information type
+ * @since JFXcore 18
  */
 @FunctionalInterface
 public interface CancellableValidationFunction1<T, D, E> {
