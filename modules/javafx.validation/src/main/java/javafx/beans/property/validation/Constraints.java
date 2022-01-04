@@ -638,7 +638,7 @@ public final class Constraints {
      *         (Number value, AtomicBoolean cancellationRequested) -> {
      *             // CHECKLIST is assumed to contain a large number of individual checks.
      *             // After each check, we give the algorithm a chance to return early.
-     *             for (int i = 0; i < CHECKLIST.length && !cancellationRequested.get(); ++i) {
+     *             for (int i = 0; i < CHECKLIST.length &amp;&amp; !cancellationRequested.get(); ++i) {
      *                 if (!CHECKLIST[i].check(value)) {
      *                     return ValidationResult.invalid();
      *                 }
@@ -714,7 +714,7 @@ public final class Constraints {
      *             try {
      *                 // CHECKLIST is assumed to contain a large number of individual checks.
      *                 // After each check, we give the algorithm a chance to return early.
-     *                 for (int i = 0; i < CHECKLIST.length && !cancellationRequested.get(); ++i) {
+     *                 for (int i = 0; i < CHECKLIST.length &amp;&amp; !cancellationRequested.get(); ++i) {
      *                     if (!CHECKLIST[i].check(value)) {
      *                         return ValidationResult.invalid();
      *                     }
