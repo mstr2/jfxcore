@@ -22,7 +22,6 @@
 package test.org.jfxcore.beans.property;
 
 import com.sun.javafx.binding.Logging;
-import com.sun.javafx.logging.PlatformLogger;
 import com.sun.javafx.tk.Toolkit;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
