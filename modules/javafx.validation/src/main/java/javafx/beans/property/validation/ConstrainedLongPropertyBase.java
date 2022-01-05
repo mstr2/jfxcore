@@ -48,10 +48,10 @@ import java.lang.ref.WeakReference;
  * Provides a base implementation for a constrained property that wraps a long value.
  * {@link Property#getBean()} and {@link Property#getName()} must be implemented by derived classes.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedLongPropertyBase<E> extends ConstrainedLongProperty<E> {
+public abstract class ConstrainedLongPropertyBase<D> extends ConstrainedLongProperty<D> {
 
     static {
         ValidationHelper.setAccessor(
@@ -60,7 +60,7 @@ public abstract class ConstrainedLongPropertyBase<E> extends ConstrainedLongProp
     }
 
     private final LongPropertyImpl constrainedValue;
-    private final ValidationHelper<Number, E> validationHelper;
+    private final ValidationHelper<Number, D> validationHelper;
     private long value;
     private ObservableLongValue observable;
     private InvalidationListener listener;
@@ -73,7 +73,7 @@ public abstract class ConstrainedLongPropertyBase<E> extends ConstrainedLongProp
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedLongPropertyBase(Constraint<? super Number, E>... constraints) {
+    protected ConstrainedLongPropertyBase(Constraint<? super Number, D>... constraints) {
         this(0, constraints);
     }
 
@@ -84,7 +84,7 @@ public abstract class ConstrainedLongPropertyBase<E> extends ConstrainedLongProp
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedLongPropertyBase(long initialValue, Constraint<? super Number, E>... constraints) {
+    protected ConstrainedLongPropertyBase(long initialValue, Constraint<? super Number, D>... constraints) {
         value = initialValue;
 
         constrainedValue = new LongPropertyImpl(initialValue) {
@@ -96,17 +96,17 @@ public abstract class ConstrainedLongPropertyBase<E> extends ConstrainedLongProp
     }
 
     @Override
-    public ReadOnlyBooleanProperty validProperty() {
+    public final ReadOnlyBooleanProperty validProperty() {
         return validationHelper.validProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty userValidProperty() {
+    public final ReadOnlyBooleanProperty userValidProperty() {
         return validationHelper.userValidProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty invalidProperty() {
+    public final ReadOnlyBooleanProperty invalidProperty() {
         return validationHelper.invalidProperty();
     }
 
@@ -116,18 +116,23 @@ public abstract class ConstrainedLongPropertyBase<E> extends ConstrainedLongProp
     }
 
     @Override
-    public ReadOnlyBooleanProperty validatingProperty() {
+    public final ReadOnlyBooleanProperty validatingProperty() {
         return validationHelper.validatingProperty();
     }
 
     @Override
-    public ReadOnlyLongProperty constrainedValueProperty() {
+    public final ReadOnlyLongProperty constrainedValueProperty() {
         return constrainedValue;
     }
 
     @Override
-    public ReadOnlyListProperty<E> errorsProperty() {
+    public final ReadOnlyListProperty<D> errorsProperty() {
         return validationHelper.errorsProperty();
+    }
+
+    @Override
+    public final ReadOnlyListProperty<D> warningsProperty() {
+        return validationHelper.warningsProperty();
     }
 
     @Override
@@ -259,16 +264,16 @@ public abstract class ConstrainedLongPropertyBase<E> extends ConstrainedLongProp
         return PropertyHelper.toString(this, valid);
     }
 
-    private static class Listener<E> implements InvalidationListener, WeakListener {
-        private final WeakReference<ConstrainedLongPropertyBase<E>> wref;
+    private static class Listener<D> implements InvalidationListener, WeakListener {
+        private final WeakReference<ConstrainedLongPropertyBase<D>> wref;
 
-        public Listener(ConstrainedLongPropertyBase<E> ref) {
+        public Listener(ConstrainedLongPropertyBase<D> ref) {
             this.wref = new WeakReference<>(ref);
         }
 
         @Override
         public void invalidated(Observable observable) {
-            ConstrainedLongPropertyBase<E> ref = wref.get();
+            ConstrainedLongPropertyBase<D> ref = wref.get();
             if (ref == null) {
                 observable.removeListener(this);
             } else {

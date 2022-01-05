@@ -36,10 +36,10 @@ import javafx.beans.property.ReadOnlyLongProperty;
  * and can be passed to external users. The other property is read- and
  * writable and should be used internally only.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class ReadOnlyConstrainedLongWrapper<E> extends SimpleConstrainedLongProperty<E> {
+public class ReadOnlyConstrainedLongWrapper<D> extends SimpleConstrainedLongProperty<D> {
     
     private ReadOnlyPropertyImpl readOnlyProperty;
 
@@ -49,7 +49,7 @@ public class ReadOnlyConstrainedLongWrapper<E> extends SimpleConstrainedLongProp
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedLongWrapper(Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedLongWrapper(Constraint<? super Number, D>... constraints) {
         super(0, constraints);
     }
 
@@ -60,7 +60,7 @@ public class ReadOnlyConstrainedLongWrapper<E> extends SimpleConstrainedLongProp
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedLongWrapper(long initialValue, Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedLongWrapper(long initialValue, Constraint<? super Number, D>... constraints) {
         super(initialValue, constraints);
     }
 
@@ -72,7 +72,7 @@ public class ReadOnlyConstrainedLongWrapper<E> extends SimpleConstrainedLongProp
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedLongWrapper(Object bean, String name, Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedLongWrapper(Object bean, String name, Constraint<? super Number, D>... constraints) {
         super(bean, name, constraints);
     }
 
@@ -85,7 +85,7 @@ public class ReadOnlyConstrainedLongWrapper<E> extends SimpleConstrainedLongProp
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedLongWrapper(Object bean, String name, long initialValue, Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedLongWrapper(Object bean, String name, long initialValue, Constraint<? super Number, D>... constraints) {
         super(bean, name, initialValue, constraints);
     }
 
@@ -95,7 +95,7 @@ public class ReadOnlyConstrainedLongWrapper<E> extends SimpleConstrainedLongProp
      *
      * @return the read-only property
      */
-    public ReadOnlyConstrainedLongProperty<E> getReadOnlyProperty() {
+    public ReadOnlyConstrainedLongProperty<D> getReadOnlyProperty() {
         if (readOnlyProperty == null) {
             readOnlyProperty = new ReadOnlyPropertyImpl();
         }
@@ -111,7 +111,7 @@ public class ReadOnlyConstrainedLongWrapper<E> extends SimpleConstrainedLongProp
         }
     }
 
-    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedLongPropertyBase<E> {
+    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedLongPropertyBase<D> {
         @Override
         public long get() {
             return ReadOnlyConstrainedLongWrapper.this.get();
@@ -153,8 +153,13 @@ public class ReadOnlyConstrainedLongWrapper<E> extends SimpleConstrainedLongProp
         }
 
         @Override
-        public ReadOnlyListProperty<E> errorsProperty() {
+        public ReadOnlyListProperty<D> errorsProperty() {
             return ReadOnlyConstrainedLongWrapper.this.errorsProperty();
+        }
+
+        @Override
+        public ReadOnlyListProperty<D> warningsProperty() {
+            return ReadOnlyConstrainedLongWrapper.this.warningsProperty();
         }
 
         @Override

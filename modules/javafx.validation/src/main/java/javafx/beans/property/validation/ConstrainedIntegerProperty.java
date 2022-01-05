@@ -26,24 +26,22 @@
 
 package javafx.beans.property.validation;
 
-import com.sun.javafx.binding.BidirectionalBinding;
 import com.sun.javafx.binding.Logging;
 import com.sun.javafx.logging.PlatformLogger;
-import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.Property;
 import javafx.beans.value.WritableIntegerValue;
-import java.util.Objects;
+import org.jfxcore.beans.property.validation.PropertyHelper;
 
 /**
  * Defines a constrained property that wraps an integer value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedIntegerProperty<E>
-        extends ReadOnlyConstrainedIntegerProperty<E>
-        implements ConstrainedProperty<Number, E>, WritableIntegerValue {
+public abstract class ConstrainedIntegerProperty<D>
+        extends ReadOnlyConstrainedIntegerProperty<D>
+        implements ConstrainedProperty<Number, D>, WritableIntegerValue {
 
     /**
      * Creates a default {@code ConstrainedIntegerProperty}.
@@ -82,41 +80,4 @@ public abstract class ConstrainedIntegerProperty<E>
         return PropertyHelper.toString(this);
     }
 
-    /**
-     * Returns a {@code ConstrainedIntegerProperty} that wraps a {@link Property}.
-     * If the {@code Property} is a {@code ConstrainedIntegerProperty}, it will be returned directly.
-     * Otherwise a new {@code ConstrainedIntegerProperty} is created that is bound to the {@code Property}.
-     * <p>
-     * Note: null values in the source property will be interpreted as zero.
-     *
-     * @param <E> error information type
-     * @param property the source {@code Property}
-     * @param constraints the value constraints
-     * @return a {@code ConstrainedIntegerProperty} that wraps the {@code Property}
-     * @throws NullPointerException if {@code property} is {@code null}
-     * @since JFXcore 18
-     */
-    @SafeVarargs
-    public static <E> ConstrainedIntegerProperty<E> integerProperty(
-            Property<Number> property, Constraint<Number, E>... constraints) {
-        Objects.requireNonNull(property, "Property cannot be null");
-
-        return property instanceof ConstrainedIntegerProperty ? (ConstrainedIntegerProperty<E>)property :
-            new ConstrainedIntegerPropertyBase<>(constraints) {
-                {
-                    BidirectionalBinding.bind(this, property);
-                }
-
-                @Override
-                public Object getBean() {
-                    return null; // Virtual property, no bean
-                }
-
-                @Override
-                public String getName() {
-                    return property.getName();
-                }
-            };
-    }
-    
 }

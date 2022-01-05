@@ -27,8 +27,8 @@ import javafx.beans.property.Property;
  * Defines methods and properties common to all constrained properties.
  *
  * @param <T> data type
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public interface ConstrainedProperty<T, E> extends Property<T>, ReadOnlyConstrainedProperty<T, E> {
+public interface ConstrainedProperty<T, D> extends Property<T>, ReadOnlyConstrainedProperty<T, D> {
 }

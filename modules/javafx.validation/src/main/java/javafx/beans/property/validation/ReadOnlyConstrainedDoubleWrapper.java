@@ -36,10 +36,10 @@ import javafx.beans.property.ReadOnlyListProperty;
  * and can be passed to external users. The other property is read- and
  * writable and should be used internally only.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class ReadOnlyConstrainedDoubleWrapper<E> extends SimpleConstrainedDoubleProperty<E> {
+public class ReadOnlyConstrainedDoubleWrapper<D> extends SimpleConstrainedDoubleProperty<D> {
     
     private ReadOnlyPropertyImpl readOnlyProperty;
 
@@ -49,7 +49,7 @@ public class ReadOnlyConstrainedDoubleWrapper<E> extends SimpleConstrainedDouble
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedDoubleWrapper(Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedDoubleWrapper(Constraint<? super Number, D>... constraints) {
         super(0, constraints);
     }
 
@@ -60,7 +60,7 @@ public class ReadOnlyConstrainedDoubleWrapper<E> extends SimpleConstrainedDouble
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedDoubleWrapper(double initialValue, Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedDoubleWrapper(double initialValue, Constraint<? super Number, D>... constraints) {
         super(initialValue, constraints);
     }
 
@@ -72,7 +72,7 @@ public class ReadOnlyConstrainedDoubleWrapper<E> extends SimpleConstrainedDouble
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedDoubleWrapper(Object bean, String name, Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedDoubleWrapper(Object bean, String name, Constraint<? super Number, D>... constraints) {
         super(bean, name, constraints);
     }
 
@@ -86,7 +86,7 @@ public class ReadOnlyConstrainedDoubleWrapper<E> extends SimpleConstrainedDouble
      */
     @SafeVarargs
     public ReadOnlyConstrainedDoubleWrapper(
-            Object bean, String name, double initialValue, Constraint<? super Number, E>... constraints) {
+            Object bean, String name, double initialValue, Constraint<? super Number, D>... constraints) {
         super(bean, name, initialValue, constraints);
     }
 
@@ -96,7 +96,7 @@ public class ReadOnlyConstrainedDoubleWrapper<E> extends SimpleConstrainedDouble
      *
      * @return the read-only property
      */
-    public ReadOnlyConstrainedDoubleProperty<E> getReadOnlyProperty() {
+    public ReadOnlyConstrainedDoubleProperty<D> getReadOnlyProperty() {
         if (readOnlyProperty == null) {
             readOnlyProperty = new ReadOnlyPropertyImpl();
         }
@@ -112,7 +112,7 @@ public class ReadOnlyConstrainedDoubleWrapper<E> extends SimpleConstrainedDouble
         }
     }
 
-    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedDoublePropertyBase<E> {
+    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedDoublePropertyBase<D> {
         @Override
         public double get() {
             return ReadOnlyConstrainedDoubleWrapper.this.get();
@@ -154,8 +154,13 @@ public class ReadOnlyConstrainedDoubleWrapper<E> extends SimpleConstrainedDouble
         }
 
         @Override
-        public ReadOnlyListProperty<E> errorsProperty() {
+        public ReadOnlyListProperty<D> errorsProperty() {
             return ReadOnlyConstrainedDoubleWrapper.this.errorsProperty();
+        }
+
+        @Override
+        public ReadOnlyListProperty<D> warningsProperty() {
+            return ReadOnlyConstrainedDoubleWrapper.this.warningsProperty();
         }
 
         @Override

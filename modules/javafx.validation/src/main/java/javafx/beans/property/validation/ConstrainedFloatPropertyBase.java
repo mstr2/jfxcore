@@ -48,10 +48,10 @@ import java.lang.ref.WeakReference;
  * Provides a base implementation for a constrained property that wraps a float value.
  * {@link Property#getBean()} and {@link Property#getName()} must be implemented by derived classes.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedFloatPropertyBase<E> extends ConstrainedFloatProperty<E> {
+public abstract class ConstrainedFloatPropertyBase<D> extends ConstrainedFloatProperty<D> {
 
     static {
         ValidationHelper.setAccessor(
@@ -60,7 +60,7 @@ public abstract class ConstrainedFloatPropertyBase<E> extends ConstrainedFloatPr
     }
 
     private final FloatPropertyImpl constrainedValue;
-    private final ValidationHelper<Number, E> validationHelper;
+    private final ValidationHelper<Number, D> validationHelper;
     private float value;
     private ObservableFloatValue observable;
     private InvalidationListener listener;
@@ -73,7 +73,7 @@ public abstract class ConstrainedFloatPropertyBase<E> extends ConstrainedFloatPr
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedFloatPropertyBase(Constraint<? super Number, E>... constraints) {
+    protected ConstrainedFloatPropertyBase(Constraint<? super Number, D>... constraints) {
         this(0, constraints);
     }
 
@@ -84,7 +84,7 @@ public abstract class ConstrainedFloatPropertyBase<E> extends ConstrainedFloatPr
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedFloatPropertyBase(float initialValue, Constraint<? super Number, E>... constraints) {
+    protected ConstrainedFloatPropertyBase(float initialValue, Constraint<? super Number, D>... constraints) {
         value = initialValue;
 
         constrainedValue = new FloatPropertyImpl(initialValue) {
@@ -96,17 +96,17 @@ public abstract class ConstrainedFloatPropertyBase<E> extends ConstrainedFloatPr
     }
 
     @Override
-    public ReadOnlyBooleanProperty validProperty() {
+    public final ReadOnlyBooleanProperty validProperty() {
         return validationHelper.validProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty userValidProperty() {
+    public final ReadOnlyBooleanProperty userValidProperty() {
         return validationHelper.userValidProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty invalidProperty() {
+    public final ReadOnlyBooleanProperty invalidProperty() {
         return validationHelper.invalidProperty();
     }
 
@@ -116,18 +116,23 @@ public abstract class ConstrainedFloatPropertyBase<E> extends ConstrainedFloatPr
     }
 
     @Override
-    public ReadOnlyBooleanProperty validatingProperty() {
+    public final ReadOnlyBooleanProperty validatingProperty() {
         return validationHelper.validatingProperty();
     }
 
     @Override
-    public ReadOnlyFloatProperty constrainedValueProperty() {
+    public final ReadOnlyFloatProperty constrainedValueProperty() {
         return constrainedValue;
     }
 
     @Override
-    public ReadOnlyListProperty<E> errorsProperty() {
+    public final ReadOnlyListProperty<D> errorsProperty() {
         return validationHelper.errorsProperty();
+    }
+
+    @Override
+    public final ReadOnlyListProperty<D> warningsProperty() {
+        return validationHelper.warningsProperty();
     }
 
     @Override
@@ -259,16 +264,16 @@ public abstract class ConstrainedFloatPropertyBase<E> extends ConstrainedFloatPr
         return PropertyHelper.toString(this, valid);
     }
 
-    private static class Listener<E> implements InvalidationListener, WeakListener {
-        private final WeakReference<ConstrainedFloatPropertyBase<E>> wref;
+    private static class Listener<D> implements InvalidationListener, WeakListener {
+        private final WeakReference<ConstrainedFloatPropertyBase<D>> wref;
 
-        public Listener(ConstrainedFloatPropertyBase<E> ref) {
+        public Listener(ConstrainedFloatPropertyBase<D> ref) {
             this.wref = new WeakReference<>(ref);
         }
 
         @Override
         public void invalidated(Observable observable) {
-            ConstrainedFloatPropertyBase<E> ref = wref.get();
+            ConstrainedFloatPropertyBase<D> ref = wref.get();
             if (ref == null) {
                 observable.removeListener(this);
             } else {

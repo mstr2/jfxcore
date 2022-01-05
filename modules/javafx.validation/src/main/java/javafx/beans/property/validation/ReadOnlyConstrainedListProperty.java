@@ -29,15 +29,15 @@ import javafx.collections.ObservableList;
 /**
  * Represents a {@link ReadOnlyConstrainedProperty} that wraps an {@link ObservableList}.
  *
- * @param <T> element type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedListProperty<T, E>
-        extends ListExpression<T> implements ReadOnlyConstrainedProperty<ObservableList<T>, E> {
+public abstract class ReadOnlyConstrainedListProperty<E, D>
+        extends ListExpression<E> implements ReadOnlyConstrainedProperty<ObservableList<E>, D> {
 
     @Override
-    public abstract ReadOnlyListProperty<T> constrainedValueProperty();
+    public abstract ReadOnlyListProperty<E> constrainedValueProperty();
 
     @Override
     public String toString() {

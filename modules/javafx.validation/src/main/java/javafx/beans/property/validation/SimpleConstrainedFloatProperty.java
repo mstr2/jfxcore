@@ -24,10 +24,10 @@ package javafx.beans.property.validation;
 /**
  * This class provides an implementation of {@link ConstrainedFloatProperty} that wraps a float value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class SimpleConstrainedFloatProperty<E> extends ConstrainedFloatPropertyBase<E> {
+public class SimpleConstrainedFloatProperty<D> extends ConstrainedFloatPropertyBase<D> {
 
     private static final Object DEFAULT_BEAN = null;
     private static final String DEFAULT_NAME = "";
@@ -46,23 +46,23 @@ public class SimpleConstrainedFloatProperty<E> extends ConstrainedFloatPropertyB
     }
 
     @SafeVarargs
-    public SimpleConstrainedFloatProperty(Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedFloatProperty(Constraint<? super Number, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, 0, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedFloatProperty(float initialValue, Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedFloatProperty(float initialValue, Constraint<? super Number, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedFloatProperty(Object bean, String name, Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedFloatProperty(Object bean, String name, Constraint<? super Number, D>... constraints) {
         this(bean, name, 0, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedFloatProperty(
-            Object bean, String name, float initialValue, Constraint<? super Number, E>... constraints) {
+            Object bean, String name, float initialValue, Constraint<? super Number, D>... constraints) {
         super(initialValue, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

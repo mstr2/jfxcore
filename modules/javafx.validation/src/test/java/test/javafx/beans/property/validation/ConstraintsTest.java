@@ -64,13 +64,15 @@ public class ConstraintsTest {
         return properties;
     }
 
-    private Class<?>[] paramTypes(Object validationFunction, int dependencies) {
+    private Class<?>[] paramTypes(Object validationFunction, int dependencies, boolean withExecutor) {
         var params = new ArrayList<Class<?>>();
         params.add(validationFunction.getClass().getInterfaces()[0]);
         for (int i = 0; i < dependencies; ++i) {
             params.add(ObservableValue.class);
         }
-        params.add(Executor.class);
+        if (withExecutor) {
+            params.add(Executor.class);
+        }
         return params.toArray(Class[]::new);
     }
 
@@ -78,7 +80,9 @@ public class ConstraintsTest {
         var args = new ArrayList<>();
         args.add(validator);
         args.addAll(dependencies);
-        args.add(executor);
+        if (executor != null) {
+            args.add(executor);
+        }
         return args.toArray();
     }
 
@@ -109,13 +113,14 @@ public class ConstraintsTest {
     }
 
     @SuppressWarnings({"unchecked", "unused"})
-    private void testApplyAsyncImpl(String constraintName, Object[] functions, int[] calls) throws ReflectiveOperationException {
+    private void testApplyImpl(String constraintName, Object[] functions, int[] calls, boolean withExecutor) throws ReflectiveOperationException {
         for (int i = 0; i < MAX_DEPS; ++i) {
             calls[0] = 0;
 
             var dependencies = doublePropertiesList(i);
-            var method = Constraints.class.getMethod(constraintName, paramTypes(functions[i], i));
-            var constraint = (Constraint<? super Number, Object>)method.invoke(null, arguments(functions[i], dependencies, Runnable::run));
+            var method = Constraints.class.getMethod(constraintName, paramTypes(functions[i], i, withExecutor));
+            var constraint = (Constraint<? super Number, Object>)method.invoke(
+                null, arguments(functions[i], dependencies, withExecutor ? Runnable::run : null));
             var value = new SimpleDoubleProperty();
             var constrainedValue = new DoublePropertyTestImpl(value.get());
             var validationHelper = new ValidationHelper<Number, Object>(value, constrainedValue, new Constraint[] {constraint});
@@ -132,30 +137,39 @@ public class ConstraintsTest {
     }
 
     @Test
-    public void testApplyAsyncWithDirectExecutor() throws ReflectiveOperationException {
+    public void testApply() throws ReflectiveOperationException {
         int[] calls = new int[1];
-        testApplyAsyncImpl("applyAsync", validationFunctions(() -> {
+        testApplyImpl("apply", validationFunctions(() -> {
             calls[0]++;
             return ValidationResult.valid();
-        }), calls);
+        }), calls, false);
+    }
+
+    @Test
+    public void testApplyAsyncWithDirectExecutor() throws ReflectiveOperationException {
+        int[] calls = new int[1];
+        testApplyImpl("applyAsync", validationFunctions(() -> {
+            calls[0]++;
+            return ValidationResult.valid();
+        }), calls, true);
     }
 
     @Test
     public void testApplyInterruptibleAsyncWithDirectExecutor() throws ReflectiveOperationException {
         int[] calls = new int[1];
-        testApplyAsyncImpl("applyInterruptibleAsync", validationFunctions(() -> {
+        testApplyImpl("applyInterruptibleAsync", validationFunctions(() -> {
             calls[0]++;
             return ValidationResult.valid();
-        }), calls);
+        }), calls, true);
     }
 
     @Test
     public void testApplyCancellableAsyncWithDirectExecutor() throws ReflectiveOperationException {
         int[] calls = new int[1];
-        testApplyAsyncImpl("applyCancellableAsync", cancellableValidationFunctions(() -> {
+        testApplyImpl("applyCancellableAsync", cancellableValidationFunctions(() -> {
             calls[0]++;
             return ValidationResult.valid();
-        }), calls);
+        }), calls, true);
     }
 
     @Test

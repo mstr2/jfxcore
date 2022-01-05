@@ -28,11 +28,11 @@ import javafx.beans.property.ReadOnlyLongProperty;
 /**
  * Represents a {@link ReadOnlyConstrainedProperty} that wraps a long value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedLongProperty<E>
-        extends LongExpression implements ReadOnlyConstrainedProperty<Number, E> {
+public abstract class ReadOnlyConstrainedLongProperty<D>
+        extends LongExpression implements ReadOnlyConstrainedProperty<Number, D> {
 
     @Override
     public abstract ReadOnlyLongProperty constrainedValueProperty();

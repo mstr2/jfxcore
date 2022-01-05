@@ -24,7 +24,7 @@ package org.jfxcore.beans.property.validation;
 import javafx.beans.property.validation.ValidationResult;
 import java.util.concurrent.CompletableFuture;
 
-public abstract class ValidateTask<T, E> extends CompletableFuture<ValidationResult<E>> implements Runnable {
+public abstract class ValidateTask<T, D> extends CompletableFuture<ValidationResult<D>> implements Runnable {
 
     private final T value;
     private boolean hasRun;
@@ -48,7 +48,7 @@ public abstract class ValidateTask<T, E> extends CompletableFuture<ValidationRes
         }
     }
 
-    protected abstract ValidationResult<E> apply(T value);
+    protected abstract ValidationResult<D> apply(T value);
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {

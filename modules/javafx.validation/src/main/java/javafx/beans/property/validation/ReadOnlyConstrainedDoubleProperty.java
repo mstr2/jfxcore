@@ -28,11 +28,11 @@ import javafx.beans.property.ReadOnlyDoubleProperty;
 /**
  * Represents a {@link ReadOnlyConstrainedProperty} that wraps a double value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedDoubleProperty<E>
-        extends DoubleExpression implements ReadOnlyConstrainedProperty<Number, E> {
+public abstract class ReadOnlyConstrainedDoubleProperty<D>
+        extends DoubleExpression implements ReadOnlyConstrainedProperty<Number, D> {
 
     @Override
     public abstract ReadOnlyDoubleProperty constrainedValueProperty();

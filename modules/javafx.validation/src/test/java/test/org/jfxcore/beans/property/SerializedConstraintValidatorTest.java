@@ -22,7 +22,6 @@
 package test.org.jfxcore.beans.property;
 
 import com.sun.javafx.tk.Toolkit;
-import javafx.beans.property.validation.Constraint;
 import javafx.beans.property.validation.Constraints;
 import javafx.beans.property.validation.ValidationResult;
 import org.jfxcore.beans.property.validation.SerializedConstraintValidator;
@@ -62,7 +61,6 @@ public class SerializedConstraintValidatorTest {
             @Override protected void onAsyncValidationStarted() {}
             @Override protected void onAsyncValidationEnded() {}
             @Override protected void onValidationCompleted(
-                    Constraint<? super Number, Object> constraint,
                     Number value,
                     ValidationResult<Object> result,
                     Throwable exception) {

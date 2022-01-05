@@ -31,11 +31,11 @@ import javafx.collections.ObservableMap;
  *
  * @param <K> key type
  * @param <V> value type
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedMapProperty<K, V, E>
-        extends MapExpression<K, V> implements ReadOnlyConstrainedProperty<ObservableMap<K, V>, E> {
+public abstract class ReadOnlyConstrainedMapProperty<K, V, D>
+        extends MapExpression<K, V> implements ReadOnlyConstrainedProperty<ObservableMap<K, V>, D> {
 
     @Override
     public abstract ReadOnlyMapProperty<K, V> constrainedValueProperty();

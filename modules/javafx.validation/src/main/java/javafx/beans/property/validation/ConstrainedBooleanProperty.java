@@ -26,24 +26,22 @@
 
 package javafx.beans.property.validation;
 
-import com.sun.javafx.binding.BidirectionalBinding;
 import com.sun.javafx.binding.Logging;
 import com.sun.javafx.logging.PlatformLogger;
-import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.Property;
 import javafx.beans.value.WritableBooleanValue;
-import java.util.Objects;
+import org.jfxcore.beans.property.validation.PropertyHelper;
 
 /**
  * Defines a constrained property that wraps a boolean value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedBooleanProperty<E>
-        extends ReadOnlyConstrainedBooleanProperty<E>
-        implements ConstrainedProperty<Boolean, E>, WritableBooleanValue {
+public abstract class ConstrainedBooleanProperty<D>
+        extends ReadOnlyConstrainedBooleanProperty<D>
+        implements ConstrainedProperty<Boolean, D>, WritableBooleanValue {
 
     /**
      * Creates a default {@code ConstrainedBooleanProperty}.
@@ -80,43 +78,6 @@ public abstract class ConstrainedBooleanProperty<E>
     @Override
     public String toString() {
         return PropertyHelper.toString(this);
-    }
-
-    /**
-     * Returns a {@code ConstrainedBooleanProperty} that wraps a {@link Property}.
-     * If the {@code Property} is a {@code ConstrainedBooleanProperty}, it will be returned directly.
-     * Otherwise a new {@code ConstrainedBooleanProperty} is created that is bound to the {@code Property}.
-     * <p>
-     * Note: null values in the source property will be interpreted as "false"
-     *
-     * @param <E> error information type
-     * @param property the source {@code Property}
-     * @param constraints the value constraints
-     * @return a {@code ConstrainedBooleanProperty} that wraps the {@code Property}
-     * @throws NullPointerException if {@code property} is {@code null}
-     * @since JFXcore 18
-     */
-    @SafeVarargs
-    public static <E> ConstrainedBooleanProperty<E> booleanProperty(
-            Property<Boolean> property, Constraint<Boolean, E>... constraints) {
-        Objects.requireNonNull(property, "Property cannot be null");
-
-        return property instanceof ConstrainedBooleanProperty ? (ConstrainedBooleanProperty<E>)property :
-            new ConstrainedBooleanPropertyBase<>(constraints) {
-                {
-                    BidirectionalBinding.bind(this, property);
-                }
-
-                @Override
-                public Object getBean() {
-                    return null; // Virtual property, no bean
-                }
-
-                @Override
-                public String getName() {
-                    return property.getName();
-                }
-            };
     }
 
 }

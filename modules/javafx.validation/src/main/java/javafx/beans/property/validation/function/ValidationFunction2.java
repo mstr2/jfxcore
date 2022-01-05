@@ -27,17 +27,17 @@ import javafx.beans.property.validation.ValidationResult;
  * Represents a validation function with two dependencies.
  *
  * @param <T> the type of the value to be validated
- * @param <D1> the type of the first dependency
- * @param <D2> the type of the second dependency
- * @param <E> the error information type
+ * @param <P1> the type of the first dependency
+ * @param <P2> the type of the second dependency
+ * @param <D> the diagnostic type
  * @since JFXcore 18
  */
 @FunctionalInterface
-public interface ValidationFunction2<T, D1, D2, E> {
+public interface ValidationFunction2<T, P1, P2, D> {
 
     /**
      * Applies this function to the given arguments.
      */
-    ValidationResult<E> apply(T value, D1 dependency1, D2 dependency2);
+    ValidationResult<D> apply(T value, P1 dependency1, P2 dependency2);
 
 }

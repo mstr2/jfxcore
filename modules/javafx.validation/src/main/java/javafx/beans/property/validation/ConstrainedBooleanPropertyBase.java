@@ -46,10 +46,10 @@ import java.lang.ref.WeakReference;
  * Provides a base implementation for a constrained property that wraps a boolean value.
  * {@link Property#getBean()} and {@link Property#getName()} must be implemented by derived classes.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedBooleanPropertyBase<E> extends ConstrainedBooleanProperty<E> {
+public abstract class ConstrainedBooleanPropertyBase<D> extends ConstrainedBooleanProperty<D> {
 
     static {
         ValidationHelper.setAccessor(
@@ -58,7 +58,7 @@ public abstract class ConstrainedBooleanPropertyBase<E> extends ConstrainedBoole
     }
 
     private final BooleanPropertyImpl constrainedValue;
-    private final ValidationHelper<Boolean, E> validationHelper;
+    private final ValidationHelper<Boolean, D> validationHelper;
     private boolean value;
     private ObservableBooleanValue observable;
     private InvalidationListener listener;
@@ -71,7 +71,7 @@ public abstract class ConstrainedBooleanPropertyBase<E> extends ConstrainedBoole
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedBooleanPropertyBase(Constraint<? super Boolean, E>... constraints) {
+    protected ConstrainedBooleanPropertyBase(Constraint<? super Boolean, D>... constraints) {
         this(false, constraints);
     }
 
@@ -82,7 +82,7 @@ public abstract class ConstrainedBooleanPropertyBase<E> extends ConstrainedBoole
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedBooleanPropertyBase(boolean initialValue, Constraint<? super Boolean, E>... constraints) {
+    protected ConstrainedBooleanPropertyBase(boolean initialValue, Constraint<? super Boolean, D>... constraints) {
         value = initialValue;
 
         constrainedValue = new BooleanPropertyImpl(initialValue) {
@@ -124,8 +124,13 @@ public abstract class ConstrainedBooleanPropertyBase<E> extends ConstrainedBoole
     }
 
     @Override
-    public final ReadOnlyListProperty<E> errorsProperty() {
+    public final ReadOnlyListProperty<D> errorsProperty() {
         return validationHelper.errorsProperty();
+    }
+
+    @Override
+    public final ReadOnlyListProperty<D> warningsProperty() {
+        return validationHelper.warningsProperty();
     }
 
     @Override
@@ -239,16 +244,16 @@ public abstract class ConstrainedBooleanPropertyBase<E> extends ConstrainedBoole
         return PropertyHelper.toString(this, valid);
     }
 
-    private static class Listener<E> implements InvalidationListener, WeakListener {
-        private final WeakReference<ConstrainedBooleanPropertyBase<E>> wref;
+    private static class Listener<D> implements InvalidationListener, WeakListener {
+        private final WeakReference<ConstrainedBooleanPropertyBase<D>> wref;
 
-        public Listener(ConstrainedBooleanPropertyBase<E> ref) {
+        public Listener(ConstrainedBooleanPropertyBase<D> ref) {
             this.wref = new WeakReference<>(ref);
         }
 
         @Override
         public void invalidated(Observable observable) {
-            ConstrainedBooleanPropertyBase<E> ref = wref.get();
+            ConstrainedBooleanPropertyBase<D> ref = wref.get();
             if (ref == null) {
                 observable.removeListener(this);
             } else {

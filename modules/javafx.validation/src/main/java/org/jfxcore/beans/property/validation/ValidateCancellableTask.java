@@ -25,8 +25,8 @@ import javafx.beans.property.validation.ValidationResult;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class ValidateCancellableTask<T, E>
-        extends CompletableFuture<ValidationResult<E>> implements Runnable {
+public abstract class ValidateCancellableTask<T, D>
+        extends CompletableFuture<ValidationResult<D>> implements Runnable {
 
     private final AtomicBoolean cancellationRequested = new AtomicBoolean();
     private final T value;
@@ -45,7 +45,7 @@ public abstract class ValidateCancellableTask<T, E>
         hasRun = true;
 
         try {
-            ValidationResult<E> result = apply(value, cancellationRequested);
+            ValidationResult<D> result = apply(value, cancellationRequested);
 
             if (cancellationRequested.get()) {
                 super.cancel(true);
@@ -57,7 +57,7 @@ public abstract class ValidateCancellableTask<T, E>
         }
     }
 
-    protected abstract ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested);
+    protected abstract ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested);
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {

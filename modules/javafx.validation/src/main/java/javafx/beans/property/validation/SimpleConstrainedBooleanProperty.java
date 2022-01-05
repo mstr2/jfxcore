@@ -24,10 +24,10 @@ package javafx.beans.property.validation;
 /**
  * This class provides an implementation of {@link ConstrainedBooleanProperty} that wraps a boolean value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class SimpleConstrainedBooleanProperty<E> extends ConstrainedBooleanPropertyBase<E> {
+public class SimpleConstrainedBooleanProperty<D> extends ConstrainedBooleanPropertyBase<D> {
 
     private static final Object DEFAULT_BEAN = null;
     private static final String DEFAULT_NAME = "";
@@ -46,23 +46,23 @@ public class SimpleConstrainedBooleanProperty<E> extends ConstrainedBooleanPrope
     }
 
     @SafeVarargs
-    public SimpleConstrainedBooleanProperty(Constraint<? super Boolean, E>... constraints) {
+    public SimpleConstrainedBooleanProperty(Constraint<? super Boolean, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, false, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedBooleanProperty(boolean initialValue, Constraint<? super Boolean, E>... constraints) {
+    public SimpleConstrainedBooleanProperty(boolean initialValue, Constraint<? super Boolean, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedBooleanProperty(Object bean, String name, Constraint<? super Boolean, E>... constraints) {
+    public SimpleConstrainedBooleanProperty(Object bean, String name, Constraint<? super Boolean, D>... constraints) {
         this(bean, name, false, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedBooleanProperty(
-            Object bean, String name, boolean initialValue, Constraint<? super Boolean, E>... constraints) {
+            Object bean, String name, boolean initialValue, Constraint<? super Boolean, D>... constraints) {
         super(initialValue, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

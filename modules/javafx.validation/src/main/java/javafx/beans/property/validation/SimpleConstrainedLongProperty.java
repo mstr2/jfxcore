@@ -24,10 +24,10 @@ package javafx.beans.property.validation;
 /**
  * This class provides an implementation of {@link ConstrainedLongProperty} that wraps a long value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class SimpleConstrainedLongProperty<E> extends ConstrainedLongPropertyBase<E> {
+public class SimpleConstrainedLongProperty<D> extends ConstrainedLongPropertyBase<D> {
 
     private static final Object DEFAULT_BEAN = null;
     private static final String DEFAULT_NAME = "";
@@ -46,23 +46,23 @@ public class SimpleConstrainedLongProperty<E> extends ConstrainedLongPropertyBas
     }
 
     @SafeVarargs
-    public SimpleConstrainedLongProperty(Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedLongProperty(Constraint<? super Number, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, 0, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedLongProperty(long initialValue, Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedLongProperty(long initialValue, Constraint<? super Number, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedLongProperty(Object bean, String name, Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedLongProperty(Object bean, String name, Constraint<? super Number, D>... constraints) {
         this(bean, name, 0, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedLongProperty(
-            Object bean, String name, long initialValue, Constraint<? super Number, E>... constraints) {
+            Object bean, String name, long initialValue, Constraint<? super Number, D>... constraints) {
         super(initialValue, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

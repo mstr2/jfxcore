@@ -71,17 +71,65 @@ public final class Constraints {
     private Constraints() {}
 
     /**
-     * Creates a constraint that validates a value by applying a validation function,
-     * and specifies its dependencies.
+     * Creates a constraint that synchronously validates a value by applying a validation function.
      * <p>
-     * A constrained property that validates its value can be defined as follows:
+     * The constraint will be re-evaluated whenever the underlying property value changes.
+     * If the validation function takes a significant amount of execution time, consider
+     * {@link #applyAsync asynchronous validation} to improve the responsiveness of the application.
+     * <p>
+     * A constrained property that uses this type of constraint can be defined as follows:
+     * <blockquote><pre>
+     * var text = new SimpleConstrainedStringProperty&lt;String>(
+     *     Constraints.apply(
+     *         (String value) -> {
+     *             if (value != null &amp;&amp; value.length() >= 5) {
+     *                 return ValidationResult.valid();
+     *             }
+     *
+     *             return new ValidationResult&lt;>(false, "Value too short");
+     *         }));
+     * </pre></blockquote>
+     *
+     * @see #applyAsync
+     * @see #applyCancellableAsync
+     * @see #applyInterruptibleAsync
+     * @param validationFunc the function that validates the value
+     * @param <T> value type
+     * @param <D> diagnostic type
+     * @return the new constraint
+     */
+    public static <T, D> Constraint<T, D> apply(ValidationFunction0<T, D> validationFunc) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+
+        return new Constraint<>(
+            value -> {
+                try {
+                    return CompletableFuture.completedFuture(validationFunc.apply(value));
+                } catch (Throwable ex) {
+                    return CompletableFuture.failedFuture(ex);
+                }
+            },
+            null,
+            null);
+    }
+
+    /**
+     * Creates a constraint that synchronously validates a value by applying a validation function,
+     * and specifies a dependency on another {@link ObservableValue}.
+     * <p>
+     * The constraint will be re-evaluated whenever the underlying property value or the value of
+     * the constraint dependency changes.
+     * If the validation function takes a significant amount of execution time, consider
+     * {@link #applyAsync asynchronous validation} to improve the responsiveness of the application.
+     * <p>
+     * A constrained property that uses this type of constraint can be defined as follows:
      * <blockquote><pre>
      * var minLength = new SimpleIntegerProperty(5);
      *
      * var text = new SimpleConstrainedStringProperty&lt;String>(
      *     Constraints.apply(
-     *         value -> {
-     *             if (value != null &amp;&amp; value.length() >= minLength.get()) {
+     *         (String value, Number minLength) -> {
+     *             if (value != null &amp;&amp; value.length() >= minLength.intValue()) {
      *                 return ValidationResult.valid();
      *             }
      *
@@ -90,22 +138,378 @@ public final class Constraints {
      *         minLength));
      * </pre></blockquote>
      *
+     * @see #applyAsync
+     * @see #applyCancellableAsync
+     * @see #applyInterruptibleAsync
      * @param validationFunc the function that validates the value
-     * @param dependencies the dependencies of the constraint
+     * @param dependency the constraint dependency
      * @param <T> value type
-     * @param <E> error information type
+     * @param <P1> type of the dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E> Constraint<T, E> apply(
-            ValidationFunction0<T, E> validationFunc, Observable... dependencies) {
+    public static <T, P1, D> Constraint<T, D> apply(
+            ValidationFunction1<T, P1, D> validationFunc, ObservableValue<P1> dependency) {
         Objects.requireNonNull(validationFunc, "validationFunc");
-        return new Constraint<>(value -> {
-            try {
-                return CompletableFuture.completedFuture(validationFunc.apply(value));
-            } catch (Throwable ex) {
-                return CompletableFuture.failedFuture(ex);
-            }
-        }, null, dependencies);
+        Objects.requireNonNull(dependency, "dependency");
+
+        return new Constraint<>(
+            value -> {
+                try {
+                    return CompletableFuture.completedFuture(validationFunc.apply(value, dependency.getValue()));
+                } catch (Throwable ex) {
+                    return CompletableFuture.failedFuture(ex);
+                }
+            },
+            null,
+            new Observable[] {dependency});
+    }
+
+    /**
+     * Creates a constraint that synchronously validates a value by applying a validation function,
+     * and specifies dependencies on two {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #apply(ValidationFunction1, ObservableValue)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param <T> value type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <D> diagnostic type
+     * @return the new constraint
+     */
+    public static <T, P1, P2, D> Constraint<T, D> apply(
+            ValidationFunction2<T, P1, P2, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+
+        return new Constraint<>(
+            value -> {
+                try {
+                    return CompletableFuture.completedFuture(validationFunc.apply(
+                        value, dependency1.getValue(), dependency2.getValue()));
+                } catch (Throwable ex) {
+                    return CompletableFuture.failedFuture(ex);
+                }
+            },
+            null,
+            new Observable[] {dependency1, dependency2});
+    }
+
+    /**
+     * Creates a constraint that synchronously validates a value by applying a validation function,
+     * and specifies dependencies on three {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #apply(ValidationFunction1, ObservableValue)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param <T> value type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <D> diagnostic type
+     * @return the new constraint
+     */
+    public static <T, P1, P2, P3, D> Constraint<T, D> apply(
+            ValidationFunction3<T, P1, P2, P3, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+
+        return new Constraint<>(
+            value -> {
+                try {
+                    return CompletableFuture.completedFuture(validationFunc.apply(
+                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue()));
+                } catch (Throwable ex) {
+                    return CompletableFuture.failedFuture(ex);
+                }
+            },
+            null,
+            new Observable[] {dependency1, dependency2, dependency3});
+    }
+
+    /**
+     * Creates a constraint that synchronously validates a value by applying a validation function,
+     * and specifies dependencies on four {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #apply(ValidationFunction1, ObservableValue)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param <T> value type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <D> diagnostic type
+     * @return the new constraint
+     */
+    public static <T, P1, P2, P3, P4, D> Constraint<T, D> apply(
+            ValidationFunction4<T, P1, P2, P3, P4, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+
+        return new Constraint<>(
+            value -> {
+                try {
+                    return CompletableFuture.completedFuture(validationFunc.apply(
+                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue(),
+                        dependency4.getValue()));
+                } catch (Throwable ex) {
+                    return CompletableFuture.failedFuture(ex);
+                }
+            },
+            null,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4});
+    }
+
+    /**
+     * Creates a constraint that synchronously validates a value by applying a validation function,
+     * and specifies dependencies on five {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #apply(ValidationFunction1, ObservableValue)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param <T> value type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <D> diagnostic type
+     * @return the new constraint
+     */
+    public static <T, P1, P2, P3, P4, P5, D> Constraint<T, D> apply(
+            ValidationFunction5<T, P1, P2, P3, P4, P5, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+
+        return new Constraint<>(
+            value -> {
+                try {
+                    return CompletableFuture.completedFuture(validationFunc.apply(
+                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue(),
+                        dependency4.getValue(), dependency5.getValue()));
+                } catch (Throwable ex) {
+                    return CompletableFuture.failedFuture(ex);
+                }
+            },
+            null,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5});
+    }
+
+    /**
+     * Creates a constraint that synchronously validates a value by applying a validation function,
+     * and specifies dependencies on six {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #apply(ValidationFunction1, ObservableValue)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param <T> value type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <D> diagnostic type
+     * @return the new constraint
+     */
+    public static <T, P1, P2, P3, P4, P5, P6, D> Constraint<T, D> apply(
+            ValidationFunction6<T, P1, P2, P3, P4, P5, P6, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+
+        return new Constraint<>(
+            value -> {
+                try {
+                    return CompletableFuture.completedFuture(validationFunc.apply(
+                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue(),
+                        dependency4.getValue(), dependency5.getValue(), dependency6.getValue()));
+                } catch (Throwable ex) {
+                    return CompletableFuture.failedFuture(ex);
+                }
+            },
+            null,
+            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5, dependency6});
+    }
+
+    /**
+     * Creates a constraint that synchronously validates a value by applying a validation function,
+     * and specifies dependencies on seven {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #apply(ValidationFunction1, ObservableValue)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param dependency7 the seventh constraint dependency
+     * @param <T> value type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <P7> type of the seventh dependency
+     * @param <D> diagnostic type
+     * @return the new constraint
+     */
+    public static <T, P1, P2, P3, P4, P5, P6, P7, D> Constraint<T, D> apply(
+            ValidationFunction7<T, P1, P2, P3, P4, P5, P6, P7, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
+            ObservableValue<P7> dependency7) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(dependency7, "dependency7");
+
+        return new Constraint<>(
+            value -> {
+                try {
+                    return CompletableFuture.completedFuture(validationFunc.apply(
+                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue(),
+                        dependency4.getValue(), dependency5.getValue(), dependency6.getValue(),
+                        dependency7.getValue()));
+                } catch (Throwable ex) {
+                    return CompletableFuture.failedFuture(ex);
+                }
+            },
+            null,
+            new Observable[] {
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7
+            });
+    }
+
+    /**
+     * Creates a constraint that synchronously validates a value by applying a validation function,
+     * and specifies dependencies on eight {@link ObservableValue ObservableValues}.
+     * <p>
+     * See {@link #apply(ValidationFunction1, ObservableValue)} for additional information.
+     *
+     * @param validationFunc the function that validates the value
+     * @param dependency1 the first constraint dependency
+     * @param dependency2 the second constraint dependency
+     * @param dependency3 the third constraint dependency
+     * @param dependency4 the fourth constraint dependency
+     * @param dependency5 the fifth constraint dependency
+     * @param dependency6 the sixth constraint dependency
+     * @param dependency7 the seventh constraint dependency
+     * @param dependency8 the eighth constraint dependency
+     * @param <T> value type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <P7> type of the seventh dependency
+     * @param <P8> type of the eighth dependency
+     * @param <D> diagnostic type
+     * @return the new constraint
+     */
+    public static <T, P1, P2, P3, P4, P5, P6, P7, P8, D> Constraint<T, D> apply(
+            ValidationFunction8<T, P1, P2, P3, P4, P5, P6, P7, P8, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
+            ObservableValue<P7> dependency7,
+            ObservableValue<P8> dependency8) {
+        Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(dependency1, "dependency1");
+        Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(dependency7, "dependency7");
+        Objects.requireNonNull(dependency8, "dependency8");
+
+        return new Constraint<>(
+            value -> {
+                try {
+                    return CompletableFuture.completedFuture(validationFunc.apply(
+                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue(),
+                        dependency4.getValue(), dependency5.getValue(), dependency6.getValue(),
+                        dependency7.getValue(), dependency8.getValue()));
+                } catch (Throwable ex) {
+                    return CompletableFuture.failedFuture(ex);
+                }
+            },
+            null,
+            new Observable[] {
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7, dependency8
+            });
     }
 
     /**
@@ -150,17 +554,18 @@ public final class Constraints {
      * @param validationFunc the function that validates the value
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E> Constraint<T, E> applyAsync(ValidationFunction0<T, E> validationFunc, Executor executor) {
+    public static <T, D> Constraint<T, D> applyAsync(ValidationFunction0<T, D> validationFunc, Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
+        Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
-                var task = new ValidateTask<T, E>(value) {
+                var task = new ValidateTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value) {
+                    protected ValidationResult<D> apply(T value) {
                         return validationFunc.apply(value);
                     }
                 };
@@ -230,14 +635,15 @@ public final class Constraints {
      * @param dependency the constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> dependency type
-     * @param <E> error information type
+     * @param <P1> dependency type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1> Constraint<T, E> applyAsync(
-            ValidationFunction1<T, D1, E> validationFunc, ObservableValue<D1> dependency, Executor executor) {
+    public static <T, P1, D> Constraint<T, D> applyAsync(
+            ValidationFunction1<T, P1, D> validationFunc, ObservableValue<P1> dependency, Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency, "dependency");
+        Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
@@ -259,19 +665,20 @@ public final class Constraints {
      * @param dependency2 the second constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2> Constraint<T, E> applyAsync(
-            ValidationFunction2<T, D1, D2, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
+    public static <T, P1, P2, D> Constraint<T, D> applyAsync(
+            ValidationFunction2<T, P1, P2, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
         Objects.requireNonNull(dependency2, "dependency2");
+        Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
@@ -295,22 +702,23 @@ public final class Constraints {
      * @param dependency3 the third constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3> Constraint<T, E> applyAsync(
-            ValidationFunction3<T, D1, D2, D3, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
+    public static <T, P1, P2, P3, D> Constraint<T, D> applyAsync(
+            ValidationFunction3<T, P1, P2, P3, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
         Objects.requireNonNull(dependency2, "dependency2");
         Objects.requireNonNull(dependency3, "dependency3");
+        Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
@@ -336,25 +744,26 @@ public final class Constraints {
      * @param dependency4 the fourth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4> Constraint<T, E> applyAsync(
-            ValidationFunction4<T, D1, D2, D3, D4, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
+    public static <T, P1, P2, P3, P4, D> Constraint<T, D> applyAsync(
+            ValidationFunction4<T, P1, P2, P3, P4, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
         Objects.requireNonNull(dependency2, "dependency2");
         Objects.requireNonNull(dependency3, "dependency3");
         Objects.requireNonNull(dependency4, "dependency4");
+        Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
@@ -383,21 +792,21 @@ public final class Constraints {
      * @param dependency5 the fifth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5> Constraint<T, E> applyAsync(
-            ValidationFunction5<T, D1, D2, D3, D4, D5, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
+    public static <T, P1, P2, P3, P4, P5, D> Constraint<T, D> applyAsync(
+            ValidationFunction5<T, P1, P2, P3, P4, P5, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -405,6 +814,7 @@ public final class Constraints {
         Objects.requireNonNull(dependency3, "dependency3");
         Objects.requireNonNull(dependency4, "dependency4");
         Objects.requireNonNull(dependency5, "dependency5");
+        Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
@@ -435,23 +845,23 @@ public final class Constraints {
      * @param dependency6 the sixth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <D6> type of the sixth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5, D6> Constraint<T, E> applyAsync(
-            ValidationFunction6<T, D1, D2, D3, D4, D5, D6, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
-            ObservableValue<D6> dependency6,
+    public static <T, P1, P2, P3, P4, P5, P6, D> Constraint<T, D> applyAsync(
+            ValidationFunction6<T, P1, P2, P3, P4, P5, P6, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -460,6 +870,7 @@ public final class Constraints {
         Objects.requireNonNull(dependency4, "dependency4");
         Objects.requireNonNull(dependency5, "dependency5");
         Objects.requireNonNull(dependency6, "dependency6");
+        Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
@@ -492,25 +903,25 @@ public final class Constraints {
      * @param dependency7 the seventh constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <D6> type of the sixth dependency
-     * @param <D7> type of the seventh dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <P7> type of the seventh dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5, D6, D7> Constraint<T, E> applyAsync(
-            ValidationFunction7<T, D1, D2, D3, D4, D5, D6, D7, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
-            ObservableValue<D6> dependency6,
-            ObservableValue<D7> dependency7,
+    public static <T, P1, P2, P3, P4, P5, P6, P7, D> Constraint<T, D> applyAsync(
+            ValidationFunction7<T, P1, P2, P3, P4, P5, P6, P7, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
+            ObservableValue<P7> dependency7,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -520,6 +931,7 @@ public final class Constraints {
         Objects.requireNonNull(dependency5, "dependency5");
         Objects.requireNonNull(dependency6, "dependency6");
         Objects.requireNonNull(dependency7, "dependency7");
+        Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
@@ -557,27 +969,27 @@ public final class Constraints {
      * @param dependency8 the eighth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <D6> type of the sixth dependency
-     * @param <D7> type of the seventh dependency
-     * @param <D8> type of the eighth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <P7> type of the seventh dependency
+     * @param <P8> type of the eighth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5, D6, D7, D8> Constraint<T, E> applyAsync(
-            ValidationFunction8<T, D1, D2, D3, D4, D5, D6, D7, D8, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
-            ObservableValue<D6> dependency6,
-            ObservableValue<D7> dependency7,
-            ObservableValue<D8> dependency8,
+    public static <T, P1, P2, P3, P4, P5, P6, P7, P8, D> Constraint<T, D> applyAsync(
+            ValidationFunction8<T, P1, P2, P3, P4, P5, P6, P7, P8, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
+            ObservableValue<P7> dependency7,
+            ObservableValue<P8> dependency8,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -588,6 +1000,7 @@ public final class Constraints {
         Objects.requireNonNull(dependency6, "dependency6");
         Objects.requireNonNull(dependency7, "dependency7");
         Objects.requireNonNull(dependency8, "dependency8");
+        Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
@@ -638,7 +1051,7 @@ public final class Constraints {
      *         (Number value, AtomicBoolean cancellationRequested) -> {
      *             // CHECKLIST is assumed to contain a large number of individual checks.
      *             // After each check, we give the algorithm a chance to return early.
-     *             for (int i = 0; i < CHECKLIST.length &amp;&amp; !cancellationRequested.get(); ++i) {
+     *             for (int i = 0; i &lt; CHECKLIST.length &amp;&amp; !cancellationRequested.get(); ++i) {
      *                 if (!CHECKLIST[i].check(value)) {
      *                     return ValidationResult.invalid();
      *                 }
@@ -653,19 +1066,19 @@ public final class Constraints {
      * @param validationFunc the function that validates the value
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E> Constraint<T, E> applyCancellableAsync(
-            CancellableValidationFunction0<T, E> validationFunc, Executor executor) {
+    public static <T, D> Constraint<T, D> applyCancellableAsync(
+            CancellableValidationFunction0<T, D> validationFunc, Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
-                var task = new ValidateCancellableTask<T, E>(value) {
+                var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                    protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
                         return validationFunc.apply(value, cancellationRequested);
                     }
                 };
@@ -714,7 +1127,7 @@ public final class Constraints {
      *             try {
      *                 // CHECKLIST is assumed to contain a large number of individual checks.
      *                 // After each check, we give the algorithm a chance to return early.
-     *                 for (int i = 0; i < CHECKLIST.length &amp;&amp; !cancellationRequested.get(); ++i) {
+     *                 for (int i = 0; i &lt; CHECKLIST.length &amp;&amp; !cancellationRequested.get(); ++i) {
      *                     if (!CHECKLIST[i].check(value)) {
      *                         return ValidationResult.invalid();
      *                     }
@@ -740,12 +1153,12 @@ public final class Constraints {
      * @param dependency the constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> dependency type
-     * @param <E> error information type
+     * @param <P1> dependency type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1> Constraint<T, E> applyCancellableAsync(
-            CancellableValidationFunction1<T, D1, E> validationFunc, ObservableValue<D1> dependency, Executor executor) {
+    public static <T, P1, D> Constraint<T, D> applyCancellableAsync(
+            CancellableValidationFunction1<T, P1, D> validationFunc, ObservableValue<P1> dependency, Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency, "dependency");
         Objects.requireNonNull(executor, "executor");
@@ -753,9 +1166,9 @@ public final class Constraints {
         return new Constraint<>(
             value -> {
                 var dep = dependency.getValue();
-                var task = new ValidateCancellableTask<T, E>(value) {
+                var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                    protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
                         return validationFunc.apply(value, dep, cancellationRequested);
                     }
                 };
@@ -778,15 +1191,15 @@ public final class Constraints {
      * @param dependency2 the second constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2> Constraint<T, E> applyCancellableAsync(
-            CancellableValidationFunction2<T, D1, D2, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
+    public static <T, P1, P2, D> Constraint<T, D> applyCancellableAsync(
+            CancellableValidationFunction2<T, P1, P2, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -797,9 +1210,9 @@ public final class Constraints {
             value -> {
                 var dep1 = dependency1.getValue();
                 var dep2 = dependency2.getValue();
-                var task = new ValidateCancellableTask<T, E>(value) {
+                var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                    protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
                         return validationFunc.apply(value, dep1, dep2, cancellationRequested);
                     }
                 };
@@ -823,17 +1236,17 @@ public final class Constraints {
      * @param dependency3 the third constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3> Constraint<T, E> applyCancellableAsync(
-            CancellableValidationFunction3<T, D1, D2, D3, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
+    public static <T, P1, P2, P3, D> Constraint<T, D> applyCancellableAsync(
+            CancellableValidationFunction3<T, P1, P2, P3, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -846,9 +1259,9 @@ public final class Constraints {
                 var dep1 = dependency1.getValue();
                 var dep2 = dependency2.getValue();
                 var dep3 = dependency3.getValue();
-                var task = new ValidateCancellableTask<T, E>(value) {
+                var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                    protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
                         return validationFunc.apply(value, dep1, dep2, dep3, cancellationRequested);
                     }
                 };
@@ -873,19 +1286,19 @@ public final class Constraints {
      * @param dependency4 the fourth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4> Constraint<T, E> applyCancellableAsync(
-            CancellableValidationFunction4<T, D1, D2, D3, D4, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
+    public static <T, P1, P2, P3, P4, D> Constraint<T, D> applyCancellableAsync(
+            CancellableValidationFunction4<T, P1, P2, P3, P4, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -900,9 +1313,9 @@ public final class Constraints {
                 var dep2 = dependency2.getValue();
                 var dep3 = dependency3.getValue();
                 var dep4 = dependency4.getValue();
-                var task = new ValidateCancellableTask<T, E>(value) {
+                var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                    protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
                         return validationFunc.apply(value, dep1, dep2, dep3, dep4, cancellationRequested);
                     }
                 };
@@ -928,21 +1341,21 @@ public final class Constraints {
      * @param dependency5 the fifth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5> Constraint<T, E> applyCancellableAsync(
-            CancellableValidationFunction5<T, D1, D2, D3, D4, D5, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
+    public static <T, P1, P2, P3, P4, P5, D> Constraint<T, D> applyCancellableAsync(
+            CancellableValidationFunction5<T, P1, P2, P3, P4, P5, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -959,9 +1372,9 @@ public final class Constraints {
                 var dep3 = dependency3.getValue();
                 var dep4 = dependency4.getValue();
                 var dep5 = dependency5.getValue();
-                var task = new ValidateCancellableTask<T, E>(value) {
+                var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                    protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
                         return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, cancellationRequested);
                     }
                 };
@@ -988,23 +1401,23 @@ public final class Constraints {
      * @param dependency6 the sixth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <D6> type of the sixth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5, D6> Constraint<T, E> applyCancellableAsync(
-            CancellableValidationFunction6<T, D1, D2, D3, D4, D5, D6, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
-            ObservableValue<D6> dependency6,
+    public static <T, P1, P2, P3, P4, P5, P6, D> Constraint<T, D> applyCancellableAsync(
+            CancellableValidationFunction6<T, P1, P2, P3, P4, P5, P6, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -1023,9 +1436,9 @@ public final class Constraints {
                 var dep4 = dependency4.getValue();
                 var dep5 = dependency5.getValue();
                 var dep6 = dependency6.getValue();
-                var task = new ValidateCancellableTask<T, E>(value) {
+                var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                    protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
                         return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6, cancellationRequested);
                     }
                 };
@@ -1053,25 +1466,25 @@ public final class Constraints {
      * @param dependency7 the seventh constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <D6> type of the sixth dependency
-     * @param <D7> type of the seventh dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <P7> type of the seventh dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5, D6, D7> Constraint<T, E> applyCancellableAsync(
-            CancellableValidationFunction7<T, D1, D2, D3, D4, D5, D6, D7, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
-            ObservableValue<D6> dependency6,
-            ObservableValue<D7> dependency7,
+    public static <T, P1, P2, P3, P4, P5, P6, P7, D> Constraint<T, D> applyCancellableAsync(
+            CancellableValidationFunction7<T, P1, P2, P3, P4, P5, P6, P7, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
+            ObservableValue<P7> dependency7,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -1092,9 +1505,9 @@ public final class Constraints {
                 var dep5 = dependency5.getValue();
                 var dep6 = dependency6.getValue();
                 var dep7 = dependency7.getValue();
-                var task = new ValidateCancellableTask<T, E>(value) {
+                var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                    protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
                         return validationFunc.apply(
                             value, dep1, dep2, dep3, dep4, dep5, dep6, dep7, cancellationRequested);
                     }
@@ -1126,27 +1539,27 @@ public final class Constraints {
      * @param dependency8 the eighth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <D6> type of the sixth dependency
-     * @param <D7> type of the seventh dependency
-     * @param <D8> type of the eighth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <P7> type of the seventh dependency
+     * @param <P8> type of the eighth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5, D6, D7, D8> Constraint<T, E> applyCancellableAsync(
-            CancellableValidationFunction8<T, D1, D2, D3, D4, D5, D6, D7, D8, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
-            ObservableValue<D6> dependency6,
-            ObservableValue<D7> dependency7,
-            ObservableValue<D8> dependency8,
+    public static <T, P1, P2, P3, P4, P5, P6, P7, P8, D> Constraint<T, D> applyCancellableAsync(
+            CancellableValidationFunction8<T, P1, P2, P3, P4, P5, P6, P7, P8, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
+            ObservableValue<P7> dependency7,
+            ObservableValue<P8> dependency8,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -1169,9 +1582,9 @@ public final class Constraints {
                 var dep6 = dependency6.getValue();
                 var dep7 = dependency7.getValue();
                 var dep8 = dependency8.getValue();
-                var task = new ValidateCancellableTask<T, E>(value) {
+                var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value, AtomicBoolean cancellationRequested) {
+                    protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
                         return validationFunc.apply(
                             value, dep1, dep2, dep3, dep4, dep5, dep6, dep7, dep8, cancellationRequested);
                     }
@@ -1229,19 +1642,19 @@ public final class Constraints {
      * @param validationFunc the function that validates the value
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E> Constraint<T, E> applyInterruptibleAsync(
-            ValidationFunction0<T, E> validationFunc, Executor executor) {
+    public static <T, D> Constraint<T, D> applyInterruptibleAsync(
+            ValidationFunction0<T, D> validationFunc, Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(executor, "executor");
 
         return new Constraint<>(
             value -> {
-                var task = new ValidateInterruptibleTask<T, E>(value) {
+                var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value) {
+                    protected ValidationResult<D> apply(T value) {
                         return validationFunc.apply(value);
                     }
                 };
@@ -1291,7 +1704,7 @@ public final class Constraints {
      *                 // Simulate a blocking operation
      *                 Thread.sleep(5000);
      *
-     *                 return value.doubleValue() < maxValue.doubleValue() ?
+     *                 return value.doubleValue() &lt; maxValue.doubleValue() ?
      *                     ValidationResult.valid() : ValidationResult.invalid();
      *             } catch (InterruptedException ex) {
      *                 return ValidationResult.invalid();
@@ -1306,11 +1719,11 @@ public final class Constraints {
      * @param validationFunc the function that validates the value
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D> Constraint<T, E> applyInterruptibleAsync(
-            ValidationFunction1<T, D, E> validationFunc, ObservableValue<D> dependency, Executor executor) {
+    public static <T, P1, D> Constraint<T, D> applyInterruptibleAsync(
+            ValidationFunction1<T, P1, D> validationFunc, ObservableValue<P1> dependency, Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency, "dependency");
         Objects.requireNonNull(executor, "executor");
@@ -1318,9 +1731,9 @@ public final class Constraints {
         return new Constraint<>(
             value -> {
                 var dep = dependency.getValue();
-                var task = new ValidateInterruptibleTask<T, E>(value) {
+                var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value) {
+                    protected ValidationResult<D> apply(T value) {
                         return validationFunc.apply(value, dep);
                     }
                 };
@@ -1343,15 +1756,15 @@ public final class Constraints {
      * @param dependency2 the second constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2> Constraint<T, E> applyInterruptibleAsync(
-            ValidationFunction2<T, D1, D2, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
+    public static <T, P1, P2, D> Constraint<T, D> applyInterruptibleAsync(
+            ValidationFunction2<T, P1, P2, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -1362,9 +1775,9 @@ public final class Constraints {
             value -> {
                 var dep1 = dependency1.getValue();
                 var dep2 = dependency2.getValue();
-                var task = new ValidateInterruptibleTask<T, E>(value) {
+                var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value) {
+                    protected ValidationResult<D> apply(T value) {
                         return validationFunc.apply(value, dep1, dep2);
                     }
                 };
@@ -1388,17 +1801,17 @@ public final class Constraints {
      * @param dependency3 the third constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3> Constraint<T, E> applyInterruptibleAsync(
-            ValidationFunction3<T, D1, D2, D3, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
+    public static <T, P1, P2, P3, D> Constraint<T, D> applyInterruptibleAsync(
+            ValidationFunction3<T, P1, P2, P3, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -1411,9 +1824,9 @@ public final class Constraints {
                 var dep1 = dependency1.getValue();
                 var dep2 = dependency2.getValue();
                 var dep3 = dependency3.getValue();
-                var task = new ValidateInterruptibleTask<T, E>(value) {
+                var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value) {
+                    protected ValidationResult<D> apply(T value) {
                         return validationFunc.apply(value, dep1, dep2, dep3);
                     }
                 };
@@ -1438,19 +1851,19 @@ public final class Constraints {
      * @param dependency4 the fourth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4> Constraint<T, E> applyInterruptibleAsync(
-            ValidationFunction4<T, D1, D2, D3, D4, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
+    public static <T, P1, P2, P3, P4, D> Constraint<T, D> applyInterruptibleAsync(
+            ValidationFunction4<T, P1, P2, P3, P4, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -1465,9 +1878,9 @@ public final class Constraints {
                 var dep2 = dependency2.getValue();
                 var dep3 = dependency3.getValue();
                 var dep4 = dependency4.getValue();
-                var task = new ValidateInterruptibleTask<T, E>(value) {
+                var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value) {
+                    protected ValidationResult<D> apply(T value) {
                         return validationFunc.apply(value, dep1, dep2, dep3, dep4);
                     }
                 };
@@ -1493,21 +1906,21 @@ public final class Constraints {
      * @param dependency5 the fifth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5> Constraint<T, E> applyInterruptibleAsync(
-            ValidationFunction5<T, D1, D2, D3, D4, D5, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
+    public static <T, P1, P2, P3, P4, P5, D> Constraint<T, D> applyInterruptibleAsync(
+            ValidationFunction5<T, P1, P2, P3, P4, P5, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -1524,9 +1937,9 @@ public final class Constraints {
                 var dep3 = dependency3.getValue();
                 var dep4 = dependency4.getValue();
                 var dep5 = dependency5.getValue();
-                var task = new ValidateInterruptibleTask<T, E>(value) {
+                var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value) {
+                    protected ValidationResult<D> apply(T value) {
                         return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5);
                     }
                 };
@@ -1553,23 +1966,23 @@ public final class Constraints {
      * @param dependency6 the sixth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <D6> type of the sixth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5, D6> Constraint<T, E> applyInterruptibleAsync(
-            ValidationFunction6<T, D1, D2, D3, D4, D5, D6, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
-            ObservableValue<D6> dependency6,
+    public static <T, P1, P2, P3, P4, P5, P6, D> Constraint<T, D> applyInterruptibleAsync(
+            ValidationFunction6<T, P1, P2, P3, P4, P5, P6, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -1588,9 +2001,9 @@ public final class Constraints {
                 var dep4 = dependency4.getValue();
                 var dep5 = dependency5.getValue();
                 var dep6 = dependency6.getValue();
-                var task = new ValidateInterruptibleTask<T, E>(value) {
+                var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value) {
+                    protected ValidationResult<D> apply(T value) {
                         return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6);
                     }
                 };
@@ -1618,25 +2031,25 @@ public final class Constraints {
      * @param dependency7 the seventh constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <D6> type of the sixth dependency
-     * @param <D7> type of the seventh dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <P7> type of the seventh dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5, D6, D7> Constraint<T, E> applyInterruptibleAsync(
-            ValidationFunction7<T, D1, D2, D3, D4, D5, D6, D7, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
-            ObservableValue<D6> dependency6,
-            ObservableValue<D7> dependency7,
+    public static <T, P1, P2, P3, P4, P5, P6, P7, D> Constraint<T, D> applyInterruptibleAsync(
+            ValidationFunction7<T, P1, P2, P3, P4, P5, P6, P7, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
+            ObservableValue<P7> dependency7,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -1657,9 +2070,9 @@ public final class Constraints {
                 var dep5 = dependency5.getValue();
                 var dep6 = dependency6.getValue();
                 var dep7 = dependency7.getValue();
-                var task = new ValidateInterruptibleTask<T, E>(value) {
+                var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value) {
+                    protected ValidationResult<D> apply(T value) {
                         return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6, dep7);
                     }
                 };
@@ -1690,27 +2103,27 @@ public final class Constraints {
      * @param dependency8 the eighth constraint dependency
      * @param executor the executor that invokes the validation function
      * @param <T> value type
-     * @param <D1> type of the first dependency
-     * @param <D2> type of the second dependency
-     * @param <D3> type of the third dependency
-     * @param <D4> type of the fourth dependency
-     * @param <D5> type of the fifth dependency
-     * @param <D6> type of the sixth dependency
-     * @param <D7> type of the seventh dependency
-     * @param <D8> type of the eighth dependency
-     * @param <E> error information type
+     * @param <P1> type of the first dependency
+     * @param <P2> type of the second dependency
+     * @param <P3> type of the third dependency
+     * @param <P4> type of the fourth dependency
+     * @param <P5> type of the fifth dependency
+     * @param <P6> type of the sixth dependency
+     * @param <P7> type of the seventh dependency
+     * @param <P8> type of the eighth dependency
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E, D1, D2, D3, D4, D5, D6, D7, D8> Constraint<T, E> applyInterruptibleAsync(
-            ValidationFunction8<T, D1, D2, D3, D4, D5, D6, D7, D8, E> validationFunc,
-            ObservableValue<D1> dependency1,
-            ObservableValue<D2> dependency2,
-            ObservableValue<D3> dependency3,
-            ObservableValue<D4> dependency4,
-            ObservableValue<D5> dependency5,
-            ObservableValue<D6> dependency6,
-            ObservableValue<D7> dependency7,
-            ObservableValue<D8> dependency8,
+    public static <T, P1, P2, P3, P4, P5, P6, P7, P8, D> Constraint<T, D> applyInterruptibleAsync(
+            ValidationFunction8<T, P1, P2, P3, P4, P5, P6, P7, P8, D> validationFunc,
+            ObservableValue<P1> dependency1,
+            ObservableValue<P2> dependency2,
+            ObservableValue<P3> dependency3,
+            ObservableValue<P4> dependency4,
+            ObservableValue<P5> dependency5,
+            ObservableValue<P6> dependency6,
+            ObservableValue<P7> dependency7,
+            ObservableValue<P8> dependency8,
             Executor executor) {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency1, "dependency1");
@@ -1733,9 +2146,9 @@ public final class Constraints {
                 var dep6 = dependency6.getValue();
                 var dep7 = dependency7.getValue();
                 var dep8 = dependency8.getValue();
-                var task = new ValidateInterruptibleTask<T, E>(value) {
+                var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
-                    protected ValidationResult<E> apply(T value) {
+                    protected ValidationResult<D> apply(T value) {
                         return validationFunc.apply(value, dep1, dep2, dep3, dep4, dep5, dep6, dep7, dep8);
                     }
                 };
@@ -1754,29 +2167,29 @@ public final class Constraints {
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(int minInclusive, int maxExclusive) {
+    public static <D> Constraint<Number, D> between(int minInclusive, int maxExclusive) {
         return between(minInclusive, maxExclusive, null);
     }
 
     /**
      * Creates a constraint that validates that a number is within a range,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(int minInclusive, int maxExclusive, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> between(int minInclusive, int maxExclusive, Function<Number, D> error) {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v >= minInclusive && v < maxExclusive;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -1785,29 +2198,29 @@ public final class Constraints {
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(long minInclusive, long maxExclusive) {
+    public static <D> Constraint<Number, D> between(long minInclusive, long maxExclusive) {
         return between(minInclusive, maxExclusive, null);
     }
 
     /**
      * Creates a constraint that validates that a number is within a range,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(long minInclusive, long maxExclusive, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> between(long minInclusive, long maxExclusive, Function<Number, D> error) {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v >= minInclusive && v < maxExclusive;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -1816,29 +2229,29 @@ public final class Constraints {
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(float minInclusive, float maxExclusive) {
+    public static <D> Constraint<Number, D> between(float minInclusive, float maxExclusive) {
         return between(minInclusive, maxExclusive, null);
     }
 
     /**
      * Creates a constraint that validates that a number is within a range,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(float minInclusive, float maxExclusive, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> between(float minInclusive, float maxExclusive, Function<Number, D> error) {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v >= minInclusive && v < maxExclusive;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -1847,29 +2260,29 @@ public final class Constraints {
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(double minInclusive, double maxExclusive) {
+    public static <D> Constraint<Number, D> between(double minInclusive, double maxExclusive) {
         return between(minInclusive, maxExclusive, null);
     }
 
     /**
      * Creates a constraint that validates that a number is within a range,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(double minInclusive, double maxExclusive, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> between(double minInclusive, double maxExclusive, Function<Number, D> error) {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v >= minInclusive && v < maxExclusive;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -1881,32 +2294,32 @@ public final class Constraints {
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(ObservableIntegerValue minInclusive, ObservableIntegerValue maxExclusive) {
+    public static <D> Constraint<Number, D> between(ObservableIntegerValue minInclusive, ObservableIntegerValue maxExclusive) {
         return between(minInclusive, maxExclusive, null);
     }
 
     /**
      * Creates a constraint that validates that a number is within a range,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or any of
      * the constraint dependencies are invalidated.
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(ObservableIntegerValue minInclusive, ObservableIntegerValue maxExclusive, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> between(ObservableIntegerValue minInclusive, ObservableIntegerValue maxExclusive, Function<Number, D> error) {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minInclusive, maxExclusive});
     }
 
@@ -1918,32 +2331,32 @@ public final class Constraints {
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(ObservableLongValue minInclusive, ObservableLongValue maxExclusive) {
+    public static <D> Constraint<Number, D> between(ObservableLongValue minInclusive, ObservableLongValue maxExclusive) {
         return between(minInclusive, maxExclusive, null);
     }
 
     /**
      * Creates a constraint that validates that a number is within a range,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or any of
      * the constraint dependencies are invalidated.
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(ObservableLongValue minInclusive, ObservableLongValue maxExclusive, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> between(ObservableLongValue minInclusive, ObservableLongValue maxExclusive, Function<Number, D> error) {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minInclusive, maxExclusive});
     }
 
@@ -1955,32 +2368,32 @@ public final class Constraints {
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(ObservableFloatValue minInclusive, ObservableFloatValue maxExclusive) {
+    public static <D> Constraint<Number, D> between(ObservableFloatValue minInclusive, ObservableFloatValue maxExclusive) {
         return between(minInclusive, maxExclusive, null);
     }
 
     /**
      * Creates a constraint that validates that a number is within a range,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or any of
      * the constraint dependencies are invalidated.
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(ObservableFloatValue minInclusive, ObservableFloatValue maxExclusive, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> between(ObservableFloatValue minInclusive, ObservableFloatValue maxExclusive, Function<Number, D> error) {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minInclusive, maxExclusive});
     }
 
@@ -1992,32 +2405,32 @@ public final class Constraints {
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(ObservableDoubleValue minInclusive, ObservableDoubleValue maxExclusive) {
+    public static <D> Constraint<Number, D> between(ObservableDoubleValue minInclusive, ObservableDoubleValue maxExclusive) {
         return between(minInclusive, maxExclusive, null);
     }
 
     /**
      * Creates a constraint that validates that a number is within a range,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or any of
      * the constraint dependencies are invalidated.
      *
      * @param minInclusive the lower limit, inclusive
      * @param maxExclusive the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> between(ObservableDoubleValue minInclusive, ObservableDoubleValue maxExclusive, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> between(ObservableDoubleValue minInclusive, ObservableDoubleValue maxExclusive, Function<Number, D> error) {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minInclusive, maxExclusive});
     }
 
@@ -2025,28 +2438,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is greater than the specified value.
      *
      * @param minimum the lower limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(int minimum) {
+    public static <D> Constraint<Number, D> greaterThan(int minimum) {
         return greaterThan(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minimum the lower limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(int minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThan(int minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v > minimum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2054,28 +2467,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is greater than the specified value.
      *
      * @param minimum the lower limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(long minimum) {
+    public static <D> Constraint<Number, D> greaterThan(long minimum) {
         return greaterThan(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minimum the lower limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(long minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThan(long minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v > minimum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2083,28 +2496,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is greater than the specified value.
      *
      * @param minimum the lower limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(float minimum) {
+    public static <D> Constraint<Number, D> greaterThan(float minimum) {
         return greaterThan(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minimum the lower limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(float minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThan(float minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v > minimum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2112,28 +2525,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is greater than the specified value.
      *
      * @param minimum the lower limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(double minimum) {
+    public static <D> Constraint<Number, D> greaterThan(double minimum) {
         return greaterThan(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minimum the lower limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(double minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThan(double minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v > minimum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2144,31 +2557,31 @@ public final class Constraints {
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(ObservableIntegerValue minimum) {
+    public static <D> Constraint<Number, D> greaterThan(ObservableIntegerValue minimum) {
         return greaterThan(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(ObservableIntegerValue minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThan(ObservableIntegerValue minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v > minimum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minimum});
     }
 
@@ -2179,31 +2592,31 @@ public final class Constraints {
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(ObservableLongValue minimum) {
+    public static <D> Constraint<Number, D> greaterThan(ObservableLongValue minimum) {
         return greaterThan(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(ObservableLongValue minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThan(ObservableLongValue minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v > minimum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minimum});
     }
 
@@ -2214,31 +2627,31 @@ public final class Constraints {
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(ObservableFloatValue minimum) {
+    public static <D> Constraint<Number, D> greaterThan(ObservableFloatValue minimum) {
         return greaterThan(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(ObservableFloatValue minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThan(ObservableFloatValue minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v > minimum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minimum});
     }
 
@@ -2249,31 +2662,31 @@ public final class Constraints {
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(ObservableDoubleValue minimum) {
+    public static <D> Constraint<Number, D> greaterThan(ObservableDoubleValue minimum) {
         return greaterThan(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThan(ObservableDoubleValue minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThan(ObservableDoubleValue minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v > minimum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minimum});
     }
 
@@ -2281,28 +2694,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is greater than or equal to the specified value.
      *
      * @param minimum the lower limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(int minimum) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(int minimum) {
         return greaterThanOrEqualTo(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minimum the lower limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(int minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(int minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v >= minimum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2310,28 +2723,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is greater than or equal to the specified value.
      *
      * @param minimum the lower limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(long minimum) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(long minimum) {
         return greaterThanOrEqualTo(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minimum the lower limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(long minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(long minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v >= minimum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2339,28 +2752,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is greater than or equal to the specified value.
      *
      * @param minimum the lower limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(float minimum) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(float minimum) {
         return greaterThanOrEqualTo(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minimum the lower limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(float minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(float minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v >= minimum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2368,28 +2781,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is greater than or equal to the specified value.
      *
      * @param minimum the lower limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(double minimum) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(double minimum) {
         return greaterThanOrEqualTo(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param minimum the lower limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(double minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(double minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v >= minimum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2400,31 +2813,31 @@ public final class Constraints {
      * minimum value dependency changes.
      * 
      * @param minimum the lower limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(ObservableIntegerValue minimum) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableIntegerValue minimum) {
         return greaterThanOrEqualTo(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(ObservableIntegerValue minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableIntegerValue minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v >= minimum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minimum});
     }
 
@@ -2435,31 +2848,31 @@ public final class Constraints {
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(ObservableLongValue minimum) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableLongValue minimum) {
         return greaterThanOrEqualTo(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(ObservableLongValue minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableLongValue minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v >= minimum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minimum});
     }
 
@@ -2470,31 +2883,31 @@ public final class Constraints {
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(ObservableFloatValue minimum) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableFloatValue minimum) {
         return greaterThanOrEqualTo(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(ObservableFloatValue minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableFloatValue minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v >= minimum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minimum});
     }
 
@@ -2505,31 +2918,31 @@ public final class Constraints {
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(ObservableDoubleValue minimum) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableDoubleValue minimum) {
         return greaterThanOrEqualTo(minimum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is greater than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * minimum value dependency changes.
      *
      * @param minimum the lower limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> greaterThanOrEqualTo(ObservableDoubleValue minimum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableDoubleValue minimum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v >= minimum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {minimum});
     }
 
@@ -2537,28 +2950,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is less than the specified value.
      *
      * @param maximum the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(int maximum) {
+    public static <D> Constraint<Number, D> lessThan(int maximum) {
         return lessThan(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param maximum the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(int maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThan(int maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v < maximum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2566,28 +2979,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is less than the specified value.
      *
      * @param maximum the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(long maximum) {
+    public static <D> Constraint<Number, D> lessThan(long maximum) {
         return lessThan(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param maximum the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(long maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThan(long maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v < maximum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2595,28 +3008,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is less than the specified value.
      *
      * @param maximum the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(float maximum) {
+    public static <D> Constraint<Number, D> lessThan(float maximum) {
         return lessThan(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param maximum the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(float maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThan(float maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v < maximum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2624,28 +3037,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is less than the specified value.
      *
      * @param maximum the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(double maximum) {
+    public static <D> Constraint<Number, D> lessThan(double maximum) {
         return lessThan(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param maximum the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(double maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThan(double maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v < maximum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2656,31 +3069,31 @@ public final class Constraints {
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(ObservableIntegerValue maximum) {
+    public static <D> Constraint<Number, D> lessThan(ObservableIntegerValue maximum) {
         return lessThan(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(ObservableIntegerValue maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThan(ObservableIntegerValue maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v < maximum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {maximum});
     }
 
@@ -2691,31 +3104,31 @@ public final class Constraints {
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(ObservableLongValue maximum) {
+    public static <D> Constraint<Number, D> lessThan(ObservableLongValue maximum) {
         return lessThan(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(ObservableLongValue maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThan(ObservableLongValue maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v < maximum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {maximum});
     }
 
@@ -2726,31 +3139,31 @@ public final class Constraints {
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(ObservableFloatValue maximum) {
+    public static <D> Constraint<Number, D> lessThan(ObservableFloatValue maximum) {
         return lessThan(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(ObservableFloatValue maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThan(ObservableFloatValue maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v < maximum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {maximum});
     }
 
@@ -2761,31 +3174,31 @@ public final class Constraints {
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, exclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(ObservableDoubleValue maximum) {
+    public static <D> Constraint<Number, D> lessThan(ObservableDoubleValue maximum) {
         return lessThan(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, exclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThan(ObservableDoubleValue maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThan(ObservableDoubleValue maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v < maximum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {maximum});
     }
 
@@ -2793,28 +3206,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is less than or equal to the specified value.
      *
      * @param maximum the upper limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(int maximum) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(int maximum) {
         return lessThanOrEqualTo(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param maximum the upper limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(int maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(int maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v <= maximum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null,null);
     }
 
@@ -2822,28 +3235,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is less than or equal to the specified value.
      *
      * @param maximum the upper limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(long maximum) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(long maximum) {
         return lessThanOrEqualTo(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param maximum the upper limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(long maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(long maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v <= maximum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2851,28 +3264,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is less than or equal to the specified value.
      *
      * @param maximum the upper limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(float maximum) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(float maximum) {
         return lessThanOrEqualTo(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param maximum the upper limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(float maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(float maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v <= maximum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2880,28 +3293,28 @@ public final class Constraints {
      * Creates a constraint that validates that a number is less than or equal to the specified value.
      *
      * @param maximum the upper limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(double maximum) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(double maximum) {
         return lessThanOrEqualTo(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param maximum the upper limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(double maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(double maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v <= maximum;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, null);
     }
 
@@ -2912,31 +3325,31 @@ public final class Constraints {
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(ObservableIntegerValue maximum) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableIntegerValue maximum) {
         return lessThanOrEqualTo(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(ObservableIntegerValue maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableIntegerValue maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             int v = value != null ? value.intValue() : 0;
             boolean valid = v <= maximum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {maximum});
     }
 
@@ -2947,31 +3360,31 @@ public final class Constraints {
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(ObservableLongValue maximum) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableLongValue maximum) {
         return lessThanOrEqualTo(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(ObservableLongValue maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableLongValue maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             long v = value != null ? value.longValue() : 0;
             boolean valid = v <= maximum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {maximum});
     }
 
@@ -2982,31 +3395,31 @@ public final class Constraints {
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(ObservableFloatValue maximum) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableFloatValue maximum) {
         return lessThanOrEqualTo(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(ObservableFloatValue maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableFloatValue maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             float v = value != null ? value.floatValue() : 0;
             boolean valid = v <= maximum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {maximum});
     }
 
@@ -3017,31 +3430,31 @@ public final class Constraints {
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, inclusive
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(ObservableDoubleValue maximum) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableDoubleValue maximum) {
         return lessThanOrEqualTo(maximum, null);
     }
 
     /**
      * Creates a constraint that validates that a number is less than or equal to the specified value,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * maximum value dependency changes.
      *
      * @param maximum the upper limit, inclusive
-     * @param errorInfo the handler that returns an error information object when validation fails
-     * @param <E> error information type
+     * @param error the function that returns an error object when validation fails
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<Number, E> lessThanOrEqualTo(ObservableDoubleValue maximum, Function<Number, E> errorInfo) {
+    public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableDoubleValue maximum, Function<Number, D> error) {
         return new Constraint<>(value -> {
             double v = value != null ? value.doubleValue() : 0;
             boolean valid = v <= maximum.get();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }, null, new Observable[] {maximum});
     }
 
@@ -3049,72 +3462,72 @@ public final class Constraints {
      * Creates a constraint that validates that a valus is not {@code null}.
      *
      * @param <T> value type
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E> Constraint<T, E> notNull() {
+    public static <T, D> Constraint<T, D> notNull() {
         return notNull(null);
     }
 
     /**
      * Creates a constraint that validates that a valus is not {@code null}, and specifies a function
-     * that creates an error information object when validation fails.
+     * that creates an error object when validation fails.
      *
      * @param <T> value type
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <T, E> Constraint<T, E> notNull(Supplier<E> errorInfo) {
+    public static <T, D> Constraint<T, D> notNull(Supplier<D> error) {
         return new Constraint<>(value -> {
             boolean valid = value != null;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.get() : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
         }, null, null);
     }
 
     /**
      * Creates a constraint that validates that a {@link String} is not {@code null} or empty.
      *
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> notNullOrEmpty() {
+    public static <D> Constraint<String, D> notNullOrEmpty() {
         return notNullOrEmpty(null);
     }
 
     /**
      * Creates a constraint that validates that a {@link String} is not {@code null} or empty,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> notNullOrEmpty(Supplier<E> errorInfo) {
+    public static <D> Constraint<String, D> notNullOrEmpty(Supplier<D> error) {
         return new Constraint<>(value -> {
             boolean valid = value != null && !value.isEmpty();
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.get() : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
         }, null, null);
     }
 
     /**
      * Creates a constraint that validates that a {@link String} is not {@code null} or blank.
      *
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> notNullOrBlank() {
+    public static <D> Constraint<String, D> notNullOrBlank() {
         return notNullOrBlank(null);
     }
 
     /**
      * Creates a constraint that validates that a {@link String} is not {@code null} or blank,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> notNullOrBlank(Supplier<E> errorInfo) {
+    public static <D> Constraint<String, D> notNullOrBlank(Supplier<D> error) {
         return new Constraint<>(value -> {
             boolean blank = true;
 
@@ -3129,7 +3542,7 @@ public final class Constraints {
 
             boolean valid = !blank;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.get() : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
         }, null, null);
     }
 
@@ -3137,30 +3550,30 @@ public final class Constraints {
      * Creates a constraint that validates that a {@link String} matches a regular expression pattern.
      *
      * @param regex the regular expression pattern
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> matchesPattern(String regex) {
+    public static <D> Constraint<String, D> matchesPattern(String regex) {
         return matchesPattern(regex, null);
     }
 
     /**
      * Creates a constraint that validates that a {@link String} matches a regular expression pattern,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param regex the regular expression pattern
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> matchesPattern(String regex, Function<String, E> errorInfo) {
+    public static <D> Constraint<String, D> matchesPattern(String regex, Function<String, D> error) {
         return new Constraint<>(new Validator<>() {
             final Pattern pattern = Pattern.compile(regex);
 
             @Override
-            public CompletableFuture<ValidationResult<E>> validate(String value) {
+            public CompletableFuture<ValidationResult<D>> validate(String value) {
                 boolean valid = pattern.matcher(value != null ? value : "").matches();
                 return CompletableFuture.completedFuture(
-                    new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
             }
         }, null, null);
     }
@@ -3172,56 +3585,56 @@ public final class Constraints {
      * regular expression pattern changes.
      *
      * @param regex the regular expression pattern
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> matchesPattern(ObservableStringValue regex) {
+    public static <D> Constraint<String, D> matchesPattern(ObservableStringValue regex) {
         return matchesPattern(regex, null);
     }
 
     /**
      * Creates a constraint that validates that a {@link String} matches a regular expression pattern,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * regular expression pattern changes.
      *
      * @param regex the regular expression pattern
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> matchesPattern(ObservableStringValue regex, Function<String, E> errorInfo) {
-        return new Constraint<>(new ObservablePatternValidator<>(regex, errorInfo, false), null, new Observable[] {regex});
+    public static <D> Constraint<String, D> matchesPattern(ObservableStringValue regex, Function<String, D> error) {
+        return new Constraint<>(new ObservablePatternValidator<>(regex, error, false), null, new Observable[] {regex});
     }
 
     /**
      * Creates a constraint that validates that a {@link String} does not match a regular expression pattern.
      *
      * @param regex the regular expression pattern
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> notMatchesPattern(String regex) {
+    public static <D> Constraint<String, D> notMatchesPattern(String regex) {
         return notMatchesPattern(regex, null);
     }
 
     /**
      * Creates a constraint that validates that a {@link String} does not match a regular expression pattern,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      *
      * @param regex the regular expression pattern
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> notMatchesPattern(String regex, Function<String, E> errorInfo) {
+    public static <D> Constraint<String, D> notMatchesPattern(String regex, Function<String, D> error) {
         return new Constraint<>(new Validator<>() {
             final Pattern pattern = Pattern.compile(regex);
 
             @Override
-            public CompletableFuture<ValidationResult<E>> validate(String value) {
+            public CompletableFuture<ValidationResult<D>> validate(String value) {
                 boolean valid = !pattern.matcher(value != null ? value : "").matches();
                 return CompletableFuture.completedFuture(
-                    new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
             }
         }, null, null);
     }
@@ -3233,38 +3646,38 @@ public final class Constraints {
      * regular expression pattern changes.
      *
      * @param regex the regular expression pattern
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> notMatchesPattern(ObservableStringValue regex) {
+    public static <D> Constraint<String, D> notMatchesPattern(ObservableStringValue regex) {
         return notMatchesPattern(regex, null);
     }
 
     /**
      * Creates a constraint that validates that a {@link String} does not match a regular expression pattern,
-     * and specifies a function that creates an error information object when validation fails.
+     * and specifies a function that creates an error object when validation fails.
      * <p>
      * The constraint will be re-evaluated whenever the underlying property value or the
      * regular expression pattern changes.
      *
      * @param regex the regular expression pattern
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return the new constraint
      */
-    public static <E> Constraint<String, E> notMatchesPattern(ObservableStringValue regex, Function<String, E> errorInfo) {
-        return new Constraint<>(new ObservablePatternValidator<>(regex, errorInfo, true), null, new Observable[] {regex});
+    public static <D> Constraint<String, D> notMatchesPattern(ObservableStringValue regex, Function<String, D> error) {
+        return new Constraint<>(new ObservablePatternValidator<>(regex, error, true), null, new Observable[] {regex});
     }
 
-    private static final class ObservablePatternValidator<E> implements Validator<String, E>, InvalidationListener {
+    private static final class ObservablePatternValidator<D> implements Validator<String, D>, InvalidationListener {
         private final boolean flip;
         private final ObservableStringValue regex;
-        private final Function<String, E> errorInfo;
+        private final Function<String, D> error;
         private Pattern pattern;
 
-        ObservablePatternValidator(ObservableStringValue regex, Function<String, E> errorInfo, boolean flip) {
+        ObservablePatternValidator(ObservableStringValue regex, Function<String, D> error, boolean flip) {
             this.flip = flip;
             this.regex = regex;
-            this.errorInfo = errorInfo;
+            this.error = error;
             regex.addListener(new WeakInvalidationListener(this));
             invalidated(null);
         }
@@ -3276,10 +3689,10 @@ public final class Constraints {
         }
 
         @Override
-        public CompletableFuture<ValidationResult<E>> validate(String value) {
+        public CompletableFuture<ValidationResult<D>> validate(String value) {
             boolean valid = (pattern != null && pattern.matcher(value != null ? value : "").matches()) ^ flip;
             return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && errorInfo != null ? errorInfo.apply(value) : null));
+                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
         }
     }
 

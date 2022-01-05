@@ -36,10 +36,10 @@ import javafx.beans.property.ReadOnlyListProperty;
  * and can be passed to external users. The other property is read- and
  * writable and should be used internally only.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class ReadOnlyConstrainedIntegerWrapper<E> extends SimpleConstrainedIntegerProperty<E> {
+public class ReadOnlyConstrainedIntegerWrapper<D> extends SimpleConstrainedIntegerProperty<D> {
     
     private ReadOnlyPropertyImpl readOnlyProperty;
 
@@ -49,7 +49,7 @@ public class ReadOnlyConstrainedIntegerWrapper<E> extends SimpleConstrainedInteg
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedIntegerWrapper(Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedIntegerWrapper(Constraint<? super Number, D>... constraints) {
         super(0, constraints);
     }
 
@@ -61,7 +61,7 @@ public class ReadOnlyConstrainedIntegerWrapper<E> extends SimpleConstrainedInteg
      */
     @SafeVarargs
     public ReadOnlyConstrainedIntegerWrapper(
-            int initialValue, Constraint<? super Number, E>... constraints) {
+            int initialValue, Constraint<? super Number, D>... constraints) {
         super(initialValue, constraints);
     }
 
@@ -74,7 +74,7 @@ public class ReadOnlyConstrainedIntegerWrapper<E> extends SimpleConstrainedInteg
      */
     @SafeVarargs
     public ReadOnlyConstrainedIntegerWrapper(
-            Object bean, String name, Constraint<? super Number, E>... constraints) {
+            Object bean, String name, Constraint<? super Number, D>... constraints) {
         super(bean, name, constraints);
     }
 
@@ -88,7 +88,7 @@ public class ReadOnlyConstrainedIntegerWrapper<E> extends SimpleConstrainedInteg
      */
     @SafeVarargs
     public ReadOnlyConstrainedIntegerWrapper(
-            Object bean, String name, int initialValue, Constraint<? super Number, E>... constraints) {
+            Object bean, String name, int initialValue, Constraint<? super Number, D>... constraints) {
         super(bean, name, initialValue, constraints);
     }
 
@@ -98,7 +98,7 @@ public class ReadOnlyConstrainedIntegerWrapper<E> extends SimpleConstrainedInteg
      *
      * @return the read-only property
      */
-    public ReadOnlyConstrainedIntegerProperty<E> getReadOnlyProperty() {
+    public ReadOnlyConstrainedIntegerProperty<D> getReadOnlyProperty() {
         if (readOnlyProperty == null) {
             readOnlyProperty = new ReadOnlyPropertyImpl();
         }
@@ -114,7 +114,7 @@ public class ReadOnlyConstrainedIntegerWrapper<E> extends SimpleConstrainedInteg
         }
     }
 
-    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedIntegerPropertyBase<E> {
+    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedIntegerPropertyBase<D> {
         @Override
         public int get() {
             return ReadOnlyConstrainedIntegerWrapper.this.get();
@@ -156,8 +156,13 @@ public class ReadOnlyConstrainedIntegerWrapper<E> extends SimpleConstrainedInteg
         }
 
         @Override
-        public ReadOnlyListProperty<E> errorsProperty() {
+        public ReadOnlyListProperty<D> errorsProperty() {
             return ReadOnlyConstrainedIntegerWrapper.this.errorsProperty();
+        }
+
+        @Override
+        public ReadOnlyListProperty<D> warningsProperty() {
+            return ReadOnlyConstrainedIntegerWrapper.this.warningsProperty();
         }
 
         @Override

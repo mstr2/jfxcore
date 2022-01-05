@@ -26,11 +26,11 @@ import javafx.collections.ObservableSet;
 /**
  * This class provides an implementation of {@link ConstrainedSetProperty} that wraps an {@link ObservableSet}.
  *
- * @param <T> item type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class SimpleConstrainedSetProperty<T, E> extends ConstrainedSetPropertyBase<T, E> {
+public class SimpleConstrainedSetProperty<E, D> extends ConstrainedSetPropertyBase<E, D> {
 
     private static final Object DEFAULT_BEAN = null;
     private static final String DEFAULT_NAME = "";
@@ -49,19 +49,19 @@ public class SimpleConstrainedSetProperty<T, E> extends ConstrainedSetPropertyBa
     }
 
     @SafeVarargs
-    public SimpleConstrainedSetProperty(Constraint<? super ObservableSet<T>, E>... constraints) {
+    public SimpleConstrainedSetProperty(Constraint<? super ObservableSet<E>, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, null, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedSetProperty(
-            ObservableSet<T> initialValue, Constraint<? super ObservableSet<T>, E>... constraints) {
+            ObservableSet<E> initialValue, Constraint<? super ObservableSet<E>, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedSetProperty(
-            Object bean, String name, Constraint<? super ObservableSet<T>, E>... constraints) {
+            Object bean, String name, Constraint<? super ObservableSet<E>, D>... constraints) {
         this(bean, name, null, constraints);
     }
 
@@ -69,8 +69,8 @@ public class SimpleConstrainedSetProperty<T, E> extends ConstrainedSetPropertyBa
     public SimpleConstrainedSetProperty(
             Object bean,
             String name,
-            ObservableSet<T> initialValue,
-            Constraint<? super ObservableSet<T>, E>... constraints) {
+            ObservableSet<E> initialValue,
+            Constraint<? super ObservableSet<E>, D>... constraints) {
         super(initialValue, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

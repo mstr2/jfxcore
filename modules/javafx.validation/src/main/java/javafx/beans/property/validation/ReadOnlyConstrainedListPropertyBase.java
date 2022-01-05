@@ -30,13 +30,13 @@ import javafx.collections.ObservableList;
 /**
  * Provides a base implementation for a {@link ReadOnlyConstrainedListProperty}.
  *
- * @param <T> element type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedListPropertyBase<T, E> extends ReadOnlyConstrainedListProperty<T, E> {
+public abstract class ReadOnlyConstrainedListPropertyBase<E, D> extends ReadOnlyConstrainedListProperty<E, D> {
 
-    private ListExpressionHelper<T> helper;
+    private ListExpressionHelper<E> helper;
 
     /**
      * Creates a default {@code ReadOnlyConstrainedListPropertyBase}.
@@ -55,22 +55,22 @@ public abstract class ReadOnlyConstrainedListPropertyBase<T, E> extends ReadOnly
     }
 
     @Override
-    public void addListener(ChangeListener<? super ObservableList<T>> listener) {
+    public void addListener(ChangeListener<? super ObservableList<E>> listener) {
         helper = ListExpressionHelper.addListener(helper, this, listener);
     }
 
     @Override
-    public void removeListener(ChangeListener<? super ObservableList<T>> listener) {
+    public void removeListener(ChangeListener<? super ObservableList<E>> listener) {
         helper = ListExpressionHelper.removeListener(helper, listener);
     }
 
     @Override
-    public void addListener(ListChangeListener<? super T> listener) {
+    public void addListener(ListChangeListener<? super E> listener) {
         helper = ListExpressionHelper.addListener(helper, this, listener);
     }
 
     @Override
-    public void removeListener(ListChangeListener<? super T> listener) {
+    public void removeListener(ListChangeListener<? super E> listener) {
         helper = ListExpressionHelper.removeListener(helper, listener);
     }
 
@@ -86,7 +86,7 @@ public abstract class ReadOnlyConstrainedListPropertyBase<T, E> extends ReadOnly
      * Invokes {@link InvalidationListener InvalidationListeners}, {@link ChangeListener ChangeListeners},
      * and {@link ListChangeListener ListChangeListeners} when the list content has changed.
      */
-    protected void fireValueChangedEvent(ListChangeListener.Change<? extends T> change) {
+    protected void fireValueChangedEvent(ListChangeListener.Change<? extends E> change) {
         ListExpressionHelper.fireValueChangedEvent(helper, change);
     }
 

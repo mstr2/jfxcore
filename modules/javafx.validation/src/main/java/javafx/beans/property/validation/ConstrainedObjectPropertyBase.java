@@ -45,10 +45,10 @@ import java.lang.ref.WeakReference;
  * Provides a base implementation for a constrained property that wraps an object value.
  * {@link Property#getBean()} and {@link Property#getName()} must be implemented by derived classes.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedObjectPropertyBase<T, E> extends ConstrainedObjectProperty<T, E> {
+public abstract class ConstrainedObjectPropertyBase<T, D> extends ConstrainedObjectProperty<T, D> {
 
     static {
         ValidationHelper.setAccessor(
@@ -57,7 +57,7 @@ public abstract class ConstrainedObjectPropertyBase<T, E> extends ConstrainedObj
     }
 
     private final ObjectPropertyImpl<T> constrainedValue;
-    private final ValidationHelper<T, E> validationHelper;
+    private final ValidationHelper<T, D> validationHelper;
     private T value;
     private ObservableValue<? extends T> observable;
     private InvalidationListener listener;
@@ -68,7 +68,7 @@ public abstract class ConstrainedObjectPropertyBase<T, E> extends ConstrainedObj
      * The constructor of the {@code ConstrainedObjectPropertyBase}.
      */
     @SafeVarargs
-    protected ConstrainedObjectPropertyBase(Constraint<? super T, E>... constraints) {
+    protected ConstrainedObjectPropertyBase(Constraint<? super T, D>... constraints) {
         this(null, constraints);
     }
 
@@ -78,7 +78,7 @@ public abstract class ConstrainedObjectPropertyBase<T, E> extends ConstrainedObj
      * @param initialValue the initial value of the wrapped object
      */
     @SafeVarargs
-    protected ConstrainedObjectPropertyBase(T initialValue, Constraint<? super T, E>... constraints) {
+    protected ConstrainedObjectPropertyBase(T initialValue, Constraint<? super T, D>... constraints) {
         value = initialValue;
 
         constrainedValue = new ObjectPropertyImpl<>(initialValue) {
@@ -90,17 +90,17 @@ public abstract class ConstrainedObjectPropertyBase<T, E> extends ConstrainedObj
     }
 
     @Override
-    public ReadOnlyBooleanProperty validProperty() {
+    public final ReadOnlyBooleanProperty validProperty() {
         return validationHelper.validProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty userValidProperty() {
+    public final ReadOnlyBooleanProperty userValidProperty() {
         return validationHelper.userValidProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty invalidProperty() {
+    public final ReadOnlyBooleanProperty invalidProperty() {
         return validationHelper.invalidProperty();
     }
 
@@ -110,18 +110,23 @@ public abstract class ConstrainedObjectPropertyBase<T, E> extends ConstrainedObj
     }
 
     @Override
-    public ReadOnlyBooleanProperty validatingProperty() {
+    public final ReadOnlyBooleanProperty validatingProperty() {
         return validationHelper.validatingProperty();
     }
 
     @Override
-    public ReadOnlyObjectProperty<T> constrainedValueProperty() {
+    public final ReadOnlyObjectProperty<T> constrainedValueProperty() {
         return constrainedValue;
     }
 
     @Override
-    public ReadOnlyListProperty<E> errorsProperty() {
+    public final ReadOnlyListProperty<D> errorsProperty() {
         return validationHelper.errorsProperty();
+    }
+
+    @Override
+    public final ReadOnlyListProperty<D> warningsProperty() {
+        return validationHelper.warningsProperty();
     }
 
     @Override
@@ -229,16 +234,16 @@ public abstract class ConstrainedObjectPropertyBase<T, E> extends ConstrainedObj
         return PropertyHelper.toString(this, valid);
     }
 
-    private static class Listener<E> implements InvalidationListener, WeakListener {
-        private final WeakReference<ConstrainedObjectPropertyBase<?, E>> wref;
+    private static class Listener<D> implements InvalidationListener, WeakListener {
+        private final WeakReference<ConstrainedObjectPropertyBase<?, D>> wref;
 
-        public Listener(ConstrainedObjectPropertyBase<?, E> ref) {
+        public Listener(ConstrainedObjectPropertyBase<?, D> ref) {
             this.wref = new WeakReference<>(ref);
         }
 
         @Override
         public void invalidated(Observable observable) {
-            ConstrainedObjectPropertyBase<?, E> ref = wref.get();
+            ConstrainedObjectPropertyBase<?, D> ref = wref.get();
             if (ref == null) {
                 observable.removeListener(this);
             } else {

@@ -39,12 +39,12 @@ import javafx.collections.SetChangeListener;
  * and can be passed to external users. The other property is read- and
  * writable and should be used internally only.
  *
- * @param <T> element type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  *
  * @since JFXcore 18
  */
-public class ReadOnlyConstrainedSetWrapper<T, E> extends SimpleConstrainedSetProperty<T, E> {
+public class ReadOnlyConstrainedSetWrapper<E, D> extends SimpleConstrainedSetProperty<E, D> {
 
     private ReadOnlyPropertyImpl readOnlyProperty;
 
@@ -54,7 +54,7 @@ public class ReadOnlyConstrainedSetWrapper<T, E> extends SimpleConstrainedSetPro
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedSetWrapper(Constraint<? super ObservableSet<T>, E>... constraints) {
+    public ReadOnlyConstrainedSetWrapper(Constraint<? super ObservableSet<E>, D>... constraints) {
         super(null, constraints);
     }
 
@@ -66,7 +66,7 @@ public class ReadOnlyConstrainedSetWrapper<T, E> extends SimpleConstrainedSetPro
      */
     @SafeVarargs
     public ReadOnlyConstrainedSetWrapper(
-            ObservableSet<T> initialValue, Constraint<? super ObservableSet<T>, E>... constraints) {
+            ObservableSet<E> initialValue, Constraint<? super ObservableSet<E>, D>... constraints) {
         super(initialValue, constraints);
     }
 
@@ -79,7 +79,7 @@ public class ReadOnlyConstrainedSetWrapper<T, E> extends SimpleConstrainedSetPro
      */
     @SafeVarargs
     public ReadOnlyConstrainedSetWrapper(
-            Object bean, String name, Constraint<? super ObservableSet<T>, E>... constraints) {
+            Object bean, String name, Constraint<? super ObservableSet<E>, D>... constraints) {
         super(bean, name, constraints);
     }
 
@@ -93,8 +93,8 @@ public class ReadOnlyConstrainedSetWrapper<T, E> extends SimpleConstrainedSetPro
      */
     @SafeVarargs
     public ReadOnlyConstrainedSetWrapper(
-            Object bean, String name, ObservableSet<T> initialValue,
-            Constraint<? super ObservableSet<T>, E>... constraints) {
+            Object bean, String name, ObservableSet<E> initialValue,
+            Constraint<? super ObservableSet<E>, D>... constraints) {
         super(bean, name, initialValue, constraints);
     }
 
@@ -104,7 +104,7 @@ public class ReadOnlyConstrainedSetWrapper<T, E> extends SimpleConstrainedSetPro
      *
      * @return the read-only property
      */
-    public ReadOnlyConstrainedSetProperty<T, E> getReadOnlyProperty() {
+    public ReadOnlyConstrainedSetProperty<E, D> getReadOnlyProperty() {
         if (readOnlyProperty == null) {
             readOnlyProperty = new ReadOnlyPropertyImpl();
         }
@@ -122,7 +122,7 @@ public class ReadOnlyConstrainedSetWrapper<T, E> extends SimpleConstrainedSetPro
     }
 
     @Override
-    protected void fireValueChangedEvent(SetChangeListener.Change<? extends T> change) {
+    protected void fireValueChangedEvent(SetChangeListener.Change<? extends E> change) {
         super.fireValueChangedEvent(change);
         
         if (readOnlyProperty != null) {
@@ -130,9 +130,9 @@ public class ReadOnlyConstrainedSetWrapper<T, E> extends SimpleConstrainedSetPro
         }
     }
 
-    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedSetPropertyBase<T, E> {
+    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedSetPropertyBase<E, D> {
         @Override
-        public ObservableSet<T> get() {
+        public ObservableSet<E> get() {
             return ReadOnlyConstrainedSetWrapper.this.get();
         }
 
@@ -182,12 +182,17 @@ public class ReadOnlyConstrainedSetWrapper<T, E> extends SimpleConstrainedSetPro
         }
 
         @Override
-        public ReadOnlyListProperty<E> errorsProperty() {
+        public ReadOnlyListProperty<D> errorsProperty() {
             return ReadOnlyConstrainedSetWrapper.this.errorsProperty();
         }
 
         @Override
-        public ReadOnlySetProperty<T> constrainedValueProperty() {
+        public ReadOnlyListProperty<D> warningsProperty() {
+            return ReadOnlyConstrainedSetWrapper.this.warningsProperty();
+        }
+
+        @Override
+        public ReadOnlySetProperty<E> constrainedValueProperty() {
             return ReadOnlyConstrainedSetWrapper.this.constrainedValueProperty();
         }
     }

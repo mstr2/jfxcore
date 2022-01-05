@@ -24,10 +24,10 @@ package javafx.beans.property.validation;
 /**
  * This class provides an implementation of {@link ConstrainedStringProperty} that wraps a string value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class SimpleConstrainedStringProperty<E> extends ConstrainedStringPropertyBase<E> {
+public class SimpleConstrainedStringProperty<D> extends ConstrainedStringPropertyBase<D> {
 
     private static final Object DEFAULT_BEAN = null;
     private static final String DEFAULT_NAME = "";
@@ -46,23 +46,23 @@ public class SimpleConstrainedStringProperty<E> extends ConstrainedStringPropert
     }
 
     @SafeVarargs
-    public SimpleConstrainedStringProperty(Constraint<? super String, E>... constraints) {
+    public SimpleConstrainedStringProperty(Constraint<? super String, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, null, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedStringProperty(String initialValue, Constraint<? super String, E>... constraints) {
+    public SimpleConstrainedStringProperty(String initialValue, Constraint<? super String, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedStringProperty(Object bean, String name, Constraint<? super String, E>... constraints) {
+    public SimpleConstrainedStringProperty(Object bean, String name, Constraint<? super String, D>... constraints) {
         this(bean, name, null, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedStringProperty(
-            Object bean, String name, String initialValue, Constraint<? super String, E>... constraints) {
+            Object bean, String name, String initialValue, Constraint<? super String, D>... constraints) {
         super(initialValue, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

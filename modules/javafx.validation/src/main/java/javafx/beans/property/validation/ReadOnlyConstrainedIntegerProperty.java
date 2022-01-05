@@ -28,11 +28,11 @@ import javafx.beans.property.ReadOnlyIntegerProperty;
 /**
  * Represents a {@link ReadOnlyConstrainedProperty} that wraps an integer value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedIntegerProperty<E>
-        extends IntegerExpression implements ReadOnlyConstrainedProperty<Number, E> {
+public abstract class ReadOnlyConstrainedIntegerProperty<D>
+        extends IntegerExpression implements ReadOnlyConstrainedProperty<Number, D> {
 
     @Override
     public abstract ReadOnlyIntegerProperty constrainedValueProperty();

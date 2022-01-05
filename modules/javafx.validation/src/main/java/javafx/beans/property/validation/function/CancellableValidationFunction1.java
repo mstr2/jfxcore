@@ -28,16 +28,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Represents a cancellable validation function with a single dependency.
  *
  * @param <T> the type of the value to be validated
- * @param <D> the type of the dependency
- * @param <E> the error information type
+ * @param <P1> the type of the dependency
+ * @param <D> the diagnostic type
  * @since JFXcore 18
  */
 @FunctionalInterface
-public interface CancellableValidationFunction1<T, D, E> {
+public interface CancellableValidationFunction1<T, P1, D> {
 
     /**
      * Applies this function to the given arguments.
      */
-    ValidationResult<E> apply(T value, D dependency, AtomicBoolean cancellationRequested);
+    ValidationResult<D> apply(T value, P1 dependency, AtomicBoolean cancellationRequested);
 
 }

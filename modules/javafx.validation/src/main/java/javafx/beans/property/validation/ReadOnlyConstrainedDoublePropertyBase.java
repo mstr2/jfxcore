@@ -28,10 +28,10 @@ import javafx.beans.value.ChangeListener;
 /**
  * Provides a base implementation for a {@link ReadOnlyConstrainedDoubleProperty}.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedDoublePropertyBase<E> extends ReadOnlyConstrainedDoubleProperty<E> {
+public abstract class ReadOnlyConstrainedDoublePropertyBase<D> extends ReadOnlyConstrainedDoubleProperty<D> {
 
     private ExpressionHelper<Number> helper;
 

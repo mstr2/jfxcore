@@ -28,10 +28,10 @@ import javafx.beans.value.ChangeListener;
 /**
  * Provides a base implementation for a {@link ReadOnlyConstrainedFloatProperty}.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedFloatPropertyBase<E> extends ReadOnlyConstrainedFloatProperty<E> {
+public abstract class ReadOnlyConstrainedFloatPropertyBase<D> extends ReadOnlyConstrainedFloatProperty<D> {
 
     private ExpressionHelper<Number> helper;
 

@@ -175,4 +175,105 @@ public class ValidationHelperTest {
         assertValidationState(helper, false, false, false, false, false);
     }
 
+    @Test
+    public void testValidatorYieldsWarningOrError() {
+        var helper = new ValidationHelper<String, String>(value, constrainedValue, new Constraint[] {
+            new Constraint<>(new Validator<String, String>() {
+                @Override
+                public CompletableFuture<ValidationResult<String>> validate(String value) {
+                    if (value != null) {
+                        return CompletableFuture.completedFuture(
+                            new ValidationResult<>(true, value.isBlank() ? "<blank>" : null));
+                    }
+                    return CompletableFuture.completedFuture(new ValidationResult<>(false, "<null>"));
+                }
+            }, Platform::runLater, null)
+        });
+
+        assertEquals(1, helper.errorsProperty().size());
+        assertEquals(0, helper.warningsProperty().size());
+        assertEquals("<null>", helper.errorsProperty().get(0));
+        assertValidationState(helper, false, false, false, true, false);
+
+        value.set("    ");
+        assertEquals(0, helper.errorsProperty().size());
+        assertEquals(1, helper.warningsProperty().size());
+        assertEquals("<blank>", helper.warningsProperty().get(0));
+        assertValidationState(helper, false, true, false, false, false);
+
+        value.set("foo");
+        assertEquals(0, helper.errorsProperty().size());
+        assertEquals(0, helper.warningsProperty().size());
+        assertValidationState(helper, false, true, false, false, false);
+    }
+
+    @Test
+    public void testMultipleWarningsAndErrors() {
+        var helper = new ValidationHelper<String, String>(value, constrainedValue, new Constraint[] {
+            new Constraint<>(new Validator<String, String>() {
+                @Override
+                public CompletableFuture<ValidationResult<String>> validate(String value) {
+                    if (value == null) {
+                        return CompletableFuture.completedFuture(
+                            new ValidationResult<>(false, "<blank-null>"));
+                    }
+                    return CompletableFuture.completedFuture(
+                        new ValidationResult<>(true, value.isBlank() ? "<blank>" : null));
+                }
+            }, Platform::runLater, null),
+            new Constraint<>(new Validator<String, String>() {
+                @Override
+                public CompletableFuture<ValidationResult<String>> validate(String value) {
+                    if (value == null) {
+                        return CompletableFuture.completedFuture(
+                            new ValidationResult<>(false, "<empty-null>"));
+                    }
+                    return CompletableFuture.completedFuture(
+                        new ValidationResult<>(true, value.isEmpty() ? "<empty>" : null));
+                }
+            }, Platform::runLater, null),
+            new Constraint<>(new Validator<String, String>() {
+                @Override
+                public CompletableFuture<ValidationResult<String>> validate(String value) {
+                    boolean valid = value != null && value.length() > 4;
+                    return CompletableFuture.completedFuture(
+                        new ValidationResult<>(valid, !valid ? "<short>" : null));
+                }
+            }, Platform::runLater, null)
+        });
+
+        assertEquals(3, helper.errorsProperty().size());
+        assertEquals(0, helper.warningsProperty().size());
+        assertEquals("<blank-null>", helper.errorsProperty().get(0));
+        assertEquals("<empty-null>", helper.errorsProperty().get(1));
+        assertEquals("<short>", helper.errorsProperty().get(2));
+        assertValidationState(helper, false, false, false, true, false);
+
+        value.set("    ");
+        assertEquals(1, helper.errorsProperty().size());
+        assertEquals(1, helper.warningsProperty().size());
+        assertEquals("<blank>", helper.warningsProperty().get(0));
+        assertEquals("<short>", helper.errorsProperty().get(0));
+        assertValidationState(helper, false, false, false, true, false);
+
+        value.set("");
+        assertEquals(1, helper.errorsProperty().size());
+        assertEquals(2, helper.warningsProperty().size());
+        assertEquals("<blank>", helper.warningsProperty().get(0));
+        assertEquals("<empty>", helper.warningsProperty().get(1));
+        assertEquals("<short>", helper.errorsProperty().get(0));
+        assertValidationState(helper, false, false, false, true, false);
+
+        value.set("foo");
+        assertEquals(1, helper.errorsProperty().size());
+        assertEquals(0, helper.warningsProperty().size());
+        assertEquals("<short>", helper.errorsProperty().get(0));
+        assertValidationState(helper, false, false, false, true, false);
+
+        value.set("foobar");
+        assertEquals(0, helper.errorsProperty().size());
+        assertEquals(0, helper.warningsProperty().size());
+        assertValidationState(helper, false, true, false, false, false);
+    }
+
 }

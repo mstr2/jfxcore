@@ -36,10 +36,10 @@ import javafx.beans.property.ReadOnlyListProperty;
  * and can be passed to external users. The other property is read- and
  * writable and should be used internally only.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class ReadOnlyConstrainedFloatWrapper<E> extends SimpleConstrainedFloatProperty<E> {
+public class ReadOnlyConstrainedFloatWrapper<D> extends SimpleConstrainedFloatProperty<D> {
     
     private ReadOnlyPropertyImpl readOnlyProperty;
 
@@ -49,7 +49,7 @@ public class ReadOnlyConstrainedFloatWrapper<E> extends SimpleConstrainedFloatPr
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedFloatWrapper(Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedFloatWrapper(Constraint<? super Number, D>... constraints) {
         super(0, constraints);
     }
 
@@ -60,7 +60,7 @@ public class ReadOnlyConstrainedFloatWrapper<E> extends SimpleConstrainedFloatPr
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedFloatWrapper(float initialValue, Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedFloatWrapper(float initialValue, Constraint<? super Number, D>... constraints) {
         super(initialValue, constraints);
     }
 
@@ -72,7 +72,7 @@ public class ReadOnlyConstrainedFloatWrapper<E> extends SimpleConstrainedFloatPr
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedFloatWrapper(Object bean, String name, Constraint<? super Number, E>... constraints) {
+    public ReadOnlyConstrainedFloatWrapper(Object bean, String name, Constraint<? super Number, D>... constraints) {
         super(bean, name, constraints);
     }
 
@@ -86,7 +86,7 @@ public class ReadOnlyConstrainedFloatWrapper<E> extends SimpleConstrainedFloatPr
      */
     @SafeVarargs
     public ReadOnlyConstrainedFloatWrapper(
-            Object bean, String name, float initialValue, Constraint<? super Number, E>... constraints) {
+            Object bean, String name, float initialValue, Constraint<? super Number, D>... constraints) {
         super(bean, name, initialValue, constraints);
     }
 
@@ -96,7 +96,7 @@ public class ReadOnlyConstrainedFloatWrapper<E> extends SimpleConstrainedFloatPr
      *
      * @return the read-only property
      */
-    public ReadOnlyConstrainedFloatProperty<E> getReadOnlyProperty() {
+    public ReadOnlyConstrainedFloatProperty<D> getReadOnlyProperty() {
         if (readOnlyProperty == null) {
             readOnlyProperty = new ReadOnlyPropertyImpl();
         }
@@ -112,7 +112,7 @@ public class ReadOnlyConstrainedFloatWrapper<E> extends SimpleConstrainedFloatPr
         }
     }
 
-    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedFloatPropertyBase<E> {
+    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedFloatPropertyBase<D> {
         @Override
         public float get() {
             return ReadOnlyConstrainedFloatWrapper.this.get();
@@ -154,8 +154,13 @@ public class ReadOnlyConstrainedFloatWrapper<E> extends SimpleConstrainedFloatPr
         }
 
         @Override
-        public ReadOnlyListProperty<E> errorsProperty() {
+        public ReadOnlyListProperty<D> errorsProperty() {
             return ReadOnlyConstrainedFloatWrapper.this.errorsProperty();
+        }
+
+        @Override
+        public ReadOnlyListProperty<D> warningsProperty() {
+            return ReadOnlyConstrainedFloatWrapper.this.warningsProperty();
         }
 
         @Override

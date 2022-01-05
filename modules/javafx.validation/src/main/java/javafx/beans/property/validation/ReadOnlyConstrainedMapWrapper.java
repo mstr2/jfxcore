@@ -41,11 +41,11 @@ import javafx.collections.ObservableMap;
  *
  * @param <K> key type
  * @param <V> value type
- * @param <E> error information type
+ * @param <D> diagnostic type
  *
  * @since JFXcore 18
  */
-public class ReadOnlyConstrainedMapWrapper<K, V, E> extends SimpleConstrainedMapProperty<K, V, E> {
+public class ReadOnlyConstrainedMapWrapper<K, V, D> extends SimpleConstrainedMapProperty<K, V, D> {
 
     private ReadOnlyPropertyImpl readOnlyProperty;
 
@@ -55,7 +55,7 @@ public class ReadOnlyConstrainedMapWrapper<K, V, E> extends SimpleConstrainedMap
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedMapWrapper(Constraint<? super ObservableMap<K, V>, E>... constraints) {
+    public ReadOnlyConstrainedMapWrapper(Constraint<? super ObservableMap<K, V>, D>... constraints) {
         super(null, constraints);
     }
 
@@ -68,7 +68,7 @@ public class ReadOnlyConstrainedMapWrapper<K, V, E> extends SimpleConstrainedMap
     @SafeVarargs
     public ReadOnlyConstrainedMapWrapper(
             ObservableMap<K, V> initialValue,
-            Constraint<? super ObservableMap<K, V>, E>... constraints) {
+            Constraint<? super ObservableMap<K, V>, D>... constraints) {
         super(initialValue, constraints);
     }
 
@@ -81,7 +81,7 @@ public class ReadOnlyConstrainedMapWrapper<K, V, E> extends SimpleConstrainedMap
      */
     @SafeVarargs
     public ReadOnlyConstrainedMapWrapper(
-            Object bean, String name, Constraint<? super ObservableMap<K, V>, E>... constraints) {
+            Object bean, String name, Constraint<? super ObservableMap<K, V>, D>... constraints) {
         super(bean, name, constraints);
     }
 
@@ -96,7 +96,7 @@ public class ReadOnlyConstrainedMapWrapper<K, V, E> extends SimpleConstrainedMap
     @SafeVarargs
     public ReadOnlyConstrainedMapWrapper(
             Object bean, String name, ObservableMap<K, V> initialValue,
-            Constraint<? super ObservableMap<K, V>, E>... constraints) {
+            Constraint<? super ObservableMap<K, V>, D>... constraints) {
         super(bean, name, initialValue, constraints);
     }
 
@@ -106,7 +106,7 @@ public class ReadOnlyConstrainedMapWrapper<K, V, E> extends SimpleConstrainedMap
      *
      * @return the read-only property
      */
-    public ReadOnlyConstrainedMapProperty<K, V, E> getReadOnlyProperty() {
+    public ReadOnlyConstrainedMapProperty<K, V, D> getReadOnlyProperty() {
         if (readOnlyProperty == null) {
             readOnlyProperty = new ReadOnlyPropertyImpl();
         }
@@ -132,7 +132,7 @@ public class ReadOnlyConstrainedMapWrapper<K, V, E> extends SimpleConstrainedMap
         }
     }
 
-    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedMapPropertyBase<K, V, E> {
+    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedMapPropertyBase<K, V, D> {
         @Override
         public ObservableMap<K, V> get() {
             return ReadOnlyConstrainedMapWrapper.this.get();
@@ -184,8 +184,13 @@ public class ReadOnlyConstrainedMapWrapper<K, V, E> extends SimpleConstrainedMap
         }
 
         @Override
-        public ReadOnlyListProperty<E> errorsProperty() {
+        public ReadOnlyListProperty<D> errorsProperty() {
             return ReadOnlyConstrainedMapWrapper.this.errorsProperty();
+        }
+
+        @Override
+        public ReadOnlyListProperty<D> warningsProperty() {
+            return ReadOnlyConstrainedMapWrapper.this.warningsProperty();
         }
 
         @Override

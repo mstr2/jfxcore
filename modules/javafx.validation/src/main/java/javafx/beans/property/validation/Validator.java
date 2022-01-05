@@ -25,25 +25,23 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Defines a constraint validator.
+ * <p>
+ * A validator can choose to add an application-specified diagnostic object to the returned {@link ValidationResult}.
+ * Diagnostic objects of invalid results will be surfaced as errors in {@link ReadOnlyConstrainedProperty#errorsProperty()},
+ * while diagnostic objects of valid results will be surfaced as warnings in {@link ReadOnlyConstrainedProperty#warningsProperty()}.
  *
  * @param <T> value type
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public interface Validator<T, E> {
+public interface Validator<T, D> {
 
     /**
      * Determines whether the specified value is valid.
-     * <p>
-     * If the value is not valid, the returned {@link ValidationResult} may contain an error
-     * information object of type {@code E}, which contains application-specified information about
-     * the constraint violation. If the error information object is not {@code null}, it will be
-     * added to the {@link ReadOnlyConstrainedProperty#errorsProperty()} of the property that
-     * invoked this validator.
      *
      * @param value the value to be tested
      * @return a future that produces a {@link ValidationResult}
      */
-    CompletableFuture<ValidationResult<E>> validate(T value);
+    CompletableFuture<ValidationResult<D>> validate(T value);
 
 }

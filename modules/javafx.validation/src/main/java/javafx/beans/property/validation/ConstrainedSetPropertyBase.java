@@ -55,11 +55,11 @@ import java.util.Set;
  * Provides a base implementation for a constrained property that wraps an {@link ObservableSet}.
  * {@link Property#getBean()} and {@link Property#getName()} must be implemented by derived classes.
  *
- * @param <T> element type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetProperty<T, E> {
+public abstract class ConstrainedSetPropertyBase<E, D> extends ConstrainedSetProperty<E, D> {
 
     static {
         ValidationHelper.setAccessor(
@@ -68,18 +68,18 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     }
 
     private final ConstrainedValuePropertyImpl constrainedValue;
-    private final ValidationHelper<ObservableSet<T>, E> validationHelper;
-    private final SetChangeListener<T> setChangeListener = change -> {
+    private final ValidationHelper<ObservableSet<E>, D> validationHelper;
+    private final SetChangeListener<E> setChangeListener = change -> {
         invalidateProperties();
         invalidated();
         fireValueChangedEvent(change);
     };
 
-    private ObservableSet<T> value;
-    private ObservableValue<? extends ObservableSet<T>> observable;
+    private ObservableSet<E> value;
+    private ObservableValue<? extends ObservableSet<E>> observable;
     private InvalidationListener listener;
     private boolean valid = true;
-    private SetExpressionHelper<T> expressionHelper;
+    private SetExpressionHelper<E> expressionHelper;
 
     private SizeProperty size0;
     private EmptyProperty empty0;
@@ -90,7 +90,7 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedSetPropertyBase(Constraint<? super ObservableSet<T>, E>... constraints) {
+    protected ConstrainedSetPropertyBase(Constraint<? super ObservableSet<E>, D>... constraints) {
         this(null, constraints);
     }
 
@@ -102,7 +102,7 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
      */
     @SafeVarargs
     protected ConstrainedSetPropertyBase(
-            ObservableSet<T> initialValue, Constraint<? super ObservableSet<T>, E>... constraints) {
+            ObservableSet<E> initialValue, Constraint<? super ObservableSet<E>, D>... constraints) {
         value = initialValue;
         constrainedValue = new ConstrainedValuePropertyImpl(initialValue != null ? initialValue : Collections.emptySet());
         validationHelper = new ValidationHelper<>(this, constrainedValue, constraints);
@@ -113,17 +113,17 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     }
     
     @Override
-    public ReadOnlyBooleanProperty validProperty() {
+    public final ReadOnlyBooleanProperty validProperty() {
         return validationHelper.validProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty userValidProperty() {
+    public final ReadOnlyBooleanProperty userValidProperty() {
         return validationHelper.userValidProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty invalidProperty() {
+    public final ReadOnlyBooleanProperty invalidProperty() {
         return validationHelper.invalidProperty();
     }
 
@@ -133,22 +133,27 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     }
 
     @Override
-    public ReadOnlyBooleanProperty validatingProperty() {
+    public final ReadOnlyBooleanProperty validatingProperty() {
         return validationHelper.validatingProperty();
     }
 
     @Override
-    public ReadOnlySetProperty<T> constrainedValueProperty() {
+    public final ReadOnlySetProperty<E> constrainedValueProperty() {
         return constrainedValue;
     }
 
     @Override
-    public ReadOnlyListProperty<E> errorsProperty() {
+    public final ReadOnlyListProperty<D> errorsProperty() {
         return validationHelper.errorsProperty();
     }
 
     @Override
-    public ReadOnlyIntegerProperty sizeProperty() {
+    public final ReadOnlyListProperty<D> warningsProperty() {
+        return validationHelper.warningsProperty();
+    }
+
+    @Override
+    public final ReadOnlyIntegerProperty sizeProperty() {
         if (size0 == null) {
             size0 = new SizeProperty(this);
         }
@@ -156,7 +161,7 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     }
 
     @Override
-    public ReadOnlyBooleanProperty emptyProperty() {
+    public final ReadOnlyBooleanProperty emptyProperty() {
         if (empty0 == null) {
             empty0 = new EmptyProperty(this);
         }
@@ -174,22 +179,22 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     }
 
     @Override
-    public void addListener(ChangeListener<? super ObservableSet<T>> listener) {
+    public void addListener(ChangeListener<? super ObservableSet<E>> listener) {
         expressionHelper = SetExpressionHelper.addListener(expressionHelper, this, listener);
     }
 
     @Override
-    public void removeListener(ChangeListener<? super ObservableSet<T>> listener) {
+    public void removeListener(ChangeListener<? super ObservableSet<E>> listener) {
         expressionHelper = SetExpressionHelper.removeListener(expressionHelper, listener);
     }
 
     @Override
-    public void addListener(SetChangeListener<? super T> listener) {
+    public void addListener(SetChangeListener<? super E> listener) {
         expressionHelper = SetExpressionHelper.addListener(expressionHelper, this, listener);
     }
 
     @Override
-    public void removeListener(SetChangeListener<? super T> listener) {
+    public void removeListener(SetChangeListener<? super E> listener) {
         expressionHelper = SetExpressionHelper.removeListener(expressionHelper, listener);
     }
 
@@ -217,7 +222,7 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
      *
      * @param change the change that needs to be propagated
      */
-    protected void fireValueChangedEvent(SetChangeListener.Change<? extends T> change) {
+    protected void fireValueChangedEvent(SetChangeListener.Change<? extends E> change) {
         SetExpressionHelper.fireValueChangedEvent(expressionHelper, change);
     }
 
@@ -230,7 +235,7 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
         }
     }
 
-    private void markInvalid(ObservableSet<T> oldValue) {
+    private void markInvalid(ObservableSet<E> oldValue) {
         if (valid) {
             if (oldValue != null) {
                 oldValue.removeListener(setChangeListener);
@@ -253,7 +258,7 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     }
 
     @Override
-    public ObservableSet<T> get() {
+    public ObservableSet<E> get() {
         if (!valid) {
             value = observable == null ? value : observable.getValue();
             valid = true;
@@ -265,13 +270,13 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     }
 
     @Override
-    public void set(ObservableSet<T> newValue) {
+    public void set(ObservableSet<E> newValue) {
         if (isBound()) {
             throw PropertyHelper.cannotSetBoundProperty(this);
         }
 
         if (value != newValue) {
-            final ObservableSet<T> oldValue = value;
+            final ObservableSet<E> oldValue = value;
             value = newValue;
             markInvalid(oldValue);
         }
@@ -283,7 +288,7 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     }
 
     @Override
-    public void bind(final ObservableValue<? extends ObservableSet<T>> source) {
+    public void bind(final ObservableValue<? extends ObservableSet<E>> source) {
         if (source == null) {
             throw PropertyHelper.cannotBindNull(this);
         }
@@ -369,16 +374,16 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
         }
     }
 
-    private static class Listener<T, E> implements InvalidationListener, WeakListener {
-        private final WeakReference<ConstrainedSetPropertyBase<T, E>> wref;
+    private static class Listener<T, D> implements InvalidationListener, WeakListener {
+        private final WeakReference<ConstrainedSetPropertyBase<T, D>> wref;
 
-        public Listener(ConstrainedSetPropertyBase<T, E> ref) {
+        public Listener(ConstrainedSetPropertyBase<T, D> ref) {
             this.wref = new WeakReference<>(ref);
         }
 
         @Override
         public void invalidated(Observable observable) {
-            ConstrainedSetPropertyBase<T, E> ref = wref.get();
+            ConstrainedSetPropertyBase<T, D> ref = wref.get();
             if (ref == null) {
                 observable.removeListener(this);
             } else {
@@ -393,15 +398,15 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
     }
 
     private class ConstrainedValuePropertyImpl
-            extends ReadOnlySetPropertyBase<T> implements WritableProperty<ObservableSet<T>> {
-        private final ObservableSet<T> set;
-        private final ObservableSet<T> unmodifiableSet;
+            extends ReadOnlySetPropertyBase<E> implements WritableProperty<ObservableSet<E>> {
+        private final ObservableSet<E> set;
+        private final ObservableSet<E> unmodifiableSet;
         private SizeProperty size0;
         private EmptyProperty empty0;
 
-        ConstrainedValuePropertyImpl(Set<T> initialValues) {
+        ConstrainedValuePropertyImpl(Set<E> initialValues) {
             set = FXCollections.observableSet(new HashSet<>(initialValues));
-            set.addListener((SetChangeListener<T>) change -> {
+            set.addListener((SetChangeListener<E>) change -> {
                 invalidateProperties();
                 fireValueChangedEvent(change);
             });
@@ -420,12 +425,12 @@ public abstract class ConstrainedSetPropertyBase<T, E> extends ConstrainedSetPro
         }
 
         @Override
-        public ObservableSet<T> get() {
+        public ObservableSet<E> get() {
             return unmodifiableSet;
         }
 
         @Override
-        public boolean setValue(ObservableSet<T> newList) {
+        public boolean setValue(ObservableSet<E> newList) {
             set.removeIf(item -> !newList.contains(item));
             set.addAll(newList);
             return false;

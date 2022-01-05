@@ -28,11 +28,11 @@ import javafx.beans.property.ReadOnlyFloatProperty;
 /**
  * Represents a {@link ReadOnlyConstrainedProperty} that wraps a float value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedFloatProperty<E>
-        extends FloatExpression implements ReadOnlyConstrainedProperty<Number, E> {
+public abstract class ReadOnlyConstrainedFloatProperty<D>
+        extends FloatExpression implements ReadOnlyConstrainedProperty<Number, D> {
 
     @Override
     public abstract ReadOnlyFloatProperty constrainedValueProperty();

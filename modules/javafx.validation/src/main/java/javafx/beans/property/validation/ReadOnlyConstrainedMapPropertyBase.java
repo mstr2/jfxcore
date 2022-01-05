@@ -32,10 +32,10 @@ import javafx.collections.ObservableMap;
  *
  * @param <K> key type
  * @param <V> value type
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedMapPropertyBase<K, V, E> extends ReadOnlyConstrainedMapProperty<K, V, E> {
+public abstract class ReadOnlyConstrainedMapPropertyBase<K, V, D> extends ReadOnlyConstrainedMapProperty<K, V, D> {
 
     private MapExpressionHelper<K, V> helper;
 

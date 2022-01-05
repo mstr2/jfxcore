@@ -29,12 +29,12 @@ import javafx.beans.value.WritableObjectValue;
 /**
  * Defines a constrained property that wraps an object value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedObjectProperty<T, E>
-        extends ReadOnlyConstrainedObjectProperty<T, E>
-        implements ConstrainedProperty<T, E>, WritableObjectValue<T> {
+public abstract class ConstrainedObjectProperty<T, D>
+        extends ReadOnlyConstrainedObjectProperty<T, D>
+        implements ConstrainedProperty<T, D>, WritableObjectValue<T> {
 
     /**
      * Creates a default {@code ConstrainedObjectProperty}.

@@ -32,12 +32,12 @@ import javafx.collections.ObservableMap;
  *
  * @param <K> key type
  * @param <V> value type
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedMapProperty<K, V, E>
-        extends ReadOnlyConstrainedMapProperty<K, V, E>
-        implements ConstrainedProperty<ObservableMap<K, V>, E>, WritableMapValue<K, V> {
+public abstract class ConstrainedMapProperty<K, V, D>
+        extends ReadOnlyConstrainedMapProperty<K, V, D>
+        implements ConstrainedProperty<ObservableMap<K, V>, D>, WritableMapValue<K, V> {
 
     /**
      * Creates a default {@code ConstrainedMapProperty}.

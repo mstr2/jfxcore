@@ -33,17 +33,19 @@ import javafx.beans.property.validation.ReadOnlyConstrainedProperty;
 import javafx.beans.property.validation.ValidationResult;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableListBase;
 import javafx.scene.Node;
 import javafx.scene.input.NodeState;
 import javafx.util.Pair;
+
+import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 
-public class ValidationHelper<T, E> implements InvalidationListener {
+public class ValidationHelper<T, D> implements InvalidationListener {
 
     private static final List<Pair<Class<?>, Accessor>> accessors = new ArrayList<>();
 
@@ -65,13 +67,9 @@ public class ValidationHelper<T, E> implements InvalidationListener {
         ValidationHelper<?, ?> getValidationHelper(ReadOnlyConstrainedProperty<?, ?> property);
     }
 
-    @SuppressWarnings("rawtypes")
-    private static final SerializedConstraintValidator[] EMPTY_CONSTRAINT_VALIDATORS =
-        new SerializedConstraintValidator[0];
-
     @SuppressWarnings("FieldCanBeLocal")
     private final WeakInvalidationListener weakInvalidationListener = new WeakInvalidationListener(this);
-    private final SerializedConstraintValidator<? super T, E>[] constraintValidators;
+    private final ConstraintValidatorImpl[] constraintValidators;
     private final ObservableValue<T> observable;
     private final WritableProperty<T> constrainedValue;
     private final BooleanPropertyImpl valid;
@@ -79,25 +77,24 @@ public class ValidationHelper<T, E> implements InvalidationListener {
     private final BooleanPropertyImpl userValid;
     private final BooleanPropertyImpl userInvalid;
     private final BooleanPropertyImpl validating;
-    private final ReadOnlyListWrapper<E> errors;
 
+    private DiagnosticList errorList;
+    private DiagnosticList warningsList;
+    private ReadOnlyListWrapper<D> errors;
+    private ReadOnlyListWrapper<D> warnings;
     private ReadOnlyBooleanProperty userModified;
-    private Map<Constraint<? super T, E>, E> errorMap;
     private int currentlyValidatingCount;
 
     @SuppressWarnings("unchecked")
     public ValidationHelper(
             ObservableValue<T> observable,
             WritableProperty<T> constrainedValue,
-            Constraint<? super T, E>[] constraints) {
+            Constraint<? super T, D>[] constraints) {
         this.observable = observable;
         this.constrainedValue = constrainedValue;
 
-        if (constraints != null && constraints.length > 0) {
-            this.constraintValidators = new SerializedConstraintValidator[constraints.length];
-        } else {
-            this.constraintValidators = EMPTY_CONSTRAINT_VALIDATORS;
-        }
+        int length = constraints != null ? constraints.length : 0;
+        this.constraintValidators = (ConstraintValidatorImpl[])Array.newInstance(ConstraintValidatorImpl.class, length);
 
         valid = new BooleanPropertyImpl(constraints == null || constraints.length == 0) {
             @Override public String getName() { return "valid"; }
@@ -124,9 +121,6 @@ public class ValidationHelper<T, E> implements InvalidationListener {
             @Override public Object getBean() { return ValidationHelper.this; }
         };
 
-        errors = new ReadOnlyListWrapper<>(
-            observable, "errors", FXCollections.observableList(new ArrayList<>(1)));
-
         if (constraints != null && constraints.length > 0) {
             for (int i = 0; i < constraints.length; ++i) {
                 for (Observable dependency : constraints[i].getDependencies()) {
@@ -135,23 +129,7 @@ public class ValidationHelper<T, E> implements InvalidationListener {
                     }
                 }
 
-                this.constraintValidators[i] = new SerializedConstraintValidator<>(constraints[i]) {
-                    @Override
-                    protected void onAsyncValidationStarted() {
-                        ValidationHelper.this.incrementValidatingCount();
-                    }
-
-                    @Override
-                    protected void onAsyncValidationEnded() {
-                        ValidationHelper.this.decrementValidatingCount();
-                    }
-
-                    @Override
-                    protected void onValidationCompleted(
-                            Constraint<? super T, E> constraint, T value, ValidationResult<E> result, Throwable ex) {
-                        ValidationHelper.this.onValidationCompleted(constraint, value, result, ex);
-                    }
-                };
+                this.constraintValidators[i] = new ConstraintValidatorImpl(constraints[i]);
             }
 
             invalidated(observable);
@@ -180,8 +158,24 @@ public class ValidationHelper<T, E> implements InvalidationListener {
         return validating;
     }
 
-    public ReadOnlyListProperty<E> errorsProperty() {
+    public ReadOnlyListProperty<D> errorsProperty() {
+        if (errors == null) {
+            errorList = new DiagnosticList(false);
+            errors = new ReadOnlyListWrapper<>(
+                observable, "errors", FXCollections.unmodifiableObservableList(errorList));
+        }
+
         return errors.getReadOnlyProperty();
+    }
+
+    public ReadOnlyListProperty<D> warningsProperty() {
+        if (warnings == null) {
+            warningsList = new DiagnosticList(true);
+            warnings = new ReadOnlyListWrapper<>(
+                observable, "warnings", FXCollections.unmodifiableObservableList(warningsList));
+        }
+
+        return warnings.getReadOnlyProperty();
     }
 
     public void connect(Node node) {
@@ -243,127 +237,15 @@ public class ValidationHelper<T, E> implements InvalidationListener {
             userValid.fireValueChangedEvent();
         }
 
-        for (SerializedConstraintValidator<? super T, E> constraintValidator : constraintValidators) {
+        for (var constraintValidator : constraintValidators) {
             if (dependency == observable || constraintValidator.isDependency(dependency)) {
                 constraintValidator.validate(value);
             }
         }
     }
 
-    private void onValidationCompleted(Constraint<? super T, E> constraint, T value, ValidationResult<E> result, Throwable exception) {
-        if (exception instanceof CancellationException) {
-            return;
-        }
-
-        if (exception != null) {
-            Logging.getLogger().severe(
-                "Exception in constraint validator",
-                exception instanceof CompletionException ? exception.getCause() : exception);
-        } else if (result != null && result.isValid()) {
-            onSuccessfulValidation(constraint, value);
-        } else {
-            onFailedValidation(constraint, result);
-        }
-    }
-
-    private void onSuccessfulValidation(Constraint<? super T, E> constraint, T value) {
-        boolean validChanged = false;
-        boolean userValidChanged = false;
-        boolean invalidChanged = false;
-        boolean userInvalidChanged = false;
-        boolean constrainedValueChanged = false;
-
-        if (errorMap != null) {
-            errorMap.remove(constraint);
-        }
-
-        if (!validating.get() && (errorMap == null || errorMap.isEmpty())) {
-            validChanged = valid.set(true);
-            userValidChanged = userModified != null && userValid.set(userModified.get());
-            invalidChanged = invalid.set(false);
-            userInvalidChanged = userInvalid.set(false);
-            constrainedValueChanged = constrainedValue.setValue(value);
-        }
-
-        if (errorMap != null) {
-            updateErrors();
-        }
-
-        if (validChanged) {
-            valid.fireValueChangedEvent();
-        }
-
-        if (invalidChanged) {
-            invalid.fireValueChangedEvent();
-        }
-
-        if (userValidChanged) {
-            userValid.fireValueChangedEvent();
-        }
-
-        if (userInvalidChanged) {
-            userInvalid.fireValueChangedEvent();
-        }
-
-        if (constrainedValueChanged) {
-            constrainedValue.fireValueChangedEvent();
-        }
-    }
-
-    private void onFailedValidation(Constraint<? super T, E> constraint, ValidationResult<E> result) {
-        if (errorMap == null) {
-            errorMap = new HashMap<>(2);
-        }
-
-        E current = result.getErrorInfo();
-        errorMap.put(constraint, current);
-        boolean invalidChanged = invalid.set(true);
-        boolean userInvalidChanged = userModified != null && userInvalid.set(userModified.get());
-
-        if (current != null && !errors.contains(current)) {
-            errors.add(current);
-        }
-
-        if (invalidChanged) {
-            invalid.fireValueChangedEvent();
-        }
-
-        if (userInvalidChanged) {
-            userInvalid.fireValueChangedEvent();
-        }
-    }
-
-    private void updateErrors() {
-        List<E> errors = this.errors.get();
-        List<E> distinctErrors = new ArrayList<>(errorMap.size());
-
-        for (E error : errorMap.values()) {
-            if (error != null && !distinctErrors.contains(error)) {
-                distinctErrors.add(error);
-            }
-        }
-
-        errors.retainAll(distinctErrors);
-    }
-
-    private void incrementValidatingCount() {
-        currentlyValidatingCount++;
-
-        if (validating.set(true)) {
-            validating.fireValueChangedEvent();
-        }
-    }
-
-    private void decrementValidatingCount() {
-        currentlyValidatingCount--;
-
-        if (currentlyValidatingCount == 0 && validating.set(false)) {
-            validating.fireValueChangedEvent();
-        }
-    }
-
     private boolean isRecurringDependency(Observable dependency) {
-        for (SerializedConstraintValidator<?, ?> constraintValidator : constraintValidators) {
+        for (var constraintValidator : constraintValidators) {
             if (constraintValidator == null) {
                 return false;
             }
@@ -374,6 +256,241 @@ public class ValidationHelper<T, E> implements InvalidationListener {
         }
 
         return false;
+    }
+
+    private class DiagnosticList extends ObservableListBase<D> {
+        final List<D> backingList = new ArrayList<>(constraintValidators.length);
+        final boolean isWarningList;
+
+        DiagnosticList(boolean isWarningList) {
+            this.isWarningList = isWarningList;
+
+            beginChange();
+
+            for (var constraintValidator : constraintValidators) {
+                ValidationResult<D> lastResult = constraintValidator.lastResult;
+
+                if (lastResult != null
+                        && lastResult.getDiagnostic() != null
+                        && lastResult.isValid() == isWarningList) {
+                    int size = backingList.size();
+                    backingList.add(lastResult.getDiagnostic());
+                    constraintValidator.lastDiagnosticIndex = size;
+                    constraintValidator.lastDiagnosticIsWarning = isWarningList;
+                    nextAdd(size, size + 1);
+                }
+            }
+
+            endChange();
+        }
+
+        public void add(ConstraintValidatorImpl validator, D diagnostic) {
+            beginChange();
+
+            int index = validator.lastDiagnosticIndex;
+            if (index >= 0) {
+                if (!Objects.equals(backingList.get(index), diagnostic)) {
+                    nextSet(index, backingList.set(index, diagnostic));
+                }
+            } else {
+                int size = backingList.size();
+                backingList.add(diagnostic);
+                validator.lastDiagnosticIndex = size;
+                validator.lastDiagnosticIsWarning = isWarningList;
+
+                for (var constraintValidator : constraintValidators) {
+                    if (constraintValidator != validator
+                            && constraintValidator.lastDiagnosticIsWarning == isWarningList
+                            && constraintValidator.lastDiagnosticIndex > size) {
+                        ++constraintValidator.lastDiagnosticIndex;
+                    }
+                }
+
+                nextAdd(size, size + 1);
+            }
+
+            endChange();
+        }
+
+        public void remove(ConstraintValidatorImpl validator) {
+            if (validator.lastDiagnosticIsWarning != isWarningList) {
+                return;
+            }
+
+            int index = validator.lastDiagnosticIndex;
+            if (index >= 0) {
+                validator.lastDiagnosticIndex = -1;
+
+                for (var constraintValidator : constraintValidators) {
+                    if (constraintValidator != validator
+                            && constraintValidator.lastDiagnosticIsWarning == isWarningList
+                            && constraintValidator.lastDiagnosticIndex > index) {
+                        --constraintValidator.lastDiagnosticIndex;
+                    }
+                }
+
+                beginChange();
+                nextRemove(index, backingList.remove(index));
+                endChange();
+            }
+        }
+
+        @Override
+        public D get(int index) {
+            return backingList.get(index);
+        }
+
+        @Override
+        public int size() {
+            return backingList.size();
+        }
+    }
+
+    private class ConstraintValidatorImpl extends SerializedConstraintValidator<T, D> {
+        /**
+         * If the last validation produced a diagnostic, this is the index of the diagnostic
+         * in the errors or warnings list.
+         */
+        int lastDiagnosticIndex = -1;
+
+        /**
+         * If the last validation produced a diagnostic, this flag specifies whether the
+         * diagnostic is in the errors or warnings list.
+         */
+        boolean lastDiagnosticIsWarning;
+
+        ValidationResult<D> lastResult;
+
+        ConstraintValidatorImpl(Constraint<? super T, D> constraint) {
+            super(constraint);
+        }
+
+        @Override
+        protected void onAsyncValidationStarted() {
+            currentlyValidatingCount++;
+
+            if (validating.set(true)) {
+                validating.fireValueChangedEvent();
+            }
+        }
+
+        @Override
+        protected void onAsyncValidationEnded() {
+            currentlyValidatingCount--;
+
+            if (currentlyValidatingCount == 0 && validating.set(false)) {
+                validating.fireValueChangedEvent();
+            }
+        }
+
+        @Override
+        protected void onValidationCompleted(T value, ValidationResult<D> result, Throwable exception) {
+            if (exception instanceof CancellationException) {
+                return;
+            }
+
+            if (result == null) {
+                result = new ValidationResult<>(false);
+            }
+
+            lastResult = result;
+
+            if (exception != null) {
+                Logging.getLogger().severe(
+                    "Exception in constraint validator",
+                    exception instanceof CompletionException ? exception.getCause() : exception);
+            } else if (result.isValid()) {
+                onSuccessfulValidation(value, result);
+            } else {
+                onFailedValidation(result);
+            }
+        }
+
+        private void onSuccessfulValidation(T value, ValidationResult<D> result) {
+            boolean validChanged = false;
+            boolean userValidChanged = false;
+            boolean invalidChanged = false;
+            boolean userInvalidChanged = false;
+            boolean constrainedValueChanged = false;
+
+            if (errorList != null) {
+                errorList.remove(this);
+            }
+
+            if (warningsList != null) {
+                D diagnostic = result.getDiagnostic();
+                if (diagnostic != null) {
+                    warningsList.add(this, diagnostic);
+                } else {
+                    warningsList.remove(this);
+                }
+            }
+
+            if (!validating.get() && checkValid()) {
+                validChanged = valid.set(true);
+                userValidChanged = userModified != null && userValid.set(userModified.get());
+                invalidChanged = invalid.set(false);
+                userInvalidChanged = userInvalid.set(false);
+                constrainedValueChanged = constrainedValue.setValue(value);
+            }
+
+            if (validChanged) {
+                valid.fireValueChangedEvent();
+            }
+
+            if (invalidChanged) {
+                invalid.fireValueChangedEvent();
+            }
+
+            if (userValidChanged) {
+                userValid.fireValueChangedEvent();
+            }
+
+            if (userInvalidChanged) {
+                userInvalid.fireValueChangedEvent();
+            }
+
+            if (constrainedValueChanged) {
+                constrainedValue.fireValueChangedEvent();
+            }
+        }
+
+        private void onFailedValidation(ValidationResult<D> result) {
+            boolean invalidChanged = invalid.set(true);
+            boolean userInvalidChanged = userModified != null && userInvalid.set(userModified.get());
+
+            if (warningsList != null) {
+                warningsList.remove(this);
+            }
+
+            if (errorList != null) {
+                D diagnostic = result.getDiagnostic();
+                if (diagnostic != null) {
+                    errorList.add(this, diagnostic);
+                } else {
+                    errorList.remove(this);
+                }
+            }
+
+            if (invalidChanged) {
+                invalid.fireValueChangedEvent();
+            }
+
+            if (userInvalidChanged) {
+                userInvalid.fireValueChangedEvent();
+            }
+        }
+
+        private boolean checkValid() {
+            for (var constraintValidator : constraintValidators) {
+                ValidationResult<D> lastResult = constraintValidator.lastResult;
+                if (lastResult != null && !lastResult.isValid()) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 
 }

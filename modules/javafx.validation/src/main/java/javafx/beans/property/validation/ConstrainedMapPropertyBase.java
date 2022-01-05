@@ -57,10 +57,10 @@ import java.util.Map;
  *
  * @param <K> key type
  * @param <V> value type
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMapProperty<K, V, E> {
+public abstract class ConstrainedMapPropertyBase<K, V, D> extends ConstrainedMapProperty<K, V, D> {
 
     static {
         ValidationHelper.setAccessor(
@@ -69,7 +69,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
     }
 
     private final ConstrainedValuePropertyImpl constrainedValue;
-    private final ValidationHelper<ObservableMap<K, V>, E> validationHelper;
+    private final ValidationHelper<ObservableMap<K, V>, D> validationHelper;
     private final MapChangeListener<K, V> mapChangeListener = change -> {
         invalidateProperties();
         invalidated();
@@ -91,7 +91,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedMapPropertyBase(Constraint<? super ObservableMap<K, V>, E>... constraints) {
+    protected ConstrainedMapPropertyBase(Constraint<? super ObservableMap<K, V>, D>... constraints) {
         this(null, constraints);
     }
 
@@ -103,7 +103,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
      */
     @SafeVarargs
     protected ConstrainedMapPropertyBase(
-            ObservableMap<K, V> initialValue, Constraint<? super ObservableMap<K, V>, E>... constraints) {
+            ObservableMap<K, V> initialValue, Constraint<? super ObservableMap<K, V>, D>... constraints) {
         value = initialValue;
         constrainedValue = new ConstrainedValuePropertyImpl(initialValue != null ? initialValue : Collections.emptyMap());
         validationHelper = new ValidationHelper<>(this, constrainedValue, constraints);
@@ -114,17 +114,17 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
     }
 
     @Override
-    public ReadOnlyBooleanProperty validProperty() {
+    public final ReadOnlyBooleanProperty validProperty() {
         return validationHelper.validProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty userValidProperty() {
+    public final ReadOnlyBooleanProperty userValidProperty() {
         return validationHelper.userValidProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty invalidProperty() {
+    public final ReadOnlyBooleanProperty invalidProperty() {
         return validationHelper.invalidProperty();
     }
 
@@ -134,22 +134,27 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
     }
 
     @Override
-    public ReadOnlyBooleanProperty validatingProperty() {
+    public final ReadOnlyBooleanProperty validatingProperty() {
         return validationHelper.validatingProperty();
     }
 
     @Override
-    public ReadOnlyMapProperty<K, V> constrainedValueProperty() {
+    public final ReadOnlyMapProperty<K, V> constrainedValueProperty() {
         return constrainedValue;
     }
 
     @Override
-    public ReadOnlyListProperty<E> errorsProperty() {
+    public final ReadOnlyListProperty<D> errorsProperty() {
         return validationHelper.errorsProperty();
     }
 
     @Override
-    public ReadOnlyIntegerProperty sizeProperty() {
+    public final ReadOnlyListProperty<D> warningsProperty() {
+        return validationHelper.warningsProperty();
+    }
+
+    @Override
+    public final ReadOnlyIntegerProperty sizeProperty() {
         if (size0 == null) {
             size0 = new SizeProperty(this);
         }
@@ -157,7 +162,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
     }
 
     @Override
-    public ReadOnlyBooleanProperty emptyProperty() {
+    public final ReadOnlyBooleanProperty emptyProperty() {
         if (empty0 == null) {
             empty0 = new EmptyProperty(this);
         }
@@ -370,16 +375,16 @@ public abstract class ConstrainedMapPropertyBase<K, V, E> extends ConstrainedMap
         }
     }
 
-    private static class Listener<K, V, E> implements InvalidationListener, WeakListener {
-        private final WeakReference<ConstrainedMapPropertyBase<K, V, E>> wref;
+    private static class Listener<K, V, D> implements InvalidationListener, WeakListener {
+        private final WeakReference<ConstrainedMapPropertyBase<K, V, D>> wref;
 
-        public Listener(ConstrainedMapPropertyBase<K, V, E> ref) {
+        public Listener(ConstrainedMapPropertyBase<K, V, D> ref) {
             this.wref = new WeakReference<>(ref);
         }
 
         @Override
         public void invalidated(Observable observable) {
-            ConstrainedMapPropertyBase<K, V, E> ref = wref.get();
+            ConstrainedMapPropertyBase<K, V, D> ref = wref.get();
             if (ref == null) {
                 observable.removeListener(this);
             } else {

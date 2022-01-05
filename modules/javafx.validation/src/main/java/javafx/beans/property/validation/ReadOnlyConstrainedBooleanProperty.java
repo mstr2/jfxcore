@@ -28,11 +28,11 @@ import javafx.beans.property.ReadOnlyBooleanProperty;
 /**
  * Represents a {@link ReadOnlyConstrainedProperty} that wraps a boolean value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedBooleanProperty<E>
-        extends BooleanExpression implements ReadOnlyConstrainedProperty<Boolean, E> {
+public abstract class ReadOnlyConstrainedBooleanProperty<D>
+        extends BooleanExpression implements ReadOnlyConstrainedProperty<Boolean, D> {
 
     @Override
     public abstract ReadOnlyBooleanProperty constrainedValueProperty();

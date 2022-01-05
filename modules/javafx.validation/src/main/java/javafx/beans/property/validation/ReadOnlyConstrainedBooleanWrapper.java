@@ -35,10 +35,10 @@ import javafx.beans.property.ReadOnlyListProperty;
  * and can be passed to external users. The other property is read- and
  * writable and should be used internally only.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class ReadOnlyConstrainedBooleanWrapper<E> extends SimpleConstrainedBooleanProperty<E> {
+public class ReadOnlyConstrainedBooleanWrapper<D> extends SimpleConstrainedBooleanProperty<D> {
 
     private ReadOnlyPropertyImpl readOnlyProperty;
 
@@ -48,7 +48,7 @@ public class ReadOnlyConstrainedBooleanWrapper<E> extends SimpleConstrainedBoole
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedBooleanWrapper(Constraint<? super Boolean, E>... constraints) {
+    public ReadOnlyConstrainedBooleanWrapper(Constraint<? super Boolean, D>... constraints) {
         super(false, constraints);
     }
 
@@ -59,7 +59,7 @@ public class ReadOnlyConstrainedBooleanWrapper<E> extends SimpleConstrainedBoole
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedBooleanWrapper(boolean initialValue, Constraint<? super Boolean, E>... constraints) {
+    public ReadOnlyConstrainedBooleanWrapper(boolean initialValue, Constraint<? super Boolean, D>... constraints) {
         super(initialValue, constraints);
     }
 
@@ -71,7 +71,7 @@ public class ReadOnlyConstrainedBooleanWrapper<E> extends SimpleConstrainedBoole
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedBooleanWrapper(Object bean, String name, Constraint<? super Boolean, E>... constraints) {
+    public ReadOnlyConstrainedBooleanWrapper(Object bean, String name, Constraint<? super Boolean, D>... constraints) {
         super(bean, name, constraints);
     }
 
@@ -85,7 +85,7 @@ public class ReadOnlyConstrainedBooleanWrapper<E> extends SimpleConstrainedBoole
      */
     @SafeVarargs
     public ReadOnlyConstrainedBooleanWrapper(
-            Object bean, String name, boolean initialValue, Constraint<? super Boolean, E>... constraints) {
+            Object bean, String name, boolean initialValue, Constraint<? super Boolean, D>... constraints) {
         super(bean, name, initialValue, constraints);
     }
 
@@ -95,7 +95,7 @@ public class ReadOnlyConstrainedBooleanWrapper<E> extends SimpleConstrainedBoole
      *
      * @return the read-only property
      */
-    public ReadOnlyConstrainedBooleanProperty<E> getReadOnlyProperty() {
+    public ReadOnlyConstrainedBooleanProperty<D> getReadOnlyProperty() {
         if (readOnlyProperty == null) {
             readOnlyProperty = new ReadOnlyPropertyImpl();
         }
@@ -111,7 +111,7 @@ public class ReadOnlyConstrainedBooleanWrapper<E> extends SimpleConstrainedBoole
         }
     }
 
-    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedBooleanPropertyBase<E> {
+    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedBooleanPropertyBase<D> {
         @Override
         public boolean get() {
             return ReadOnlyConstrainedBooleanWrapper.this.get();
@@ -153,8 +153,13 @@ public class ReadOnlyConstrainedBooleanWrapper<E> extends SimpleConstrainedBoole
         }
 
         @Override
-        public ReadOnlyListProperty<E> errorsProperty() {
+        public ReadOnlyListProperty<D> errorsProperty() {
             return ReadOnlyConstrainedBooleanWrapper.this.errorsProperty();
+        }
+
+        @Override
+        public ReadOnlyListProperty<D> warningsProperty() {
+            return ReadOnlyConstrainedBooleanWrapper.this.warningsProperty();
         }
 
         @Override

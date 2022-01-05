@@ -32,10 +32,10 @@ import javafx.scene.validation.ValidationState;
  * Defines methods and properties common to all read-only constrained properties.
  *
  * @param <T> data type
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public interface ReadOnlyConstrainedProperty<T, E> extends ReadOnlyProperty<T> {
+public interface ReadOnlyConstrainedProperty<T, D> extends ReadOnlyProperty<T> {
 
     /**
      * Indicates whether the property value is currently known to be valid.
@@ -81,6 +81,12 @@ public interface ReadOnlyConstrainedProperty<T, E> extends ReadOnlyProperty<T> {
         return invalidProperty().get();
     }
 
+    /**
+     * Indicates whether the property value is currently known to be invalid after the user has
+     * significantly interacted with it. This information is only available when the constrained
+     * property is bound to a scene graph node that provides user interaction information using
+     * {@link ValidationState#setSource(Node, ReadOnlyConstrainedProperty)}.
+     */
     ReadOnlyBooleanProperty userInvalidProperty();
 
     /**
@@ -103,23 +109,34 @@ public interface ReadOnlyConstrainedProperty<T, E> extends ReadOnlyProperty<T> {
     }
 
     /**
-     * Contains a list of error information objects.
-     *
-     * <p>Error information is optional for constraints; the absence of error information does not
+     * Contains a list of error diagnostics.
+     * <p>
+     * Error information is optional for constraints; the absence of error information does not
      * imply that the property is valid.
      */
-    ReadOnlyListProperty<E> errorsProperty();
+    ReadOnlyListProperty<D> errorsProperty();
 
     /**
      * Gets the value of the {@link #errorsProperty() errors} property.
      */
-    default ObservableList<E> getErrors() {
+    default ObservableList<D> getErrors() {
         return errorsProperty().get();
     }
 
     /**
+     * Contains a list of warning diagnostics.
+     */
+    ReadOnlyListProperty<D> warningsProperty();
+
+    /**
+     * Gets the value of the {@link #warningsProperty() warnings} property.
+     */
+    default ObservableList<D> getWarnings() {
+        return warningsProperty().get();
+    }
+
+    /**
      * Contains the last value that was successfully validated.
-     * The constrained value is updated whenever validation completes without errors.
      */
     ReadOnlyProperty<T> constrainedValueProperty();
 

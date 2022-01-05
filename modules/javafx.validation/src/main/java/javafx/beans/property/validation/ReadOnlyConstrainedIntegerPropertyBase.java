@@ -28,10 +28,10 @@ import javafx.beans.value.ChangeListener;
 /**
  * Provides a base implementation for a {@link ReadOnlyConstrainedIntegerProperty}.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedIntegerPropertyBase<E> extends ReadOnlyConstrainedIntegerProperty<E> {
+public abstract class ReadOnlyConstrainedIntegerPropertyBase<D> extends ReadOnlyConstrainedIntegerProperty<D> {
 
     private ExpressionHelper<Number> helper;
 

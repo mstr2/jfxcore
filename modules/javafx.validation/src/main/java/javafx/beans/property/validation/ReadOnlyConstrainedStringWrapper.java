@@ -36,10 +36,10 @@ import javafx.beans.property.ReadOnlyStringProperty;
  * and can be passed to external users. The other property is read- and
  * writable and should be used internally only.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class ReadOnlyConstrainedStringWrapper<E> extends SimpleConstrainedStringProperty<E> {
+public class ReadOnlyConstrainedStringWrapper<D> extends SimpleConstrainedStringProperty<D> {
     
     private ReadOnlyPropertyImpl readOnlyProperty;
 
@@ -49,7 +49,7 @@ public class ReadOnlyConstrainedStringWrapper<E> extends SimpleConstrainedString
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedStringWrapper(Constraint<? super String, E>... constraints) {
+    public ReadOnlyConstrainedStringWrapper(Constraint<? super String, D>... constraints) {
         super(null, constraints);
     }
 
@@ -60,7 +60,7 @@ public class ReadOnlyConstrainedStringWrapper<E> extends SimpleConstrainedString
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedStringWrapper(String initialValue, Constraint<? super String, E>... constraints) {
+    public ReadOnlyConstrainedStringWrapper(String initialValue, Constraint<? super String, D>... constraints) {
         super(initialValue, constraints);
     }
 
@@ -72,7 +72,7 @@ public class ReadOnlyConstrainedStringWrapper<E> extends SimpleConstrainedString
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedStringWrapper(Object bean, String name, Constraint<? super String, E>... constraints) {
+    public ReadOnlyConstrainedStringWrapper(Object bean, String name, Constraint<? super String, D>... constraints) {
         super(bean, name, constraints);
     }
 
@@ -86,7 +86,7 @@ public class ReadOnlyConstrainedStringWrapper<E> extends SimpleConstrainedString
      */
     @SafeVarargs
     public ReadOnlyConstrainedStringWrapper(
-            Object bean, String name, String initialValue, Constraint<? super String, E>... constraints) {
+            Object bean, String name, String initialValue, Constraint<? super String, D>... constraints) {
         super(bean, name, initialValue, constraints);
     }
 
@@ -96,7 +96,7 @@ public class ReadOnlyConstrainedStringWrapper<E> extends SimpleConstrainedString
      *
      * @return the read-only property
      */
-    public ReadOnlyConstrainedStringProperty<E> getReadOnlyProperty() {
+    public ReadOnlyConstrainedStringProperty<D> getReadOnlyProperty() {
         if (readOnlyProperty == null) {
             readOnlyProperty = new ReadOnlyPropertyImpl();
         }
@@ -112,7 +112,7 @@ public class ReadOnlyConstrainedStringWrapper<E> extends SimpleConstrainedString
         }
     }
 
-    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedStringPropertyBase<E> {
+    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedStringPropertyBase<D> {
         @Override
         public String get() {
             return ReadOnlyConstrainedStringWrapper.this.get();
@@ -154,8 +154,13 @@ public class ReadOnlyConstrainedStringWrapper<E> extends SimpleConstrainedString
         }
 
         @Override
-        public ReadOnlyListProperty<E> errorsProperty() {
+        public ReadOnlyListProperty<D> errorsProperty() {
             return ReadOnlyConstrainedStringWrapper.this.errorsProperty();
+        }
+
+        @Override
+        public ReadOnlyListProperty<D> warningsProperty() {
+            return ReadOnlyConstrainedStringWrapper.this.warningsProperty();
         }
 
         @Override

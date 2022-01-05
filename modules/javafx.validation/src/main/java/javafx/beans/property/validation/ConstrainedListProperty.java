@@ -30,13 +30,13 @@ import javafx.collections.ObservableList;
 /**
  * Defines a constrained property that wraps an {@link ObservableList}.
  *
- * @param <T> element type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedListProperty<T, E>
-        extends ReadOnlyConstrainedListProperty<T, E>
-        implements ConstrainedProperty<ObservableList<T>, E>, WritableListValue<T> {
+public abstract class ConstrainedListProperty<E, D>
+        extends ReadOnlyConstrainedListProperty<E, D>
+        implements ConstrainedProperty<ObservableList<E>, D>, WritableListValue<E> {
 
     /**
      * Creates a default {@code ConstrainedListProperty}.
@@ -45,17 +45,17 @@ public abstract class ConstrainedListProperty<T, E>
     }
 
     @Override
-    public void setValue(ObservableList<T> v) {
+    public void setValue(ObservableList<E> v) {
         set(v);
     }
 
     @Override
-    public void bindBidirectional(Property<ObservableList<T>> other) {
+    public void bindBidirectional(Property<ObservableList<E>> other) {
         Bindings.bindBidirectional(this, other);
     }
 
     @Override
-    public void unbindBidirectional(Property<ObservableList<T>> other) {
+    public void unbindBidirectional(Property<ObservableList<E>> other) {
         Bindings.unbindBidirectional(this, other);
     }
 

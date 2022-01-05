@@ -26,24 +26,22 @@
 
 package javafx.beans.property.validation;
 
-import com.sun.javafx.binding.BidirectionalBinding;
 import com.sun.javafx.binding.Logging;
 import com.sun.javafx.logging.PlatformLogger;
-import org.jfxcore.beans.property.validation.PropertyHelper;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.Property;
 import javafx.beans.value.WritableDoubleValue;
-import java.util.Objects;
+import org.jfxcore.beans.property.validation.PropertyHelper;
 
 /**
  * Defines a constrained property that wraps a double value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedDoubleProperty<E>
-        extends ReadOnlyConstrainedDoubleProperty<E>
-        implements ConstrainedProperty<Number, E>, WritableDoubleValue {
+public abstract class ConstrainedDoubleProperty<D>
+        extends ReadOnlyConstrainedDoubleProperty<D>
+        implements ConstrainedProperty<Number, D>, WritableDoubleValue {
 
     /**
      * Creates a default {@code ConstrainedDoubleProperty}.
@@ -81,42 +79,5 @@ public abstract class ConstrainedDoubleProperty<E>
     public String toString() {
         return PropertyHelper.toString(this);
     }
-    
-    /**
-     * Returns a {@code ConstrainedDoubleProperty} that wraps a {@link Property}.
-     * If the {@code Property} is a {@code ConstrainedDoubleProperty}, it will be returned directly.
-     * Otherwise a new {@code ConstrainedDoubleProperty} is created that is bound to the {@code Property}.
-     * <p>
-     * Note: null values in the source property will be interpreted as zero.
-     *
-     * @param <E> error information type
-     * @param property the source {@code Property}
-     * @param constraints the value constraints
-     * @return a {@code ConstrainedDoubleProperty} that wraps the {@code Property}
-     * @throws NullPointerException if {@code property} is {@code null}
-     * @since JFXcore 18
-     */
-    @SafeVarargs
-    public static <E> ConstrainedDoubleProperty<E> doubleProperty(
-            Property<Number> property, Constraint<Number, E>... constraints) {
-        Objects.requireNonNull(property, "Property cannot be null");
 
-        return property instanceof ConstrainedDoubleProperty ? (ConstrainedDoubleProperty<E>)property :
-            new ConstrainedDoublePropertyBase<>(constraints) {
-                {
-                    BidirectionalBinding.bind(this, property);
-                }
-
-                @Override
-                public Object getBean() {
-                    return null; // Virtual property, no bean
-                }
-
-                @Override
-                public String getName() {
-                    return property.getName();
-                }
-            };
-    }
-    
 }

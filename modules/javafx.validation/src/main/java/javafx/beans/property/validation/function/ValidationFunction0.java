@@ -27,15 +27,15 @@ import javafx.beans.property.validation.ValidationResult;
  * Represents a validation function without dependencies.
  *
  * @param <T> the type of the value to be validated
- * @param <E> the error information type
+ * @param <D> the diagnostic type
  * @since JFXcore 18
  */
 @FunctionalInterface
-public interface ValidationFunction0<T, E> {
+public interface ValidationFunction0<T, D> {
 
     /**
      * Applies this function to the given argument.
      */
-    ValidationResult<E> apply(T value);
+    ValidationResult<D> apply(T value);
 
 }

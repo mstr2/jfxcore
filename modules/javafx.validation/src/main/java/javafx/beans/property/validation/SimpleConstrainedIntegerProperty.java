@@ -24,10 +24,10 @@ package javafx.beans.property.validation;
 /**
  * This class provides an implementation of {@link ConstrainedIntegerPropertyBase} that wraps an integer value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class SimpleConstrainedIntegerProperty<E> extends ConstrainedIntegerPropertyBase<E> {
+public class SimpleConstrainedIntegerProperty<D> extends ConstrainedIntegerPropertyBase<D> {
 
     private static final Object DEFAULT_BEAN = null;
     private static final String DEFAULT_NAME = "";
@@ -46,23 +46,23 @@ public class SimpleConstrainedIntegerProperty<E> extends ConstrainedIntegerPrope
     }
 
     @SafeVarargs
-    public SimpleConstrainedIntegerProperty(Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedIntegerProperty(Constraint<? super Number, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, 0, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedIntegerProperty(int initialValue, Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedIntegerProperty(int initialValue, Constraint<? super Number, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedIntegerProperty(Object bean, String name, Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedIntegerProperty(Object bean, String name, Constraint<? super Number, D>... constraints) {
         this(bean, name, 0, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedIntegerProperty(
-            Object bean, String name, int initialValue, Constraint<? super Number, E>... constraints) {
+            Object bean, String name, int initialValue, Constraint<? super Number, D>... constraints) {
         super(initialValue, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

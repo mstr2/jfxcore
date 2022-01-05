@@ -26,11 +26,11 @@ import javafx.collections.ObservableList;
 /**
  * This class provides an implementation of {@link ConstrainedListProperty} that wraps an {@link ObservableList}.
  *
- * @param <T> item type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class SimpleConstrainedListProperty<T, E> extends ConstrainedListPropertyBase<T, E> {
+public class SimpleConstrainedListProperty<E, D> extends ConstrainedListPropertyBase<E, D> {
 
     private static final Object DEFAULT_BEAN = null;
     private static final String DEFAULT_NAME = "";
@@ -49,19 +49,19 @@ public class SimpleConstrainedListProperty<T, E> extends ConstrainedListProperty
     }
 
     @SafeVarargs
-    public SimpleConstrainedListProperty(Constraint<? super ObservableList<T>, E>... constraints) {
+    public SimpleConstrainedListProperty(Constraint<? super ObservableList<E>, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, null, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedListProperty(
-            ObservableList<T> initialValue, Constraint<? super ObservableList<T>, E>... constraints) {
+            ObservableList<E> initialValue, Constraint<? super ObservableList<E>, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedListProperty(
-            Object bean, String name, Constraint<? super ObservableList<T>, E>... constraints) {
+            Object bean, String name, Constraint<? super ObservableList<E>, D>... constraints) {
         this(bean, name, null, constraints);
     }
 
@@ -69,8 +69,8 @@ public class SimpleConstrainedListProperty<T, E> extends ConstrainedListProperty
     public SimpleConstrainedListProperty(
             Object bean,
             String name,
-            ObservableList<T> initialValue,
-            Constraint<? super ObservableList<T>, E>... constraints) {
+            ObservableList<E> initialValue,
+            Constraint<? super ObservableList<E>, D>... constraints) {
         super(initialValue, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

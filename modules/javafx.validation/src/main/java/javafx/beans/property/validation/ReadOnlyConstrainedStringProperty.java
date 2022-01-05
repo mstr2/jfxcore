@@ -28,11 +28,11 @@ import javafx.beans.property.ReadOnlyStringProperty;
 /**
  * Represents a {@link ReadOnlyConstrainedProperty} that wraps a string value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedStringProperty<E>
-        extends StringExpression implements ReadOnlyConstrainedProperty<String, E> {
+public abstract class ReadOnlyConstrainedStringProperty<D>
+        extends StringExpression implements ReadOnlyConstrainedProperty<String, D> {
 
     @Override
     public abstract ReadOnlyStringProperty constrainedValueProperty();

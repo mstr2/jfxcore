@@ -38,12 +38,12 @@ import javafx.collections.ObservableList;
  * and can be passed to external users. The other property is read- and
  * writable and should be used internally only.
  *
- * @param <T> element type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  *
  * @since JFXcore 18
  */
-public class ReadOnlyConstrainedListWrapper<T, E> extends SimpleConstrainedListProperty<T, E> {
+public class ReadOnlyConstrainedListWrapper<E, D> extends SimpleConstrainedListProperty<E, D> {
 
     private ReadOnlyPropertyImpl readOnlyProperty;
 
@@ -53,7 +53,7 @@ public class ReadOnlyConstrainedListWrapper<T, E> extends SimpleConstrainedListP
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedListWrapper(Constraint<? super ObservableList<T>, E>... constraints) {
+    public ReadOnlyConstrainedListWrapper(Constraint<? super ObservableList<E>, D>... constraints) {
         super(null, constraints);
     }
 
@@ -65,7 +65,7 @@ public class ReadOnlyConstrainedListWrapper<T, E> extends SimpleConstrainedListP
      */
     @SafeVarargs
     public ReadOnlyConstrainedListWrapper(
-            ObservableList<T> initialValue, Constraint<? super ObservableList<T>, E>... constraints) {
+            ObservableList<E> initialValue, Constraint<? super ObservableList<E>, D>... constraints) {
         super(initialValue, constraints);
     }
 
@@ -78,7 +78,7 @@ public class ReadOnlyConstrainedListWrapper<T, E> extends SimpleConstrainedListP
      */
     @SafeVarargs
     public ReadOnlyConstrainedListWrapper(
-            Object bean, String name, Constraint<? super ObservableList<T>, E>... constraints) {
+            Object bean, String name, Constraint<? super ObservableList<E>, D>... constraints) {
         super(bean, name, constraints);
     }
 
@@ -92,8 +92,8 @@ public class ReadOnlyConstrainedListWrapper<T, E> extends SimpleConstrainedListP
      */
     @SafeVarargs
     public ReadOnlyConstrainedListWrapper(
-            Object bean, String name, ObservableList<T> initialValue,
-            Constraint<? super ObservableList<T>, E>... constraints) {
+            Object bean, String name, ObservableList<E> initialValue,
+            Constraint<? super ObservableList<E>, D>... constraints) {
         super(bean, name, initialValue, constraints);
     }
 
@@ -103,7 +103,7 @@ public class ReadOnlyConstrainedListWrapper<T, E> extends SimpleConstrainedListP
      *
      * @return the read-only property
      */
-    public ReadOnlyConstrainedListProperty<T, E> getReadOnlyProperty() {
+    public ReadOnlyConstrainedListProperty<E, D> getReadOnlyProperty() {
         if (readOnlyProperty == null) {
             readOnlyProperty = new ReadOnlyPropertyImpl();
         }
@@ -121,7 +121,7 @@ public class ReadOnlyConstrainedListWrapper<T, E> extends SimpleConstrainedListP
     }
 
     @Override
-    protected void fireValueChangedEvent(ListChangeListener.Change<? extends T> change) {
+    protected void fireValueChangedEvent(ListChangeListener.Change<? extends E> change) {
         super.fireValueChangedEvent(change);
 
         if (readOnlyProperty != null) {
@@ -130,9 +130,9 @@ public class ReadOnlyConstrainedListWrapper<T, E> extends SimpleConstrainedListP
         }
     }
 
-    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedListPropertyBase<T, E> {
+    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedListPropertyBase<E, D> {
         @Override
-        public ObservableList<T> get() {
+        public ObservableList<E> get() {
             return ReadOnlyConstrainedListWrapper.this.get();
         }
 
@@ -182,12 +182,17 @@ public class ReadOnlyConstrainedListWrapper<T, E> extends SimpleConstrainedListP
         }
 
         @Override
-        public ReadOnlyListProperty<E> errorsProperty() {
+        public ReadOnlyListProperty<D> errorsProperty() {
             return ReadOnlyConstrainedListWrapper.this.errorsProperty();
         }
 
         @Override
-        public ReadOnlyListProperty<T> constrainedValueProperty() {
+        public ReadOnlyListProperty<D> warningsProperty() {
+            return ReadOnlyConstrainedListWrapper.this.warningsProperty();
+        }
+
+        @Override
+        public ReadOnlyListProperty<E> constrainedValueProperty() {
             return ReadOnlyConstrainedListWrapper.this.constrainedValueProperty();
         }
     }

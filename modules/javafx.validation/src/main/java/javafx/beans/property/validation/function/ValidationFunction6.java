@@ -27,21 +27,21 @@ import javafx.beans.property.validation.ValidationResult;
  * Represents a validation function with six dependencies.
  *
  * @param <T> the type of the value to be validated
- * @param <D1> the type of the first dependency
- * @param <D2> the type of the second dependency
- * @param <D3> the type of the third dependency
- * @param <D4> the type of the fourth dependency
- * @param <D5> the type of the fifth dependency
- * @param <D6> the type of the sixth dependency
- * @param <E> the error information type
+ * @param <P1> the type of the first dependency
+ * @param <P2> the type of the second dependency
+ * @param <P3> the type of the third dependency
+ * @param <P4> the type of the fourth dependency
+ * @param <P5> the type of the fifth dependency
+ * @param <P6> the type of the sixth dependency
+ * @param <D> the diagnostic type
  * @since JFXcore 18
  */
 @FunctionalInterface
-public interface ValidationFunction6<T, D1, D2, D3, D4, D5, D6, E> {
+public interface ValidationFunction6<T, P1, P2, P3, P4, P5, P6, D> {
 
     /**
      * Applies this function to the given arguments.
      */
-    ValidationResult<E> apply(T value, D1 dependency1, D2 dependency2, D3 dependency3, D4 dependency4, D5 dependency5, D6 dependency6);
+    ValidationResult<D> apply(T value, P1 dependency1, P2 dependency2, P3 dependency3, P4 dependency4, P5 dependency5, P6 dependency6);
 
 }

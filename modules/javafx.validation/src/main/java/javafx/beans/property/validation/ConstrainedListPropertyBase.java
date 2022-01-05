@@ -57,11 +57,11 @@ import java.util.List;
  * Provides a base implementation for a constrained property that wraps an {@link ObservableList}.
  * {@link Property#getBean()} and {@link Property#getName()} must be implemented by derived classes.
  *
- * @param <T> element type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListProperty<T, E> {
+public abstract class ConstrainedListPropertyBase<E, D> extends ConstrainedListProperty<E, D> {
 
     static {
         ValidationHelper.setAccessor(
@@ -70,18 +70,18 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
     }
 
     private final ConstrainedValuePropertyImpl constrainedValue;
-    private final ValidationHelper<ObservableList<T>, E> validationHelper;
-    private final ItemCountMap<T> listItemCount = new ItemCountMap<>();
-    private final ListChangeListener<T> listChangeListener = change -> {
+    private final ValidationHelper<ObservableList<E>, D> validationHelper;
+    private final ItemCountMap<E> listItemCount = new ItemCountMap<>();
+    private final ListChangeListener<E> listChangeListener = change -> {
         while (change.next()) {
             if (change.wasRemoved()) {
-                for (T value : change.getRemoved()) {
+                for (E value : change.getRemoved()) {
                     listItemCount.decrement(value);
                 }
             }
 
             if (change.wasAdded()) {
-                for (T value : change.getAddedSubList()) {
+                for (E value : change.getAddedSubList()) {
                     listItemCount.increment(value);
                 }
             }
@@ -93,11 +93,11 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
         fireValueChangedEvent(change);
     };
 
-    private ObservableList<T> value;
-    private ObservableValue<? extends ObservableList<T>> observable;
+    private ObservableList<E> value;
+    private ObservableValue<? extends ObservableList<E>> observable;
     private InvalidationListener listener;
     private boolean valid = true;
-    private ListExpressionHelper<T> expressionHelper;
+    private ListExpressionHelper<E> expressionHelper;
 
     private SizeProperty size0;
     private EmptyProperty empty0;
@@ -108,7 +108,7 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedListPropertyBase(Constraint<? super ObservableList<T>, E>... constraints) {
+    protected ConstrainedListPropertyBase(Constraint<? super ObservableList<E>, D>... constraints) {
         this(null, constraints);
     }
 
@@ -120,9 +120,9 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
      */
     @SafeVarargs
     protected ConstrainedListPropertyBase(
-            ObservableList<T> initialValue, Constraint<? super ObservableList<T>, E>... constraints) {
+            ObservableList<E> initialValue, Constraint<? super ObservableList<E>, D>... constraints) {
         if (initialValue != null) {
-            for (T item : initialValue) {
+            for (E item : initialValue) {
                 listItemCount.increment(item);
             }
 
@@ -135,17 +135,17 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
     }
 
     @Override
-    public ReadOnlyBooleanProperty validProperty() {
+    public final ReadOnlyBooleanProperty validProperty() {
         return validationHelper.validProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty userValidProperty() {
+    public final ReadOnlyBooleanProperty userValidProperty() {
         return validationHelper.userValidProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty invalidProperty() {
+    public final ReadOnlyBooleanProperty invalidProperty() {
         return validationHelper.invalidProperty();
     }
 
@@ -155,22 +155,27 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
     }
 
     @Override
-    public ReadOnlyBooleanProperty validatingProperty() {
+    public final ReadOnlyBooleanProperty validatingProperty() {
         return validationHelper.validatingProperty();
     }
 
     @Override
-    public ReadOnlyListProperty<T> constrainedValueProperty() {
+    public final ReadOnlyListProperty<E> constrainedValueProperty() {
         return constrainedValue;
     }
 
     @Override
-    public ReadOnlyListProperty<E> errorsProperty() {
+    public final ReadOnlyListProperty<D> errorsProperty() {
         return validationHelper.errorsProperty();
     }
 
     @Override
-    public ReadOnlyIntegerProperty sizeProperty() {
+    public final ReadOnlyListProperty<D> warningsProperty() {
+        return validationHelper.warningsProperty();
+    }
+
+    @Override
+    public final ReadOnlyIntegerProperty sizeProperty() {
         if (size0 == null) {
             size0 = new SizeProperty(this);
         }
@@ -178,7 +183,7 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
     }
 
     @Override
-    public ReadOnlyBooleanProperty emptyProperty() {
+    public final ReadOnlyBooleanProperty emptyProperty() {
         if (empty0 == null) {
             empty0 = new EmptyProperty(this);
         }
@@ -196,22 +201,22 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
     }
 
     @Override
-    public void addListener(ChangeListener<? super ObservableList<T>> listener) {
+    public void addListener(ChangeListener<? super ObservableList<E>> listener) {
         expressionHelper = ListExpressionHelper.addListener(expressionHelper, this, listener);
     }
 
     @Override
-    public void removeListener(ChangeListener<? super ObservableList<T>> listener) {
+    public void removeListener(ChangeListener<? super ObservableList<E>> listener) {
         expressionHelper = ListExpressionHelper.removeListener(expressionHelper, listener);
     }
 
     @Override
-    public void addListener(ListChangeListener<? super T> listener) {
+    public void addListener(ListChangeListener<? super E> listener) {
         expressionHelper = ListExpressionHelper.addListener(expressionHelper, this, listener);
     }
 
     @Override
-    public void removeListener(ListChangeListener<? super T> listener) {
+    public void removeListener(ListChangeListener<? super E> listener) {
         expressionHelper = ListExpressionHelper.removeListener(expressionHelper, listener);
     }
 
@@ -239,7 +244,7 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
      *
      * @param change the change that needs to be propagated
      */
-    protected void fireValueChangedEvent(ListChangeListener.Change<? extends T> change) {
+    protected void fireValueChangedEvent(ListChangeListener.Change<? extends E> change) {
         ListExpressionHelper.fireValueChangedEvent(expressionHelper, change);
     }
 
@@ -252,7 +257,7 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
         }
     }
 
-    private void markInvalid(ObservableList<T> oldValue) {
+    private void markInvalid(ObservableList<E> oldValue) {
         if (valid) {
             if (oldValue != null) {
                 oldValue.removeListener(listChangeListener);
@@ -275,7 +280,7 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
     }
 
     @Override
-    public ObservableList<T> get() {
+    public ObservableList<E> get() {
         if (!valid) {
             value = observable == null ? value : observable.getValue();
             valid = true;
@@ -287,13 +292,13 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
     }
 
     @Override
-    public void set(ObservableList<T> newValue) {
+    public void set(ObservableList<E> newValue) {
         if (isBound()) {
             throw PropertyHelper.cannotSetBoundProperty(this);
         }
 
         if (value != newValue) {
-            final ObservableList<T> oldValue = value;
+            final ObservableList<E> oldValue = value;
             value = newValue;
             markInvalid(oldValue);
         }
@@ -305,7 +310,7 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
     }
 
     @Override
-    public void bind(final ObservableValue<? extends ObservableList<T>> source) {
+    public void bind(final ObservableValue<? extends ObservableList<E>> source) {
         if (source == null) {
             throw PropertyHelper.cannotBindNull(this);
         }
@@ -412,16 +417,16 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
         }
     }
 
-    private static class Listener<T, E> implements InvalidationListener, WeakListener {
-        private final WeakReference<ConstrainedListPropertyBase<T, E>> wref;
+    private static class Listener<T, D> implements InvalidationListener, WeakListener {
+        private final WeakReference<ConstrainedListPropertyBase<T, D>> wref;
 
-        public Listener(ConstrainedListPropertyBase<T, E> ref) {
+        public Listener(ConstrainedListPropertyBase<T, D> ref) {
             this.wref = new WeakReference<>(ref);
         }
 
         @Override
         public void invalidated(Observable observable) {
-            ConstrainedListPropertyBase<T, E> ref = wref.get();
+            ConstrainedListPropertyBase<T, D> ref = wref.get();
             if (ref == null) {
                 observable.removeListener(this);
             } else {
@@ -436,15 +441,15 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
     }
 
     private class ConstrainedValuePropertyImpl
-            extends ReadOnlyListPropertyBase<T> implements WritableProperty<ObservableList<T>> {
-        private final ObservableModifiableListImpl<T> list;
-        private final ObservableList<T> unmodifiableList;
+            extends ReadOnlyListPropertyBase<E> implements WritableProperty<ObservableList<E>> {
+        private final ObservableModifiableListImpl<E> list;
+        private final ObservableList<E> unmodifiableList;
         private SizeProperty size0;
         private EmptyProperty empty0;
 
-        ConstrainedValuePropertyImpl(List<T> initialValues) {
+        ConstrainedValuePropertyImpl(List<E> initialValues) {
             list = new ObservableModifiableListImpl<>(initialValues);
-            list.addListener((ListChangeListener<T>)change -> {
+            list.addListener((ListChangeListener<E>) change -> {
                 invalidateProperties();
                 fireValueChangedEvent(change);
             });
@@ -463,12 +468,12 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
         }
 
         @Override
-        public ObservableList<T> get() {
+        public ObservableList<E> get() {
             return unmodifiableList;
         }
 
         @Override
-        public boolean setValue(ObservableList<T> newList) {
+        public boolean setValue(ObservableList<E> newList) {
             for (int i = 0; i < list.size();) {
                 boolean removed = !listItemCount.containsKey(list.get(i));
 
@@ -522,20 +527,20 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
         }
     }
 
-    private static final class ObservableModifiableListImpl<E> extends ObservableListWrapper<E> {
-        private final ItemCountMap<E> itemCount = new ItemCountMap<>();
+    private static final class ObservableModifiableListImpl<D> extends ObservableListWrapper<D> {
+        private final ItemCountMap<D> itemCount = new ItemCountMap<>();
         private boolean changing;
 
-        ObservableModifiableListImpl(List<E> list) {
+        ObservableModifiableListImpl(List<D> list) {
             super(new ArrayList<>(list));
 
-            for (E item : list) {
+            for (D item : list) {
                 itemCount.increment(item);
             }
         }
 
         @Override
-        public void add(int index, E element) {
+        public void add(int index, D element) {
             if (!changing) {
                 changing = true;
                 beginChange();
@@ -548,13 +553,13 @@ public abstract class ConstrainedListPropertyBase<T, E> extends ConstrainedListP
         }
 
         @Override
-        public E remove(int index) {
+        public D remove(int index) {
             if (!changing) {
                 changing = true;
                 beginChange();
             }
 
-            E old = doRemove(index);
+            D old = doRemove(index);
             nextRemove(index, old);
             ++modCount;
             itemCount.decrement(old);

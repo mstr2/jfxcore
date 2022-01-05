@@ -37,10 +37,10 @@ import javafx.beans.property.ReadOnlyObjectProperty;
  * writable and should be used internally only.
  *
  * @param <T> value type
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class ReadOnlyConstrainedObjectWrapper<T, E> extends SimpleConstrainedObjectProperty<T, E> {
+public class ReadOnlyConstrainedObjectWrapper<T, D> extends SimpleConstrainedObjectProperty<T, D> {
     
     private ReadOnlyPropertyImpl readOnlyProperty;
 
@@ -50,7 +50,7 @@ public class ReadOnlyConstrainedObjectWrapper<T, E> extends SimpleConstrainedObj
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedObjectWrapper(Constraint<? super T, E>... constraints) {
+    public ReadOnlyConstrainedObjectWrapper(Constraint<? super T, D>... constraints) {
         super(null, constraints);
     }
 
@@ -61,7 +61,7 @@ public class ReadOnlyConstrainedObjectWrapper<T, E> extends SimpleConstrainedObj
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedObjectWrapper(T initialValue, Constraint<? super T, E>... constraints) {
+    public ReadOnlyConstrainedObjectWrapper(T initialValue, Constraint<? super T, D>... constraints) {
         super(initialValue, constraints);
     }
 
@@ -73,7 +73,7 @@ public class ReadOnlyConstrainedObjectWrapper<T, E> extends SimpleConstrainedObj
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public ReadOnlyConstrainedObjectWrapper(Object bean, String name, Constraint<? super T, E>... constraints) {
+    public ReadOnlyConstrainedObjectWrapper(Object bean, String name, Constraint<? super T, D>... constraints) {
         super(bean, name, constraints);
     }
 
@@ -87,7 +87,7 @@ public class ReadOnlyConstrainedObjectWrapper<T, E> extends SimpleConstrainedObj
      */
     @SafeVarargs
     public ReadOnlyConstrainedObjectWrapper(
-            Object bean, String name, T initialValue, Constraint<? super T, E>... constraints) {
+            Object bean, String name, T initialValue, Constraint<? super T, D>... constraints) {
         super(bean, name, initialValue, constraints);
     }
 
@@ -97,7 +97,7 @@ public class ReadOnlyConstrainedObjectWrapper<T, E> extends SimpleConstrainedObj
      *
      * @return the read-only property
      */
-    public ReadOnlyConstrainedObjectProperty<T, E> getReadOnlyProperty() {
+    public ReadOnlyConstrainedObjectProperty<T, D> getReadOnlyProperty() {
         if (readOnlyProperty == null) {
             readOnlyProperty = new ReadOnlyPropertyImpl();
         }
@@ -113,7 +113,7 @@ public class ReadOnlyConstrainedObjectWrapper<T, E> extends SimpleConstrainedObj
         }
     }
 
-    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedObjectPropertyBase<T, E> {
+    private class ReadOnlyPropertyImpl extends ReadOnlyConstrainedObjectPropertyBase<T, D> {
         @Override
         public T get() {
             return ReadOnlyConstrainedObjectWrapper.this.get();
@@ -155,8 +155,13 @@ public class ReadOnlyConstrainedObjectWrapper<T, E> extends SimpleConstrainedObj
         }
 
         @Override
-        public ReadOnlyListProperty<E> errorsProperty() {
+        public ReadOnlyListProperty<D> errorsProperty() {
             return ReadOnlyConstrainedObjectWrapper.this.errorsProperty();
+        }
+
+        @Override
+        public ReadOnlyListProperty<D> warningsProperty() {
+            return ReadOnlyConstrainedObjectWrapper.this.warningsProperty();
         }
 
         @Override

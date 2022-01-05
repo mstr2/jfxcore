@@ -24,10 +24,10 @@ package javafx.beans.property.validation;
 /**
  * This class provides an implementation of {@link ConstrainedDoubleProperty} that wraps a double value.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class SimpleConstrainedDoubleProperty<E> extends ConstrainedDoublePropertyBase<E> {
+public class SimpleConstrainedDoubleProperty<D> extends ConstrainedDoublePropertyBase<D> {
 
     private static final Object DEFAULT_BEAN = null;
     private static final String DEFAULT_NAME = "";
@@ -46,23 +46,23 @@ public class SimpleConstrainedDoubleProperty<E> extends ConstrainedDoublePropert
     }
 
     @SafeVarargs
-    public SimpleConstrainedDoubleProperty(Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedDoubleProperty(Constraint<? super Number, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, 0, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedDoubleProperty(double initialValue, Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedDoubleProperty(double initialValue, Constraint<? super Number, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedDoubleProperty(Object bean, String name, Constraint<? super Number, E>... constraints) {
+    public SimpleConstrainedDoubleProperty(Object bean, String name, Constraint<? super Number, D>... constraints) {
         this(bean, name, 0, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedDoubleProperty(
-            Object bean, String name, double initialValue, Constraint<? super Number, E>... constraints) {
+            Object bean, String name, double initialValue, Constraint<? super Number, D>... constraints) {
         super(initialValue, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

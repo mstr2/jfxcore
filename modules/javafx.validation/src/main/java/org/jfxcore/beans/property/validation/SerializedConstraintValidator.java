@@ -35,17 +35,17 @@ import java.util.concurrent.CompletableFuture;
  * requests will be dropped.
  *
  * @param <T> type of the value to be validated
- * @param <E> error information type
+ * @param <D> diagnostic type
  */
-public abstract class SerializedConstraintValidator<T, E> {
+public abstract class SerializedConstraintValidator<T, D> {
 
-    private final Constraint<? super T, E> constraint;
-    private CompletableFuture<ValidationResult<E>> validatingFuture;
+    private final Constraint<? super T, D> constraint;
+    private CompletableFuture<ValidationResult<D>> validatingFuture;
     private T currentValue;
     private T nextValue;
     private boolean hasNextValue;
 
-    public SerializedConstraintValidator(Constraint<? super T, E> constraint) {
+    public SerializedConstraintValidator(Constraint<? super T, D> constraint) {
         this.constraint = constraint;
     }
 
@@ -64,8 +64,7 @@ public abstract class SerializedConstraintValidator<T, E> {
      * Occurs when the future returned by the validator has completed, independent of whether it started
      * in the completed state or was completed later.
      */
-    protected abstract void onValidationCompleted(
-        Constraint<? super T, E> constraint, T value, ValidationResult<E> result, Throwable exception);
+    protected abstract void onValidationCompleted(T value, ValidationResult<D> result, Throwable exception);
 
     /**
      * Returns whether the specified {@link Observable} is a dependency of the constraint.
@@ -81,13 +80,13 @@ public abstract class SerializedConstraintValidator<T, E> {
             validatingFuture.cancel(true);
         } else {
             try {
-                CompletableFuture<ValidationResult<E>> result = constraint.getValidator().validate(value);
+                CompletableFuture<ValidationResult<D>> result = constraint.getValidator().validate(value);
 
                 if (result.isDone()) {
                     try {
-                        onValidationCompleted(constraint, value, result.get(), null);
+                        onValidationCompleted(value, result.get(), null);
                     } catch (Throwable ex) {
-                        onValidationCompleted(constraint, value, null, ex);
+                        onValidationCompleted(value, null, ex);
                     }
                 } else {
                     currentValue = value;
@@ -101,13 +100,13 @@ public abstract class SerializedConstraintValidator<T, E> {
         }
     }
 
-    private void handleValidationCompleted(ValidationResult<E> result, Throwable exception) {
+    private void handleValidationCompleted(ValidationResult<D> result, Throwable exception) {
         onAsyncValidationEnded();
 
         if (exception != null) {
-            onValidationCompleted(constraint, currentValue, null, exception);
+            onValidationCompleted(currentValue, null, exception);
         } else {
-            onValidationCompleted(constraint, currentValue, result, null);
+            onValidationCompleted(currentValue, result, null);
         }
 
         currentValue = null;

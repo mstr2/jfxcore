@@ -25,10 +25,10 @@ package javafx.beans.property.validation;
  * This class provides an implementation of {@link ConstrainedObjectPropertyBase} that wraps an object value.
  *
  * @param <T> data type
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class SimpleConstrainedObjectProperty<T, E> extends ConstrainedObjectPropertyBase<T, E> {
+public class SimpleConstrainedObjectProperty<T, D> extends ConstrainedObjectPropertyBase<T, D> {
 
     private static final Object DEFAULT_BEAN = null;
     private static final String DEFAULT_NAME = "";
@@ -47,23 +47,23 @@ public class SimpleConstrainedObjectProperty<T, E> extends ConstrainedObjectProp
     }
 
     @SafeVarargs
-    public SimpleConstrainedObjectProperty(Constraint<? super T, E>... constraints) {
+    public SimpleConstrainedObjectProperty(Constraint<? super T, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, null, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedObjectProperty(T initialValue, Constraint<? super T, E>... constraints) {
+    public SimpleConstrainedObjectProperty(T initialValue, Constraint<? super T, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, constraints);
     }
 
     @SafeVarargs
-    public SimpleConstrainedObjectProperty(Object bean, String name, Constraint<? super T, E>... constraints) {
+    public SimpleConstrainedObjectProperty(Object bean, String name, Constraint<? super T, D>... constraints) {
         this(bean, name, null, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedObjectProperty(
-            Object bean, String name, T initialValue, Constraint<? super T, E>... constraints) {
+            Object bean, String name, T initialValue, Constraint<? super T, D>... constraints) {
         super(initialValue, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

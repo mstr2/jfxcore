@@ -30,13 +30,13 @@ import javafx.collections.ObservableSet;
 /**
  * Defines a constrained property that wraps an {@link ObservableSet}.
  *
- * @param <T> element type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedSetProperty<T, E>
-        extends ReadOnlyConstrainedSetProperty<T, E>
-        implements ConstrainedProperty<ObservableSet<T>, E>, WritableSetValue<T> {
+public abstract class ConstrainedSetProperty<E, D>
+        extends ReadOnlyConstrainedSetProperty<E, D>
+        implements ConstrainedProperty<ObservableSet<E>, D>, WritableSetValue<E> {
 
     /**
      * Creates a default {@code ConstrainedSetProperty}.
@@ -45,17 +45,17 @@ public abstract class ConstrainedSetProperty<T, E>
     }
 
     @Override
-    public void setValue(ObservableSet<T> v) {
+    public void setValue(ObservableSet<E> v) {
         set(v);
     }
 
     @Override
-    public void bindBidirectional(Property<ObservableSet<T>> other) {
+    public void bindBidirectional(Property<ObservableSet<E>> other) {
         Bindings.bindBidirectional(this, other);
     }
 
     @Override
-    public void unbindBidirectional(Property<ObservableSet<T>> other) {
+    public void unbindBidirectional(Property<ObservableSet<E>> other) {
         Bindings.unbindBidirectional(this, other);
     }
 

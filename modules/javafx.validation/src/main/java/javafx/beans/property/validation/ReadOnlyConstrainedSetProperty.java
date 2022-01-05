@@ -29,15 +29,15 @@ import javafx.collections.ObservableSet;
 /**
  * Represents a {@link ReadOnlyConstrainedProperty} that wraps an {@link ObservableSet}.
  *
- * @param <T> element type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedSetProperty<T, E>
-        extends SetExpression<T> implements ReadOnlyConstrainedProperty<ObservableSet<T>, E>{
+public abstract class ReadOnlyConstrainedSetProperty<E, D>
+        extends SetExpression<E> implements ReadOnlyConstrainedProperty<ObservableSet<E>, D>{
 
     @Override
-    public abstract ReadOnlySetProperty<T> constrainedValueProperty();
+    public abstract ReadOnlySetProperty<E> constrainedValueProperty();
 
     @Override
     public String toString() {

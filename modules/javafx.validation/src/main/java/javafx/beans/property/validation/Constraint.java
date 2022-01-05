@@ -29,15 +29,15 @@ import java.util.concurrent.Executor;
  * <p>
  * For a list of predefined constraints, see {@link Constraints}.
  *
- * @param <V> data type
- * @param <E> error information type
+ * @param <T> data type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public final class Constraint<V, E> {
+public final class Constraint<T, D> {
 
     private static final Observable[] EMPTY = new Observable[0];
 
-    private final Validator<V, E> validator;
+    private final Validator<T, D> validator;
     private final Executor completionExecutor;
     private final Observable[] dependencies;
 
@@ -49,7 +49,7 @@ public final class Constraint<V, E> {
      * @param dependencies the constraint dependencies, or {@code null}
      */
     public Constraint(
-            Validator<V, E> validator,
+            Validator<T, D> validator,
             Executor completionExecutor,
             Observable[] dependencies) {
         if (validator == null) {
@@ -64,7 +64,7 @@ public final class Constraint<V, E> {
     /**
      * Returns the validator.
      */
-    public Validator<V, E> getValidator() {
+    public Validator<T, D> getValidator() {
         return validator;
     }
 

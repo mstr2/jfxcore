@@ -22,16 +22,16 @@
 package javafx.beans.property.validation;
 
 /**
- * Represents the result of an invocation of a {@link Validator} or {@link AsyncValidator}.
+ * Represents the result of an invocation of a {@link Validator}.
  * <p>
- * A validator can choose to add an error information object to its {@code ValidationResult}
- * if the value was not valid. Constrained property implementations will surface error information
- * objects of their constraint validators in {@link ReadOnlyConstrainedProperty#errorsProperty()}.
+ * A validator can choose to add an application-specified diagnostic object to the returned {@code ValidationResult}.
+ * Diagnostic objects of invalid results will be surfaced as errors in {@link ReadOnlyConstrainedProperty#errorsProperty()},
+ * while diagnostic objects of valid results will be surfaced as warnings in {@link ReadOnlyConstrainedProperty#warningsProperty()}.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class ValidationResult<E> {
+public class ValidationResult<D> {
 
     private static final ValidationResult<?> VALID = new ValidationResult<>(true);
     private static final ValidationResult<?> INVALID = new ValidationResult<>(false);
@@ -39,27 +39,27 @@ public class ValidationResult<E> {
     /**
      * Returns a valid {@code ValidationResult}.
      *
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return a valid {@code ValidationResult}
      */
     @SuppressWarnings("unchecked")
-    public static <E> ValidationResult<E> valid() {
-        return (ValidationResult<E>)VALID;
+    public static <D> ValidationResult<D> valid() {
+        return (ValidationResult<D>)VALID;
     }
 
     /**
      * Returns an invalid {@code ValidationResult}.
      *
-     * @param <E> error information type
+     * @param <D> diagnostic type
      * @return an invalid {@code ValidationResult}
      */
     @SuppressWarnings("unchecked")
-    public static <E> ValidationResult<E> invalid() {
-        return (ValidationResult<E>)INVALID;
+    public static <D> ValidationResult<D> invalid() {
+        return (ValidationResult<D>)INVALID;
     }
 
     private final boolean valid;
-    private final E errorInfo;
+    private final D diagnostic;
 
     /**
      * Creates a new instance of the {@code ValidationResult} class.
@@ -68,18 +68,18 @@ public class ValidationResult<E> {
      */
     public ValidationResult(boolean valid) {
         this.valid = valid;
-        this.errorInfo = null;
+        this.diagnostic = null;
     }
 
     /**
      * Creates a new instance of the {@code ValidationResult} class.
      *
      * @param valid indicates whether the validated value is valid
-     * @param errorInfo an error information object
+     * @param diagnostic a diagnostic object
      */
-    public ValidationResult(boolean valid, E errorInfo) {
+    public ValidationResult(boolean valid, D diagnostic) {
         this.valid = valid;
-        this.errorInfo = errorInfo;
+        this.diagnostic = diagnostic;
     }
 
     /**
@@ -92,12 +92,12 @@ public class ValidationResult<E> {
     }
 
     /**
-     * Returns the error information object.
+     * Returns the diagnostic object.
      *
-     * @return the error information object or {@code null}
+     * @return the diagnostic object or {@code null}
      */
-    public E getErrorInfo() {
-        return errorInfo;
+    public D getDiagnostic() {
+        return diagnostic;
     }
 
 }

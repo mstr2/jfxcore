@@ -28,10 +28,10 @@ import javafx.collections.ObservableMap;
  *
  * @param <K> key type
  * @param <V> value type
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public class SimpleConstrainedMapProperty<K, V, E> extends ConstrainedMapPropertyBase<K, V, E> {
+public class SimpleConstrainedMapProperty<K, V, D> extends ConstrainedMapPropertyBase<K, V, D> {
 
     private static final Object DEFAULT_BEAN = null;
     private static final String DEFAULT_NAME = "";
@@ -50,20 +50,20 @@ public class SimpleConstrainedMapProperty<K, V, E> extends ConstrainedMapPropert
     }
 
     @SafeVarargs
-    public SimpleConstrainedMapProperty(Constraint<? super ObservableMap<K, V>, E>... constraints) {
+    public SimpleConstrainedMapProperty(Constraint<? super ObservableMap<K, V>, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, null, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedMapProperty(
             ObservableMap<K, V> initialValue,
-            Constraint<? super ObservableMap<K, V>, E>... constraints) {
+            Constraint<? super ObservableMap<K, V>, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, constraints);
     }
 
     @SafeVarargs
     public SimpleConstrainedMapProperty(
-            Object bean, String name, Constraint<? super ObservableMap<K, V>, E>... constraints) {
+            Object bean, String name, Constraint<? super ObservableMap<K, V>, D>... constraints) {
         this(bean, name, null, constraints);
     }
 
@@ -72,7 +72,7 @@ public class SimpleConstrainedMapProperty<K, V, E> extends ConstrainedMapPropert
             Object bean,
             String name,
             ObservableMap<K, V> initialValue,
-            Constraint<? super ObservableMap<K, V>, E>... constraints) {
+            Constraint<? super ObservableMap<K, V>, D>... constraints) {
         super(initialValue, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

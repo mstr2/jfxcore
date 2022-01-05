@@ -48,10 +48,10 @@ import java.lang.ref.WeakReference;
  * Provides a base implementation for a constrained property that wraps a double value.
  * {@link Property#getBean()} and {@link Property#getName()} must be implemented by derived classes.
  *
- * @param <E> error information type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ConstrainedDoublePropertyBase<E> extends ConstrainedDoubleProperty<E> {
+public abstract class ConstrainedDoublePropertyBase<D> extends ConstrainedDoubleProperty<D> {
 
     static {
         ValidationHelper.setAccessor(
@@ -60,7 +60,7 @@ public abstract class ConstrainedDoublePropertyBase<E> extends ConstrainedDouble
     }
 
     private final DoublePropertyImpl constrainedValue;
-    private final ValidationHelper<Number, E> validationHelper;
+    private final ValidationHelper<Number, D> validationHelper;
     private double value;
     private ObservableDoubleValue observable;
     private InvalidationListener listener;
@@ -73,7 +73,7 @@ public abstract class ConstrainedDoublePropertyBase<E> extends ConstrainedDouble
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedDoublePropertyBase(Constraint<? super Number, E>... constraints) {
+    protected ConstrainedDoublePropertyBase(Constraint<? super Number, D>... constraints) {
         this(0, constraints);
     }
 
@@ -84,7 +84,7 @@ public abstract class ConstrainedDoublePropertyBase<E> extends ConstrainedDouble
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedDoublePropertyBase(double initialValue, Constraint<? super Number, E>... constraints) {
+    protected ConstrainedDoublePropertyBase(double initialValue, Constraint<? super Number, D>... constraints) {
         value = initialValue;
 
         constrainedValue = new DoublePropertyImpl(initialValue) {
@@ -96,38 +96,43 @@ public abstract class ConstrainedDoublePropertyBase<E> extends ConstrainedDouble
     }
 
     @Override
-    public ReadOnlyBooleanProperty validProperty() {
+    public final ReadOnlyBooleanProperty validProperty() {
         return validationHelper.validProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty userValidProperty() {
+    public final ReadOnlyBooleanProperty userValidProperty() {
         return validationHelper.userValidProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty invalidProperty() {
+    public final ReadOnlyBooleanProperty invalidProperty() {
         return validationHelper.invalidProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty userInvalidProperty() {
+    public final ReadOnlyBooleanProperty userInvalidProperty() {
         return validationHelper.userInvalidProperty();
     }
 
     @Override
-    public ReadOnlyBooleanProperty validatingProperty() {
+    public final ReadOnlyBooleanProperty validatingProperty() {
         return validationHelper.validatingProperty();
     }
 
     @Override
-    public ReadOnlyDoubleProperty constrainedValueProperty() {
+    public final ReadOnlyDoubleProperty constrainedValueProperty() {
         return constrainedValue;
     }
 
     @Override
-    public ReadOnlyListProperty<E> errorsProperty() {
+    public final ReadOnlyListProperty<D> errorsProperty() {
         return validationHelper.errorsProperty();
+    }
+
+    @Override
+    public final ReadOnlyListProperty<D> warningsProperty() {
+        return validationHelper.warningsProperty();
     }
 
     @Override
@@ -259,16 +264,16 @@ public abstract class ConstrainedDoublePropertyBase<E> extends ConstrainedDouble
         return PropertyHelper.toString(this, valid);
     }
 
-    private static class Listener<E> implements InvalidationListener, WeakListener {
-        private final WeakReference<ConstrainedDoublePropertyBase<E>> wref;
+    private static class Listener<D> implements InvalidationListener, WeakListener {
+        private final WeakReference<ConstrainedDoublePropertyBase<D>> wref;
 
-        public Listener(ConstrainedDoublePropertyBase<E> ref) {
+        public Listener(ConstrainedDoublePropertyBase<D> ref) {
             this.wref = new WeakReference<>(ref);
         }
 
         @Override
         public void invalidated(Observable observable) {
-            ConstrainedDoublePropertyBase<E> ref = wref.get();
+            ConstrainedDoublePropertyBase<D> ref = wref.get();
             if (ref == null) {
                 observable.removeListener(this);
             } else {

@@ -30,13 +30,13 @@ import javafx.collections.SetChangeListener;
 /**
  * Provides a base implementation for a {@link ReadOnlyConstrainedSetProperty}.
  *
- * @param <T> element type
- * @param <E> error information type
+ * @param <E> element type
+ * @param <D> diagnostic type
  * @since JFXcore 18
  */
-public abstract class ReadOnlyConstrainedSetPropertyBase<T, E> extends ReadOnlyConstrainedSetProperty<T, E> {
+public abstract class ReadOnlyConstrainedSetPropertyBase<E, D> extends ReadOnlyConstrainedSetProperty<E, D> {
 
-    private SetExpressionHelper<T> helper;
+    private SetExpressionHelper<E> helper;
 
     /**
      * Creates a default {@code ReadOnlyConstrainedSetPropertyBase}.
@@ -55,22 +55,22 @@ public abstract class ReadOnlyConstrainedSetPropertyBase<T, E> extends ReadOnlyC
     }
 
     @Override
-    public void addListener(ChangeListener<? super ObservableSet<T>> listener) {
+    public void addListener(ChangeListener<? super ObservableSet<E>> listener) {
         helper = SetExpressionHelper.addListener(helper, this, listener);
     }
 
     @Override
-    public void removeListener(ChangeListener<? super ObservableSet<T>> listener) {
+    public void removeListener(ChangeListener<? super ObservableSet<E>> listener) {
         helper = SetExpressionHelper.removeListener(helper, listener);
     }
 
     @Override
-    public void addListener(SetChangeListener<? super T> listener) {
+    public void addListener(SetChangeListener<? super E> listener) {
         helper = SetExpressionHelper.addListener(helper, this, listener);
     }
 
     @Override
-    public void removeListener(SetChangeListener<? super T> listener) {
+    public void removeListener(SetChangeListener<? super E> listener) {
         helper = SetExpressionHelper.removeListener(helper, listener);
     }
 
@@ -86,7 +86,7 @@ public abstract class ReadOnlyConstrainedSetPropertyBase<T, E> extends ReadOnlyC
      * Invokes {@link InvalidationListener InvalidationListeners}, {@link ChangeListener ChangeListeners},
      * and {@link SetChangeListener SetChangeListeners} when the set content has changed.
      */
-    protected void fireValueChangedEvent(SetChangeListener.Change<? extends T> change) {
+    protected void fireValueChangedEvent(SetChangeListener.Change<? extends E> change) {
         SetExpressionHelper.fireValueChangedEvent(helper, change);
     }
 
