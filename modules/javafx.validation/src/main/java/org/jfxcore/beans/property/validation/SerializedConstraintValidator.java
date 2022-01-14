@@ -102,12 +102,7 @@ public abstract class SerializedConstraintValidator<T, D> {
 
     private void handleValidationCompleted(ValidationResult<D> result, Throwable exception) {
         onAsyncValidationEnded();
-
-        if (exception != null) {
-            onValidationCompleted(currentValue, null, exception);
-        } else {
-            onValidationCompleted(currentValue, result, null);
-        }
+        onValidationCompleted(currentValue, exception == null ? result : null, exception);
 
         currentValue = null;
         validatingFuture = null;

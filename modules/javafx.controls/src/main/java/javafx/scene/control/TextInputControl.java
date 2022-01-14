@@ -30,7 +30,6 @@ import javafx.beans.DefaultProperty;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.binding.IntegerBinding;
-import javafx.beans.binding.StringBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
@@ -60,6 +59,7 @@ import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.NodeState;
 import javafx.scene.text.Font;
 
 import java.text.BreakIterator;
@@ -1200,7 +1200,11 @@ public abstract class TextInputControl extends Control {
 
     // Used by TextArea, although there are probably other better ways of
     // doing this.
-    void textUpdated() { }
+    void textUpdated() {
+        if (!NodeState.isUserModified(this)) {
+            NodeState.setDefaultValue(text, text.getValue());
+        }
+    }
 
     private void resetUndoRedoState() {
         undoChange = undoChangeHead;
