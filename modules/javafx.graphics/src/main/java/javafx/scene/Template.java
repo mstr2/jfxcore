@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -19,20 +19,34 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package javafx.scene.control.template;
+package javafx.scene;
 
 import javafx.beans.DefaultProperty;
-import javafx.scene.Node;
+import javafx.beans.NamedArg;
+import javafx.util.Reified;
+
 import java.util.Map;
 import java.util.function.Predicate;
 
 @DefaultProperty("content")
-@TemplateContentProperty("content")
+@Reified("dataType")
 public class Template<T> {
 
+    private final Class<T> dataType;
     private TemplateContent<T> content;
-    private TemplateContent<T> editingContent;
-    private Predicate<Object> selector;
+    private Predicate<T> selector;
+
+    public Template() {
+        dataType = null;
+    }
+
+    public <T> Template(@NamedArg("dataType") Class<T> dataType) {
+        if (dataType == null) {
+            throw new NullPointerException("dataType cannot be null");
+        }
+
+        this.dataType = null;//dataType;
+    }
 
     public TemplateContent<T> getContent() {
         return content;
@@ -42,19 +56,11 @@ public class Template<T> {
         this.content = content;
     }
 
-    public TemplateContent<T> getEditingContent() {
-        return editingContent;
-    }
-
-    public void setEditingContent(TemplateContent<T> editingContent) {
-        this.editingContent = editingContent;
-    }
-
-    public Predicate<Object> getSelector() {
+    public Predicate<T> getSelector() {
         return selector;
     }
 
-    public void setSelector(Predicate<Object> selector) {
+    public void setSelector(Predicate<T> selector) {
         this.selector = selector;
     }
 
@@ -62,12 +68,12 @@ public class Template<T> {
      * Tries to find a template in the scene graph that matches the specified item.
      */
     @SuppressWarnings("unchecked")
-    public static <T> Template<T> find(Node node, Object item) {
+    public static <T> Template<T> find(Node node, T item) {
         do {
             if (node.hasProperties()) {
                 for (Map.Entry<Object, Object> entry : node.getProperties().entrySet()) {
-                    if (entry.getValue() instanceof Template) {
-                        Predicate<Object> selector = ((Template<?>) entry.getValue()).getSelector();
+                    if (entry.getValue() instanceof Template template && template.dataType.isInstance(item)) {
+                        Predicate<T> selector = ((Template<T>)entry.getValue()).getSelector();
                         if (selector != null) {
                             if (selector.test(item)) {
                                 return (Template<T>) entry.getValue();
@@ -88,20 +94,9 @@ public class Template<T> {
     /**
      * Determines whether the template matches the specified item.
      */
-    public static <T> boolean match(Template<T> template, Object item) {
-        Predicate<Object> selector = template.getSelector();
+    public static <T> boolean match(Template<T> template, T item) {
+        Predicate<T> selector = template.getSelector();
         return selector == null || selector.test(item);
-    }
-
-    public static <T> TemplateContent<T> getContent(Template<T> template, boolean editing) {
-        if (editing) {
-            TemplateContent<T> content = template.getEditingContent();
-            if (content != null) {
-                return content;
-            }
-        }
-
-        return template.getContent();
     }
 
 }

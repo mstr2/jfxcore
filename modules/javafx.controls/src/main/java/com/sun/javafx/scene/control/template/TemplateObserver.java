@@ -30,7 +30,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TreeTableView;
 import javafx.scene.control.TreeView;
-import javafx.scene.control.template.Template;
+import javafx.scene.Template;
 import java.util.ArrayList;
 import java.util.List;
 

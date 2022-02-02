@@ -37,6 +37,7 @@ module javafx.controls {
     exports javafx.scene.chart;
     exports javafx.scene.control;
     exports javafx.scene.control.cell;
+    exports javafx.scene.control.cell.behavior;
     exports javafx.scene.control.skin;
     exports javafx.scene.control.theme;
 
