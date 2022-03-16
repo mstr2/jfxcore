@@ -26,12 +26,14 @@ import javafx.beans.property.Property;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Node;
+import javafx.util.Incubating;
 
 /**
  * Allows nodes to indicate whether their value was changed as a result of user input.
  *
  * @since JFXcore 18
  */
+@Incubating
 public final class NodeState {
 
     private NodeState() {}

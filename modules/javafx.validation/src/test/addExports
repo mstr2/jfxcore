@@ -1,5 +1,5 @@
 #
---add-exports javafx.validation/org.jfxcore.beans.property.validation=ALL-UNNAMED
+--add-exports javafx.validation/org.jfxcore.validation=ALL-UNNAMED
 --add-exports javafx.graphics/com.sun.javafx.tk=ALL-UNNAMED
 --add-exports javafx.graphics/com.sun.javafx.perf=ALL-UNNAMED
 --add-exports javafx.graphics/com.sun.javafx.geom=ALL-UNNAMED
@@ -9,5 +9,5 @@
 --add-exports javafx.graphics/com.sun.prism=ALL-UNNAMED
 --add-exports javafx.base/com.sun.javafx.binding=ALL-UNNAMED
 --add-exports javafx.base/com.sun.javafx.logging=ALL-UNNAMED
---add-opens javafx.validation/javafx.beans.property.validation=ALL-UNNAMED
+--add-opens javafx.validation/javafx.validation.property=ALL-UNNAMED
 #
