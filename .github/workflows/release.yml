@@ -29,7 +29,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           distribution: 'zulu'
-          java-version: '17.0.1'
+          java-version: '17.0.2'
 
       - name: Install libraries
         run: |
@@ -70,7 +70,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           distribution: 'zulu'
-          java-version: '17.0.1'
+          java-version: '17.0.2'
 
       - name: Get tag name
         id: tagName
@@ -106,7 +106,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           distribution: 'zulu'
-          java-version: '17.0.1'
+          java-version: '17.0.2'
 
       - name: Install gperf
         run: choco install gperf
