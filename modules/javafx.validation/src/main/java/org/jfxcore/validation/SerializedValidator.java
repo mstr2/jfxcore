@@ -22,15 +22,14 @@
 package org.jfxcore.validation;
 
 import com.sun.javafx.logging.PlatformLogger;
+import javafx.validation.ConstraintBase;
 import javafx.validation.ValidationResult;
-import javafx.validation.Validator;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.Executor;
 
 /**
- * Wrapper for a {@link Validator} that enforces serialized execution of validation requests.
+ * Wrapper for a {@link ConstraintBase} that enforces serialized execution of validation requests.
  * If the validator is still running when a new validation run is requested, the new validation run
  * will be deferred until after the validator has completed. If several validation runs are requested
  * while the validator is still running, only the last request will be executed and all intermediate
@@ -43,22 +42,25 @@ public abstract class SerializedValidator<T, D> {
 
     private static final CancellationException CANCELLED = new CancellationException();
 
-    private final Validator<? super T, D> validator;
-    private final Executor completionExecutor;
+    private final ConstraintBase<?, D> constraint;
     private CompletableFuture<ValidationResult<D>> validatingFuture;
     private T currentValue;
     private T nextValue;
     private boolean hasNextValue;
 
-    public SerializedValidator(Validator<? super T, D> validator, Executor completionExecutor) {
-        this.validator = validator;
-        this.completionExecutor = completionExecutor;
+    public SerializedValidator(ConstraintBase<?, D> constraint) {
+        this.constraint = constraint;
     }
 
     /**
      * Gets the last {@code ValidationResult} that was produced by this validator.
      */
     public abstract ValidationResult<D> getValidationResult();
+
+    /**
+     * Starts a new validation run for the specified value.
+     */
+    protected abstract CompletableFuture<ValidationResult<D>> newValidationRun(T value);
 
     /**
      * Occurs before the validator is invoked.
@@ -77,8 +79,8 @@ public abstract class SerializedValidator<T, D> {
 
     /**
      * Requests a validation run for the specified value.
-     * {@link #onValidationStarted()} and {@link #onValidationCompleted} are invoked before and after the validator
-     * is invoked; either immediately from this method, or at a later time using {@link #completionExecutor}.
+     * {@link #onValidationStarted()} and {@link #onValidationCompleted} are invoked before and after the validator is
+     * invoked; either immediately from this method, or at a later time using {@link ConstraintBase#getCompletionExecutor()}.
      */
     public void validate(T value) {
         if (validatingFuture != null) {
@@ -88,9 +90,12 @@ public abstract class SerializedValidator<T, D> {
         } else {
             try {
                 onValidationStarted();
-                CompletableFuture<ValidationResult<D>> future = validator.validate(value);
+                CompletableFuture<ValidationResult<D>> future = newValidationRun(value);
 
-                if (future.isDone()) {
+                if (future == null) {
+                    getLogger().severe("Constraint validator " + constraint.getClass().getName() + " returned null");
+                    onValidationCompleted(value, null, false);
+                } else if (future.isDone()) {
                     try {
                         ValidationResult<D> result = future.get();
                         if (result == ValidationResult.none()) {
@@ -101,7 +106,7 @@ public abstract class SerializedValidator<T, D> {
                     } catch (Throwable ex) {
                         if (!(ex instanceof CancellationException)) {
                             getLogger().severe(
-                                "Exception in constraint validator " + validator.getClass().getName(),
+                                "Exception in constraint validator " + constraint.getClass().getName(),
                                 ex instanceof CompletionException ? ex.getCause() : ex);
                         }
 
@@ -110,11 +115,11 @@ public abstract class SerializedValidator<T, D> {
                 } else {
                     currentValue = value;
                     validatingFuture = future;
-                    future.whenCompleteAsync(this::handleValidationCompleted, completionExecutor);
+                    future.whenCompleteAsync(this::handleValidationCompleted, constraint.getCompletionExecutor());
                 }
             } catch (Throwable ex) {
                 getLogger().severe(
-                    "Exception in constraint validator " + validator.getClass().getName(), ex);
+                    "Exception in constraint validator " + constraint.getClass().getName(), ex);
 
                 onValidationCompleted(value, null, false);
             }
@@ -133,7 +138,7 @@ public abstract class SerializedValidator<T, D> {
     private void handleValidationCompleted(ValidationResult<D> result, Throwable exception) {
         if (exception != null && !(exception instanceof CancellationException)) {
             getLogger().severe(
-                "Exception in constraint validator " + validator.getClass().getName(),
+                "Exception in constraint validator " + constraint.getClass().getName(),
                 exception instanceof CompletionException ? exception.getCause() : exception);
         }
 

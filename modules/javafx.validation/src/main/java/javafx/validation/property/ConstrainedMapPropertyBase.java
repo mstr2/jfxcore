@@ -46,7 +46,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableMap;
 import javafx.util.Incubating;
-import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.DiagnosticList;
 import javafx.validation.ValidationListener;
 import javafx.validation.ValidationState;
@@ -105,7 +105,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, D> extends ConstrainedMap
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedMapPropertyBase(Constraint<? super V, D>... constraints) {
+    protected ConstrainedMapPropertyBase(ConstraintBase<? super V, D>... constraints) {
         this(null, ValidationState.UNKNOWN, constraints);
     }
 
@@ -117,7 +117,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, D> extends ConstrainedMap
      */
     @SafeVarargs
     protected ConstrainedMapPropertyBase(
-            ObservableMap<K, V> initialValue, Constraint<? super V, D>... constraints) {
+            ObservableMap<K, V> initialValue, ConstraintBase<? super V, D>... constraints) {
         this(initialValue, ValidationState.UNKNOWN, constraints);
     }
 
@@ -132,7 +132,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, D> extends ConstrainedMap
     protected ConstrainedMapPropertyBase(
             ObservableMap<K, V> initialValue,
             ValidationState initialValidationState,
-            Constraint<? super V, D>... constraints) {
+            ConstraintBase<? super V, D>... constraints) {
         if (initialValue != null) {
             initialValue.addListener(mapChangeListener);
         }

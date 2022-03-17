@@ -21,30 +21,64 @@
 
 package javafx.validation;
 
-import javafx.beans.Observable;
-import javafx.collections.ObservableSet;
 import javafx.util.Incubating;
+import javafx.validation.function.CancellableValidationFunction0;
+import javafx.validation.function.ValidationFunction0;
+import javafx.validation.property.ConstrainedSetProperty;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 /**
- * Defines a data constraint for an {@link ObservableSet}.
- * This type of constraint applies to the set as a whole, and not to each of the elements individually.
+ * Defines a data constraint for an {@link Set}.
+ * <p>
+ * This type of constraint applies to the set instance itself, and not to each of the elements individually.
  * Use {@link Constraint} to create a constraint that applies to each set element individually.
  * <p>
- * For a list of predefined constraints, see {@link Constraints}.
+ * For a selection of predefined constraints, see {@link Constraints}.
  *
  * @param <E> element type
  * @param <D> diagnostic type
  * @since JFXcore 18
  */
 @Incubating
-public final class SetConstraint<E, D> extends Constraint<E, D> {
+public non-sealed interface SetConstraint<E, D> extends ConstraintBase<E, D> {
 
-    public SetConstraint(
-            Validator<? super ObservableSet<? super E>, D> validator,
-            Executor completionExecutor,
-            Observable[] dependencies) {
-        super(validator, completionExecutor, dependencies, 0);
-    }
+    /**
+     * Validates the specified set.
+     * <p>
+     * This method can be implemented to support synchronous or asynchronous validation:
+     * <ul>
+     *     <li>For synchronous validation, the method must return a completed future that can be obtained
+     *         by calling {@link CompletableFuture#completedFuture}.
+     *     <li>For asynchronous validation, the method must return a non-completed future.
+     *         It is up to the implementation to decide how the future computes its value.
+     *         For example, the implementation may choose to run the computation on a background thread.
+     *         <p>
+     *         Note: if the returned future completes on a background thread, an appropriate
+     *         {@link Constraint#getCompletionExecutor() completion executor} must be specified
+     *         that can safely yield the {@code ValidationResult} to the validation system.
+     * </ul>
+     * <p>
+     * At any point, the data validation system may choose to cancel a non-completed future by
+     * invoking {@link CompletableFuture#cancel(boolean)}.
+     * In practice, this happens when a {@link ConstrainedSetProperty} value is changed before the
+     * previous validation run has completed.
+     * Cancelling a {@code CompletableFuture} immediately transitions the future into the
+     * {@link CompletableFuture#isCancelled() cancelled} state, independent of whether the
+     * validation function is still running.
+     * <p>
+     * Applications are encouraged to use cooperative cancellation strategies to stop the execution
+     * of a validation run after the data validation system has cancelled the future (see
+     * {@link Constraints#validateCancellableAsync(CancellableValidationFunction0, Executor) validateCancellableAsync}
+     * and {@link Constraints#validateInterruptibleAsync(ValidationFunction0, Executor) validateInterruptibleAsync}).
+     *
+     * @see Constraints#validateCancellableAsync(CancellableValidationFunction0, Executor)
+     * @see Constraints#validateInterruptibleAsync(ValidationFunction0, Executor)
+     *
+     * @param value the value to be validated
+     * @return a future that produces a {@code ValidationResult}
+     */
+    CompletableFuture<ValidationResult<D>> validate(Set<? super E> value);
 
 }

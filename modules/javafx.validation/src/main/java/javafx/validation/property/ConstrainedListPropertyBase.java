@@ -49,7 +49,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.util.Incubating;
 import javafx.validation.ConstrainedElement;
-import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.DiagnosticList;
 import javafx.validation.ValidationListener;
 import javafx.validation.ValidationState;
@@ -109,7 +109,7 @@ public abstract class ConstrainedListPropertyBase<E, D> extends ConstrainedListP
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedListPropertyBase(Constraint<? super E, D>... constraints) {
+    protected ConstrainedListPropertyBase(ConstraintBase<? super E, D>... constraints) {
         this(null, ValidationState.UNKNOWN, constraints);
     }
 
@@ -120,7 +120,7 @@ public abstract class ConstrainedListPropertyBase<E, D> extends ConstrainedListP
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedListPropertyBase(ObservableList<E> initialValue, Constraint<? super E, D>... constraints) {
+    protected ConstrainedListPropertyBase(ObservableList<E> initialValue, ConstraintBase<? super E, D>... constraints) {
         this(initialValue, ValidationState.UNKNOWN, constraints);
     }
 
@@ -135,7 +135,7 @@ public abstract class ConstrainedListPropertyBase<E, D> extends ConstrainedListP
     protected ConstrainedListPropertyBase(
             ObservableList<E> initialValue,
             ValidationState initialValidationState,
-            Constraint<? super E, D>... constraints) {
+            ConstraintBase<? super E, D>... constraints) {
         if (initialValue != null) {
             initialValue.addListener(listChangeListener);
         }

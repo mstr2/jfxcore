@@ -29,25 +29,26 @@ import org.jfxcore.validation.PropertyHelper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import javafx.beans.Observable;
 import javafx.beans.property.ReadOnlyListProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.validation.ConstrainedElement;
 import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.Constraints;
 import javafx.validation.ListConstraint;
 import javafx.validation.ValidationResult;
-import javafx.validation.Validator;
 import javafx.validation.property.ConstrainedListProperty;
 import javafx.validation.property.SimpleConstrainedListProperty;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SuppressWarnings("Convert2Lambda")
 public class ListValidationHelperTest {
 
     private ListValidationHelper<String, String> helper;
@@ -81,7 +82,7 @@ public class ListValidationHelperTest {
     }
 
     @SafeVarargs
-    final void initialize(ObservableList<String> initialValue, Constraint<? super String, String>... constraints) {
+    final void initialize(ObservableList<String> initialValue, ConstraintBase<? super String, String>... constraints) {
         value = new SimpleConstrainedListProperty<>(initialValue, constraints);
         constrainedValue = value.constrainedValueProperty();
         helper = (ListValidationHelper<String, String>)PropertyHelper.getValidationHelper(value);
@@ -119,13 +120,16 @@ public class ListValidationHelperTest {
 
         initialize(
             null,
-            new ListConstraint<>(new Validator<>() {
+            new ListConstraint<>() {
                 @Override
-                public CompletableFuture<ValidationResult<String>> validate(ObservableList<? super String> value) {
+                public CompletableFuture<ValidationResult<String>> validate(List<? super String> value) {
                     validationCount[0]++;
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, null));
+
+                @Override public Executor getCompletionExecutor() { return null; }
+                @Override public Observable[] getDependencies() { return null; }
+            });
 
         assertEquals(1, validationCount[0]);
         assertEquals(List.of(), constrainedValue);
@@ -138,13 +142,16 @@ public class ListValidationHelperTest {
 
         initialize(
             FXCollections.observableArrayList("foo", "bar", "baz"),
-            new Constraint<>(new Validator<>() {
+            new Constraint<>() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     validationCount[0]++;
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, null));
+
+                @Override public Executor getCompletionExecutor() { return null; }
+                @Override public Observable[] getDependencies() { return null; }
+            });
 
         assertEquals(3, validationCount[0]);
         assertEquals(List.of("foo", "bar", "baz"), constrainedValue);
@@ -324,16 +331,19 @@ public class ListValidationHelperTest {
             runNow(() -> {
                 initialize(
                     null,
-                    new ListConstraint<>(new Validator<>() {
+                    new ListConstraint<>() {
                         @Override
-                        public CompletableFuture<ValidationResult<String>> validate(ObservableList<? super String> value) {
+                        public CompletableFuture<ValidationResult<String>> validate(List<? super String> value) {
                             return CompletableFuture.supplyAsync(() -> {
                                 sleep(50);
                                 validationCount.getAndIncrement();
                                 return ValidationResult.valid();
                             });
                         }
-                    }, this::runLater, null));
+
+                        @Override public Executor getCompletionExecutor() { return AsynchronousTests.this::runLater; }
+                        @Override public Observable[] getDependencies() { return null; }
+                    });
 
                 assertValidationState(helper, true, false, false);
             });
@@ -354,7 +364,7 @@ public class ListValidationHelperTest {
             runNow(() -> {
                 initialize(
                     FXCollections.observableArrayList("foo", "   ", "baz"),
-                    new Constraint<>(new Validator<>() {
+                    new Constraint<>() {
                         @Override
                         public CompletableFuture<ValidationResult<String>> validate(String value) {
                             return CompletableFuture.supplyAsync(() -> {
@@ -363,7 +373,10 @@ public class ListValidationHelperTest {
                                 return new ValidationResult<>(!value.isBlank(), value.isBlank() ? "<blank>" : null);
                             });
                         }
-                    }, this::runLater, null));
+
+                        @Override public Executor getCompletionExecutor() { return AsynchronousTests.this::runLater; }
+                        @Override public Observable[] getDependencies() { return null; }
+                    });
 
                 assertValidationState(helper, true, false, false);
                 assertEquals(List.of(), constrainedValue);
@@ -401,7 +414,7 @@ public class ListValidationHelperTest {
 
             runNow(() -> initialize(
                 FXCollections.observableArrayList(testStrings),
-                new Constraint<>(new Validator<>() {
+                new Constraint<>() {
                     @Override
                     public CompletableFuture<ValidationResult<String>> validate(String value) {
                         return CompletableFuture.supplyAsync(() -> {
@@ -410,7 +423,10 @@ public class ListValidationHelperTest {
                             return new ValidationResult<>(!value.isBlank(), value.isBlank() ? "<blank>" : null);
                         });
                     }
-                }, this::runLater, null)));
+
+                    @Override public Executor getCompletionExecutor() { return AsynchronousTests.this::runLater; }
+                    @Override public Observable[] getDependencies() { return null; }
+                }));
 
             while (runNow(() -> value.isValidating())) {
                 sleep(50);
@@ -444,7 +460,7 @@ public class ListValidationHelperTest {
 
             runNow(() -> initialize(
                 FXCollections.observableArrayList(),
-                new Constraint<>(new Validator<>() {
+                new Constraint<>() {
                     @Override
                     public CompletableFuture<ValidationResult<String>> validate(String value) {
                         return CompletableFuture.supplyAsync(() -> {
@@ -453,7 +469,10 @@ public class ListValidationHelperTest {
                             return new ValidationResult<>(!value.isBlank(), value.isBlank() ? "<blank>" : null);
                         });
                     }
-                }, this::runLater, null)));
+
+                    @Override public Executor getCompletionExecutor() { return AsynchronousTests.this::runLater; }
+                    @Override public Observable[] getDependencies() { return null; }
+                }));
 
             for (String s : testStrings) {
                 runNow(() -> value.add(s));

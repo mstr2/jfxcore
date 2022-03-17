@@ -54,7 +54,7 @@ import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
 import javafx.util.Incubating;
 import javafx.validation.ConstrainedElement;
-import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.DiagnosticList;
 import javafx.validation.ValidationListener;
 import javafx.validation.ValidationState;
@@ -113,7 +113,7 @@ public abstract class ConstrainedSetPropertyBase<E, D> extends ConstrainedSetPro
      * @param constraints the value constraints
      */
     @SafeVarargs
-    protected ConstrainedSetPropertyBase(Constraint<? super E, D>... constraints) {
+    protected ConstrainedSetPropertyBase(ConstraintBase<? super E, D>... constraints) {
         this(null, ValidationState.UNKNOWN, constraints);
     }
 
@@ -125,7 +125,7 @@ public abstract class ConstrainedSetPropertyBase<E, D> extends ConstrainedSetPro
      */
     @SafeVarargs
     protected ConstrainedSetPropertyBase(
-            ObservableSet<E> initialValue, Constraint<? super E, D>... constraints) {
+            ObservableSet<E> initialValue, ConstraintBase<? super E, D>... constraints) {
         this(initialValue, ValidationState.UNKNOWN, constraints);
     }
 
@@ -140,7 +140,7 @@ public abstract class ConstrainedSetPropertyBase<E, D> extends ConstrainedSetPro
     protected ConstrainedSetPropertyBase(
             ObservableSet<E> initialValue,
             ValidationState initialValidationState,
-            Constraint<? super E, D>... constraints) {
+            ConstraintBase<? super E, D>... constraints) {
         if (initialValue != null) {
             initialValue.addListener(setChangeListener);
         }

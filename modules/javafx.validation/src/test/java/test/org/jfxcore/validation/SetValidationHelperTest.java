@@ -28,22 +28,23 @@ import org.jfxcore.validation.PropertyHelper;
 import org.jfxcore.validation.SetValidationHelper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import javafx.beans.Observable;
 import javafx.beans.property.ReadOnlySetProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
 import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.Constraints;
 import javafx.validation.SetConstraint;
 import javafx.validation.ValidationResult;
-import javafx.validation.Validator;
 import javafx.validation.property.ConstrainedSetProperty;
 import javafx.validation.property.SimpleConstrainedSetProperty;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SuppressWarnings("Convert2Lambda")
 public class SetValidationHelperTest {
 
     private SetValidationHelper<String, String> helper;
@@ -67,7 +68,7 @@ public class SetValidationHelperTest {
     }
 
     @SafeVarargs
-    final void initialize(ObservableSet<String> initialValue, Constraint<? super String, String>... constraints) {
+    final void initialize(ObservableSet<String> initialValue, ConstraintBase<? super String, String>... constraints) {
         value = new SimpleConstrainedSetProperty<>(initialValue, constraints);
         constrainedValue = value.constrainedValueProperty();
         helper = (SetValidationHelper<String, String>)PropertyHelper.getValidationHelper(value);
@@ -105,13 +106,16 @@ public class SetValidationHelperTest {
 
         initialize(
             null,
-            new SetConstraint<>(new Validator<>() {
+            new SetConstraint<>() {
                 @Override
-                public CompletableFuture<ValidationResult<String>> validate(ObservableSet<? super String> value) {
+                public CompletableFuture<ValidationResult<String>> validate(Set<? super String> value) {
                     validationCount[0]++;
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, null));
+
+                @Override public Executor getCompletionExecutor() { return null; }
+                @Override public Observable[] getDependencies() { return null; }
+            });
 
         assertEquals(1, validationCount[0]);
         assertEquals(Set.of(), constrainedValue);
@@ -124,13 +128,16 @@ public class SetValidationHelperTest {
 
         initialize(
             FXCollections.observableSet("foo", "bar", "baz"),
-            new Constraint<>(new Validator<>() {
+            new Constraint<>() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     validationCount[0]++;
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, null));
+
+                @Override public Executor getCompletionExecutor() { return null; }
+                @Override public Observable[] getDependencies() { return null; }
+            });
 
         assertEquals(3, validationCount[0]);
         assertEquals(Set.of("foo", "bar", "baz"), constrainedValue);

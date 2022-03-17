@@ -21,22 +21,38 @@
 
 package test.javafx.validation;
 
+import org.jfxcore.validation.DeferredDoubleProperty;
+import org.jfxcore.validation.PropertyHelper;
+import org.junit.jupiter.api.Test;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.validation.Constraint;
-import javafx.validation.property.SimpleConstrainedDoubleProperty;
-import javafx.validation.ValidationResult;
-import javafx.validation.Validator;
-import javafx.validation.Constraints;
-import javafx.validation.function.*;
 import javafx.beans.value.ObservableValue;
-import org.jfxcore.validation.DeferredDoubleProperty;
-import org.jfxcore.validation.PropertyHelper;
-import org.junit.jupiter.api.Test;
+import javafx.validation.Constraint;
+import javafx.validation.Constraints;
+import javafx.validation.ValidationResult;
+import javafx.validation.function.CancellableValidationFunction0;
+import javafx.validation.function.CancellableValidationFunction1;
+import javafx.validation.function.CancellableValidationFunction2;
+import javafx.validation.function.CancellableValidationFunction3;
+import javafx.validation.function.CancellableValidationFunction4;
+import javafx.validation.function.CancellableValidationFunction5;
+import javafx.validation.function.CancellableValidationFunction6;
+import javafx.validation.function.CancellableValidationFunction7;
+import javafx.validation.function.CancellableValidationFunction8;
+import javafx.validation.function.ValidationFunction0;
+import javafx.validation.function.ValidationFunction1;
+import javafx.validation.function.ValidationFunction2;
+import javafx.validation.function.ValidationFunction3;
+import javafx.validation.function.ValidationFunction4;
+import javafx.validation.function.ValidationFunction5;
+import javafx.validation.function.ValidationFunction6;
+import javafx.validation.function.ValidationFunction7;
+import javafx.validation.function.ValidationFunction8;
+import javafx.validation.property.SimpleConstrainedDoubleProperty;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -170,474 +186,474 @@ public class ConstraintsTest {
 
     @Test
     public void testNotNull() throws ExecutionException, InterruptedException {
-        var validator = (Validator<? super String, Object>)Constraints.<String, Object>notNull().getValidator();
-        assertFalse(validator.validate(null).get().isValid());
-        assertTrue(validator.validate("").get().isValid());
-        assertTrue(validator.validate("test").get().isValid());
+        var constraint = Constraints.<String, Object>notNull();
+        assertFalse(constraint.validate(null).get().isValid());
+        assertTrue(constraint.validate("").get().isValid());
+        assertTrue(constraint.validate("test").get().isValid());
     }
 
     @Test
     public void testNotNullOrBlank() throws ExecutionException, InterruptedException {
-        var validator = (Validator<? super String, Object>)Constraints.notNullOrBlank().getValidator();
-        assertFalse(validator.validate(null).get().isValid());
-        assertFalse(validator.validate("").get().isValid());
-        assertFalse(validator.validate("    ").get().isValid());
-        assertTrue(validator.validate("test").get().isValid());
+        var constraint = Constraints.notNullOrBlank();
+        assertFalse(constraint.validate(null).get().isValid());
+        assertFalse(constraint.validate("").get().isValid());
+        assertFalse(constraint.validate("    ").get().isValid());
+        assertTrue(constraint.validate("test").get().isValid());
     }
 
     @Test
     public void testNotNullOrEmpty() throws ExecutionException, InterruptedException {
-        var validator = (Validator<? super String, Object>)Constraints.notNullOrEmpty().getValidator();
-        assertFalse(validator.validate(null).get().isValid());
-        assertFalse(validator.validate("").get().isValid());
-        assertTrue(validator.validate("    ").get().isValid());
-        assertTrue(validator.validate("test").get().isValid());
+        var constraint = Constraints.notNullOrEmpty();
+        assertFalse(constraint.validate(null).get().isValid());
+        assertFalse(constraint.validate("").get().isValid());
+        assertTrue(constraint.validate("    ").get().isValid());
+        assertTrue(constraint.validate("test").get().isValid());
     }
 
     @Test
     public void testMatchesPattern() throws ExecutionException, InterruptedException {
-        var validator = (Validator<String, Object>)Constraints.matchesPattern("[abc]+").getValidator();
-        assertFalse(validator.validate(null).get().isValid());
-        assertFalse(validator.validate("").get().isValid());
-        assertFalse(validator.validate("def").get().isValid());
-        assertTrue(validator.validate("abc").get().isValid());
-        assertTrue(validator.validate("aaa").get().isValid());
+        var constraint = Constraints.matchesPattern("[abc]+");
+        assertFalse(constraint.validate(null).get().isValid());
+        assertFalse(constraint.validate("").get().isValid());
+        assertFalse(constraint.validate("def").get().isValid());
+        assertTrue(constraint.validate("abc").get().isValid());
+        assertTrue(constraint.validate("aaa").get().isValid());
     }
 
     @Test
     public void testMatchesObservablePattern() throws ExecutionException, InterruptedException {
         var pattern = new SimpleStringProperty("[abc]+");
-        var validator = (Validator<String, Object>)Constraints.matchesPattern(pattern).getValidator();
-        assertFalse(validator.validate(null).get().isValid());
-        assertFalse(validator.validate("").get().isValid());
-        assertFalse(validator.validate("def").get().isValid());
-        assertTrue(validator.validate("abc").get().isValid());
-        assertTrue(validator.validate("aaa").get().isValid());
+        var constraint = Constraints.matchesPattern(pattern);
+        assertFalse(constraint.validate(null).get().isValid());
+        assertFalse(constraint.validate("").get().isValid());
+        assertFalse(constraint.validate("def").get().isValid());
+        assertTrue(constraint.validate("abc").get().isValid());
+        assertTrue(constraint.validate("aaa").get().isValid());
 
         pattern.set("[def]+");
-        assertFalse(validator.validate("abc").get().isValid());
-        assertFalse(validator.validate("aaa").get().isValid());
-        assertTrue(validator.validate("ddd").get().isValid());
-        assertTrue(validator.validate("defdefdef").get().isValid());
+        assertFalse(constraint.validate("abc").get().isValid());
+        assertFalse(constraint.validate("aaa").get().isValid());
+        assertTrue(constraint.validate("ddd").get().isValid());
+        assertTrue(constraint.validate("defdefdef").get().isValid());
     }
 
     @Test
     public void testNotMatchesPattern() throws ExecutionException, InterruptedException {
-        var validator = (Validator<String, Object>)Constraints.notMatchesPattern("[abc]+").getValidator();
-        assertTrue(validator.validate(null).get().isValid());
-        assertTrue(validator.validate("").get().isValid());
-        assertTrue(validator.validate("def").get().isValid());
-        assertFalse(validator.validate("abc").get().isValid());
-        assertFalse(validator.validate("aaa").get().isValid());
+        var constraint = Constraints.notMatchesPattern("[abc]+");
+        assertTrue(constraint.validate(null).get().isValid());
+        assertTrue(constraint.validate("").get().isValid());
+        assertTrue(constraint.validate("def").get().isValid());
+        assertFalse(constraint.validate("abc").get().isValid());
+        assertFalse(constraint.validate("aaa").get().isValid());
     }
 
     @Test
     public void testNotMatchesObservablePattern() throws ExecutionException, InterruptedException {
         var pattern = new SimpleStringProperty("[abc]+");
-        var validator = (Validator<String, Object>)Constraints.notMatchesPattern(pattern).getValidator();
-        assertTrue(validator.validate(null).get().isValid());
-        assertTrue(validator.validate("").get().isValid());
-        assertTrue(validator.validate("def").get().isValid());
-        assertFalse(validator.validate("abc").get().isValid());
-        assertFalse(validator.validate("aaa").get().isValid());
+        var constraint = Constraints.notMatchesPattern(pattern);
+        assertTrue(constraint.validate(null).get().isValid());
+        assertTrue(constraint.validate("").get().isValid());
+        assertTrue(constraint.validate("def").get().isValid());
+        assertFalse(constraint.validate("abc").get().isValid());
+        assertFalse(constraint.validate("aaa").get().isValid());
 
         pattern.set("[def]+");
-        assertTrue(validator.validate("abc").get().isValid());
-        assertTrue(validator.validate("aaa").get().isValid());
-        assertFalse(validator.validate("ddd").get().isValid());
-        assertFalse(validator.validate("defdefdef").get().isValid());
+        assertTrue(constraint.validate("abc").get().isValid());
+        assertTrue(constraint.validate("aaa").get().isValid());
+        assertFalse(constraint.validate("ddd").get().isValid());
+        assertFalse(constraint.validate("defdefdef").get().isValid());
     }
 
     @Test
     public void testBetweenInt() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.between(5, 10).getValidator();
-        assertFalse(validator.validate(4).get().isValid());
-        assertTrue(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
-        assertFalse(validator.validate(10).get().isValid());
+        var constraint = Constraints.between(5, 10);
+        assertFalse(constraint.validate(4).get().isValid());
+        assertTrue(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
     }
 
     @Test
     public void testBetweenLong() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.between(5L, 10L).getValidator();
-        assertFalse(validator.validate(4).get().isValid());
-        assertTrue(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
-        assertFalse(validator.validate(10).get().isValid());
+        var constraint = Constraints.between(5L, 10L);
+        assertFalse(constraint.validate(4).get().isValid());
+        assertTrue(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
     }
 
     @Test
     public void testBetweenFloat() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.between(5F, 10F).getValidator();
-        assertFalse(validator.validate(4).get().isValid());
-        assertTrue(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
-        assertFalse(validator.validate(10).get().isValid());
+        var constraint = Constraints.between(5F, 10F);
+        assertFalse(constraint.validate(4).get().isValid());
+        assertTrue(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
     }
 
     @Test
     public void testBetweenDouble() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.between(5D, 10D).getValidator();
-        assertFalse(validator.validate(4).get().isValid());
-        assertTrue(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
-        assertFalse(validator.validate(10).get().isValid());
+        var constraint = Constraints.between(5D, 10D);
+        assertFalse(constraint.validate(4).get().isValid());
+        assertTrue(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
     }
 
     @Test
     public void testBetweenObservableInt() throws ExecutionException, InterruptedException {
         var min = new SimpleIntegerProperty(5);
         var max = new SimpleIntegerProperty(10);
-        var validator = (Validator<Number, Object>)Constraints.between(min, max).getValidator();
-        assertFalse(validator.validate(4).get().isValid());
-        assertTrue(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
-        assertFalse(validator.validate(10).get().isValid());
+        var constraint = Constraints.between(min, max);
+        assertFalse(constraint.validate(4).get().isValid());
+        assertTrue(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
         min.set(8);
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(8).get().isValid());
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(8).get().isValid());
         max.set(9);
-        assertFalse(validator.validate(9).get().isValid());
-        assertTrue(validator.validate(8).get().isValid());
+        assertFalse(constraint.validate(9).get().isValid());
+        assertTrue(constraint.validate(8).get().isValid());
     }
 
     @Test
     public void testBetweenObservableLong() throws ExecutionException, InterruptedException {
         var min = new SimpleLongProperty(5);
         var max = new SimpleLongProperty(10);
-        var validator = (Validator<Number, Object>)Constraints.between(min, max).getValidator();
-        assertFalse(validator.validate(4).get().isValid());
-        assertTrue(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
-        assertFalse(validator.validate(10).get().isValid());
+        var constraint = Constraints.between(min, max);
+        assertFalse(constraint.validate(4).get().isValid());
+        assertTrue(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
         min.set(8);
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(8).get().isValid());
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(8).get().isValid());
         max.set(9);
-        assertFalse(validator.validate(9).get().isValid());
-        assertTrue(validator.validate(8).get().isValid());
+        assertFalse(constraint.validate(9).get().isValid());
+        assertTrue(constraint.validate(8).get().isValid());
     }
 
     @Test
     public void testBetweenObservableFloat() throws ExecutionException, InterruptedException {
         var min = new SimpleFloatProperty(5);
         var max = new SimpleFloatProperty(10);
-        var validator = (Validator<Number, Object>)Constraints.between(min, max).getValidator();
-        assertFalse(validator.validate(4).get().isValid());
-        assertTrue(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
-        assertFalse(validator.validate(10).get().isValid());
+        var constraint = Constraints.between(min, max);
+        assertFalse(constraint.validate(4).get().isValid());
+        assertTrue(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
         min.set(8);
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(8).get().isValid());
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(8).get().isValid());
         max.set(9);
-        assertFalse(validator.validate(9).get().isValid());
-        assertTrue(validator.validate(8).get().isValid());
+        assertFalse(constraint.validate(9).get().isValid());
+        assertTrue(constraint.validate(8).get().isValid());
     }
 
     @Test
     public void testBetweenObservableDouble() throws ExecutionException, InterruptedException {
         var min = new SimpleDoubleProperty(5);
         var max = new SimpleDoubleProperty(10);
-        var validator = (Validator<Number, Object>)Constraints.between(min, max).getValidator();
-        assertFalse(validator.validate(4).get().isValid());
-        assertTrue(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
-        assertFalse(validator.validate(10).get().isValid());
+        var constraint = Constraints.between(min, max);
+        assertFalse(constraint.validate(4).get().isValid());
+        assertTrue(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
         min.set(8);
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(8).get().isValid());
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(8).get().isValid());
         max.set(9);
-        assertFalse(validator.validate(9).get().isValid());
-        assertTrue(validator.validate(8).get().isValid());
+        assertFalse(constraint.validate(9).get().isValid());
+        assertTrue(constraint.validate(8).get().isValid());
     }
 
     @Test
     public void testGreaterThanInt() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.greaterThan(5).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThan(5);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testGreaterThanLong() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.greaterThan(5L).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThan(5L);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testGreaterThanFloat() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.greaterThan(5F).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThan(5F);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testGreaterThanDouble() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.greaterThan(5D).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThan(5D);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testGreaterThanObservableInt() throws ExecutionException, InterruptedException {
         var min = new SimpleIntegerProperty(5);
-        var validator = (Validator<Number, Object>)Constraints.greaterThan(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThan(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(10);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testGreaterThanObservableLong() throws ExecutionException, InterruptedException {
         var min = new SimpleLongProperty(5);
-        var validator = (Validator<Number, Object>)Constraints.greaterThan(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThan(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(10);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testGreaterThanObservableFloat() throws ExecutionException, InterruptedException {
         var min = new SimpleFloatProperty(5);
-        var validator = (Validator<Number, Object>)Constraints.greaterThan(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThan(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(10);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testGreaterThanObservableDouble() throws ExecutionException, InterruptedException {
         var min = new SimpleDoubleProperty(5);
-        var validator = (Validator<Number, Object>)Constraints.greaterThan(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThan(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(10);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testGreaterThanOrEqualToInt() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.greaterThanOrEqualTo(6).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThanOrEqualTo(6);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testGreaterThanOrEqualToLong() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.greaterThanOrEqualTo(6L).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThanOrEqualTo(6L);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testGreaterThanOrEqualToFloat() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.greaterThanOrEqualTo(6F).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThanOrEqualTo(6F);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testGreaterThanOrEqualToDouble() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.greaterThanOrEqualTo(6D).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThanOrEqualTo(6D);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testGreaterThanOrEqualToObservableInt() throws ExecutionException, InterruptedException {
         var min = new SimpleIntegerProperty(6);
-        var validator = (Validator<Number, Object>)Constraints.greaterThanOrEqualTo(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThanOrEqualTo(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(11);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testGreaterThanOrEqualToObservableLong() throws ExecutionException, InterruptedException {
         var min = new SimpleLongProperty(6);
-        var validator = (Validator<Number, Object>)Constraints.greaterThanOrEqualTo(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThanOrEqualTo(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(11);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testGreaterThanOrEqualToObservableFloat() throws ExecutionException, InterruptedException {
         var min = new SimpleFloatProperty(6);
-        var validator = (Validator<Number, Object>)Constraints.greaterThanOrEqualTo(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThanOrEqualTo(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(11);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testGreaterThanOrEqualToObservableDouble() throws ExecutionException, InterruptedException {
         var min = new SimpleDoubleProperty(6);
-        var validator = (Validator<Number, Object>)Constraints.greaterThanOrEqualTo(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.greaterThanOrEqualTo(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(11);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testLessThanInt() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.lessThan(5).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(4).get().isValid());
+        var constraint = Constraints.lessThan(5);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(4).get().isValid());
     }
 
     @Test
     public void testLessThanLong() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.lessThan(5L).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(4).get().isValid());
+        var constraint = Constraints.lessThan(5L);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(4).get().isValid());
     }
 
     @Test
     public void testLessThanFloat() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.lessThan(5F).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(4).get().isValid());
+        var constraint = Constraints.lessThan(5F);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(4).get().isValid());
     }
 
     @Test
     public void testLessThanDouble() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.lessThan(5D).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(4).get().isValid());
+        var constraint = Constraints.lessThan(5D);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(4).get().isValid());
     }
 
     @Test
     public void testLessThanObservableInt() throws ExecutionException, InterruptedException {
         var min = new SimpleIntegerProperty(5);
-        var validator = (Validator<Number, Object>)Constraints.lessThan(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(4).get().isValid());
+        var constraint = Constraints.lessThan(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(4).get().isValid());
         min.set(10);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
     }
 
     @Test
     public void testLessThanObservableLong() throws ExecutionException, InterruptedException {
         var min = new SimpleLongProperty(5);
-        var validator = (Validator<Number, Object>)Constraints.lessThan(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(4).get().isValid());
+        var constraint = Constraints.lessThan(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(4).get().isValid());
         min.set(10);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
     }
 
     @Test
     public void testLessThanObservableFloat() throws ExecutionException, InterruptedException {
         var min = new SimpleFloatProperty(5);
-        var validator = (Validator<Number, Object>)Constraints.lessThan(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(4).get().isValid());
+        var constraint = Constraints.lessThan(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(4).get().isValid());
         min.set(10);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
     }
 
     @Test
     public void testLessThanObservableDouble() throws ExecutionException, InterruptedException {
         var min = new SimpleDoubleProperty(5);
-        var validator = (Validator<Number, Object>)Constraints.lessThan(min).getValidator();
-        assertFalse(validator.validate(5).get().isValid());
-        assertTrue(validator.validate(4).get().isValid());
+        var constraint = Constraints.lessThan(min);
+        assertFalse(constraint.validate(5).get().isValid());
+        assertTrue(constraint.validate(4).get().isValid());
         min.set(10);
-        assertFalse(validator.validate(10).get().isValid());
-        assertTrue(validator.validate(9).get().isValid());
+        assertFalse(constraint.validate(10).get().isValid());
+        assertTrue(constraint.validate(9).get().isValid());
     }
 
     @Test
     public void testLessThanOrEqualToInt() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.lessThanOrEqualTo(6).getValidator();
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.lessThanOrEqualTo(6);
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testLessThanOrEqualToLong() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.lessThanOrEqualTo(6L).getValidator();
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.lessThanOrEqualTo(6L);
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testLessThanOrEqualToFloat() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.lessThanOrEqualTo(6F).getValidator();
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.lessThanOrEqualTo(6F);
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testLessThanOrEqualToDouble() throws ExecutionException, InterruptedException {
-        var validator = (Validator<Number, Object>)Constraints.lessThanOrEqualTo(6D).getValidator();
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.lessThanOrEqualTo(6D);
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
     }
 
     @Test
     public void testLessThanOrEqualToObservableInt() throws ExecutionException, InterruptedException {
         var min = new SimpleIntegerProperty(6);
-        var validator = (Validator<Number, Object>)Constraints.lessThanOrEqualTo(min).getValidator();
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.lessThanOrEqualTo(min);
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(11);
-        assertFalse(validator.validate(12).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(12).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testLessThanOrEqualToObservableLong() throws ExecutionException, InterruptedException {
         var min = new SimpleLongProperty(6);
-        var validator = (Validator<Number, Object>)Constraints.lessThanOrEqualTo(min).getValidator();
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.lessThanOrEqualTo(min);
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(11);
-        assertFalse(validator.validate(12).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(12).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testLessThanOrEqualToObservableFloat() throws ExecutionException, InterruptedException {
         var min = new SimpleFloatProperty(6);
-        var validator = (Validator<Number, Object>)Constraints.lessThanOrEqualTo(min).getValidator();
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.lessThanOrEqualTo(min);
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(11);
-        assertFalse(validator.validate(12).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(12).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
     @Test
     public void testLessThanOrEqualToObservableDouble() throws ExecutionException, InterruptedException {
         var min = new SimpleDoubleProperty(6);
-        var validator = (Validator<Number, Object>)Constraints.lessThanOrEqualTo(min).getValidator();
-        assertFalse(validator.validate(7).get().isValid());
-        assertTrue(validator.validate(6).get().isValid());
+        var constraint = Constraints.lessThanOrEqualTo(min);
+        assertFalse(constraint.validate(7).get().isValid());
+        assertTrue(constraint.validate(6).get().isValid());
         min.set(11);
-        assertFalse(validator.validate(12).get().isValid());
-        assertTrue(validator.validate(11).get().isValid());
+        assertFalse(constraint.validate(12).get().isValid());
+        assertTrue(constraint.validate(11).get().isValid());
     }
 
 }

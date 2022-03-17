@@ -38,19 +38,19 @@ import javafx.scene.layout.Region;
 import javafx.validation.Constraint;
 import javafx.validation.ValidationResult;
 import javafx.validation.ValidationState;
-import javafx.validation.Validator;
 import javafx.validation.property.ConstrainedStringProperty;
 import javafx.validation.property.SimpleConstrainedStringProperty;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SuppressWarnings({"FieldCanBeLocal", "unused", "Convert2Lambda", "CodeBlock2Expr"})
+@SuppressWarnings({"FieldCanBeLocal", "unused", "CodeBlock2Expr"})
 public class ValidationHelperTest {
 
     private ValidationHelper<String, String> helper;
@@ -80,6 +80,18 @@ public class ValidationHelperTest {
         helper = PropertyHelper.getValidationHelper(value);
     }
 
+    private static abstract class ConstraintImpl implements Constraint<String, String> {
+        @Override
+        public Executor getCompletionExecutor() {
+            return null;
+        }
+
+        @Override
+        public Observable[] getDependencies() {
+            return null;
+        }
+    }
+
     @Test
     public void testConstrainedValueEqualsValueWhenNoConstraintsAreSpecified() {
         initialize();
@@ -90,12 +102,12 @@ public class ValidationHelperTest {
     @Test
     public void testAlwaysValidValidator() {
         initialize(
-            new Constraint<>(new Validator<>() {
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, null));
+            });
 
         value.set("foo");
         assertEquals("foo", constrainedValue.get());
@@ -105,12 +117,12 @@ public class ValidationHelperTest {
     @Test
     public void testAlwaysInvalidValidator() {
         initialize(
-            new Constraint<>(new Validator<>() {
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     return CompletableFuture.completedFuture(ValidationResult.invalid());
                 }
-            }, null, null));
+            });
 
         value.set("foo");
         assertNull(constrainedValue.get());
@@ -120,12 +132,12 @@ public class ValidationHelperTest {
     @Test
     public void testUserValidWithAlwaysValidValidator() {
         initialize(
-            new Constraint<>(new Validator<>() {
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, null));
+            });
 
         var control = new Region();
         var userValid = ValidationState.userValidProperty(control);
@@ -144,12 +156,12 @@ public class ValidationHelperTest {
     @Test
     public void testUserInvalidWithAlwaysInvalidValidator() {
         initialize(
-            new Constraint<>(new Validator<>() {
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     return CompletableFuture.completedFuture(ValidationResult.invalid());
                 }
-            }, null, null));
+            });
 
         var control = new Region();
         var userInvalid = ValidationState.userInvalidProperty(control);
@@ -168,12 +180,12 @@ public class ValidationHelperTest {
     @Test
     public void testExceptionInValidatorStopsValidation() {
         initialize(
-            new Constraint<>(new Validator<>() {
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     throw new RuntimeException();
                 }
-            }, null, null));
+            });
 
         assertValidationState(helper, false, false, false);
     }
@@ -181,7 +193,7 @@ public class ValidationHelperTest {
     @Test
     public void testValidatorYieldsDiagnosticOrError() {
         initialize(
-            new Constraint<>(new Validator<>() {
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     if (value != null) {
@@ -190,7 +202,7 @@ public class ValidationHelperTest {
                     }
                     return CompletableFuture.completedFuture(new ValidationResult<>(false, "<null>"));
                 }
-            }, null, null));
+            });
 
         var invalidSubList = helper.diagnosticsProperty().invalidSubList();
         var validSubList = helper.diagnosticsProperty().validSubList();
@@ -213,7 +225,7 @@ public class ValidationHelperTest {
     @Test
     public void testMultipleDiagnosticsAndErrors() {
         initialize(
-            new Constraint<>(new Validator<>() {
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     if (value == null) {
@@ -223,8 +235,8 @@ public class ValidationHelperTest {
                     return CompletableFuture.completedFuture(
                         new ValidationResult<>(true, value.isBlank() ? "<blank>" : null));
                 }
-            }, null, null),
-            new Constraint<>(new Validator<>() {
+            },
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     if (value == null) {
@@ -234,15 +246,15 @@ public class ValidationHelperTest {
                     return CompletableFuture.completedFuture(
                         new ValidationResult<>(true, value.isEmpty() ? "<empty>" : null));
                 }
-            }, null, null),
-            new Constraint<>(new Validator<>() {
+            },
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     boolean valid = value != null && value.length() > 4;
                     return CompletableFuture.completedFuture(
                         new ValidationResult<>(valid, !valid ? "<short>" : null));
                 }
-            }, null, null));
+            });
 
         var invalidSubList = helper.diagnosticsProperty().invalidSubList();
         var validSubList = helper.diagnosticsProperty().validSubList();
@@ -280,20 +292,30 @@ public class ValidationHelperTest {
         var validator2Count = new int[1];
 
         initialize(
-            new Constraint<>(new Validator<>() {
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     validator1Count[0]++;
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, new Observable[] {dep1}),
-            new Constraint<>(new Validator<>() {
+
+                @Override
+                public Observable[] getDependencies() {
+                    return new Observable[] {dep1};
+                }
+            },
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     validator2Count[0]++;
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, new Observable[] {dep2}));
+
+                @Override
+                public Observable[] getDependencies() {
+                    return new Observable[] {dep2};
+                }
+            });
 
         assertEquals(1, validator1Count[0]);
         assertEquals(1, validator2Count[0]);
@@ -314,12 +336,12 @@ public class ValidationHelperTest {
     @Test
     public void testValidatorDoesNotValidateObservable() {
         initialize(
-            new Constraint<>(new Validator<>() {
+            new ConstraintImpl() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, null));
+            });
 
         var listener = new InvalidationListenerMock();
         value.addListener(listener);
@@ -335,11 +357,23 @@ public class ValidationHelperTest {
 
     @Nested
     class AsynchronousTests extends ConcurrentTestBase {
+        private abstract class AsyncConstraintImpl implements Constraint<String, String> {
+            @Override
+            public Executor getCompletionExecutor() {
+                return AsynchronousTests.this::runLater;
+            }
+
+            @Override
+            public Observable[] getDependencies() {
+                return null;
+            }
+        }
+
         @Test
         public void testValidatingIsTrueWhileValidatorIsRunning() {
             runNow(() -> {
                 initialize(
-                    new Constraint<>(new Validator<>() {
+                    new AsyncConstraintImpl() {
                         @Override
                         public CompletableFuture<ValidationResult<String>> validate(String value) {
                             return CompletableFuture.supplyAsync(() -> {
@@ -347,7 +381,7 @@ public class ValidationHelperTest {
                                 return ValidationResult.valid();
                             });
                         }
-                    }, this::runLater, null));
+                    });
 
                 assertValidationState(helper, true, false, false);
             });
@@ -374,13 +408,13 @@ public class ValidationHelperTest {
         public void testExceptionInValidatorStopsValidation() {
             runNow(() -> {
                 initialize(
-                    new Constraint<>(new Validator<>() {
+                    new AsyncConstraintImpl() {
                         @Override
                         public CompletableFuture<ValidationResult<String>> validate(String value) {
                             sleep(50);
                             throw new RuntimeException();
                         }
-                    }, this::runLater, null));
+                    });
             });
 
             sleep(100);
@@ -394,7 +428,7 @@ public class ValidationHelperTest {
         public void testExceptionInValidatorFutureStopsValidation() {
             runNow(() -> {
                 initialize(
-                    new Constraint<>(new Validator<>() {
+                    new AsyncConstraintImpl() {
                         @Override
                         public CompletableFuture<ValidationResult<String>> validate(String value) {
                             return CompletableFuture.supplyAsync(() -> {
@@ -402,7 +436,7 @@ public class ValidationHelperTest {
                                 throw new RuntimeException();
                             });
                         }
-                    }, this::runLater, null));
+                    });
 
                 assertValidationState(helper, true, false, false);
             });
@@ -418,7 +452,7 @@ public class ValidationHelperTest {
         public void testValidatorYieldsDiagnosticOrError() {
             runNow(() -> {
                 initialize(
-                    new Constraint<>(new Validator<>() {
+                    new AsyncConstraintImpl() {
                         @Override
                         public CompletableFuture<ValidationResult<String>> validate(String value) {
                             return CompletableFuture.supplyAsync(() -> {
@@ -429,7 +463,7 @@ public class ValidationHelperTest {
                                 return new ValidationResult<>(false, "<null>");
                             });
                         }
-                    }, this::runLater, null));
+                    });
 
                 assertEquals(List.of(), helper.diagnosticsProperty().invalidSubList());
                 assertEquals(List.of(), helper.diagnosticsProperty().validSubList());
@@ -474,7 +508,7 @@ public class ValidationHelperTest {
         public void testMultipleDiagnosticsAndErrors() {
             runNow(() -> {
                 initialize(
-                    new Constraint<>(new Validator<>() {
+                    new AsyncConstraintImpl() {
                         @Override
                         public CompletableFuture<ValidationResult<String>> validate(String value) {
                             return CompletableFuture.supplyAsync(() -> {
@@ -485,8 +519,8 @@ public class ValidationHelperTest {
                                 return new ValidationResult<>(true, value.isBlank() ? "<blank>" : null);
                             });
                         }
-                    }, this::runLater, null),
-                    new Constraint<>(new Validator<>() {
+                    },
+                    new AsyncConstraintImpl() {
                         @Override
                         public CompletableFuture<ValidationResult<String>> validate(String value) {
                             return CompletableFuture.supplyAsync(() -> {
@@ -497,8 +531,8 @@ public class ValidationHelperTest {
                                 return new ValidationResult<>(true, value.isEmpty() ? "<empty>" : null);
                             });
                         }
-                    }, this::runLater, null),
-                    new Constraint<>(new Validator<>() {
+                    },
+                    new AsyncConstraintImpl() {
                         @Override
                         public CompletableFuture<ValidationResult<String>> validate(String value) {
                             return CompletableFuture.supplyAsync(() -> {
@@ -507,7 +541,7 @@ public class ValidationHelperTest {
                                 return new ValidationResult<>(valid, !valid ? "<short>" : null);
                             });
                         }
-                    }, this::runLater, null));
+                    });
 
                 assertEquals(List.of(), helper.diagnosticsProperty().invalidSubList());
                 assertEquals(List.of(), helper.diagnosticsProperty().validSubList());
@@ -609,9 +643,15 @@ public class ValidationHelperTest {
             });
         }
 
-        private record TestValidator(Supplier<ValidationResult<String>> action) implements Validator<String, String> {
+        private class TestConstraint implements Constraint<String, String> {
+            final Supplier<ValidationResult<String>> action;
+
+            TestConstraint(Supplier<ValidationResult<String>> action) {
+                this.action = action;
+            }
+
             @Override
-            public CompletableFuture<ValidationResult<String>> validate(String value) {
+            public final CompletableFuture<ValidationResult<String>> validate(String value) {
                 var task = new ValidateTask<String, String>(value) {
                     @Override
                     protected ValidationResult<String> apply(String value) {
@@ -620,6 +660,16 @@ public class ValidationHelperTest {
                 };
                 ForkJoinPool.commonPool().execute(task);
                 return task;
+            }
+
+            @Override
+            public final Executor getCompletionExecutor() {
+                return AsynchronousTests.this::runLater;
+            }
+
+            @Override
+            public Observable[] getDependencies() {
+                return null;
             }
         }
 
@@ -632,16 +682,26 @@ public class ValidationHelperTest {
 
             runNow(() -> {
                 initialize(
-                    new Constraint<>(new TestValidator(() -> {
+                    new TestConstraint(() -> {
                         sleep(50);
                         validator1Count.getAndIncrement();
                         return ValidationResult.valid();
-                    }), this::runLater, new Observable[] {dep1}),
-                    new Constraint<>(new TestValidator(() -> {
+                    }) {
+                        @Override
+                        public Observable[] getDependencies() {
+                            return new Observable[] {dep1};
+                        }
+                    },
+                    new TestConstraint(() -> {
                         sleep(50);
                         validator2Count.getAndIncrement();
                         return ValidationResult.valid();
-                    }), this::runLater, new Observable[] {dep2}));
+                    }) {
+                        @Override
+                        public Observable[] getDependencies() {
+                            return new Observable[] {dep2};
+                        }
+                    });
 
                 assertValidationState(helper, true, false, false);
             });
@@ -695,10 +755,10 @@ public class ValidationHelperTest {
 
             runNow(() -> {
                 initialize(
-                    new Constraint<>(new TestValidator(() -> {
+                    new TestConstraint(() -> {
                         sleep(50);
                         return ValidationResult.valid();
-                    }), this::runLater, null));
+                    }));
             });
 
             sleep(75);

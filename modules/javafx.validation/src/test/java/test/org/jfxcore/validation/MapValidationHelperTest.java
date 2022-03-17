@@ -28,23 +28,24 @@ import org.jfxcore.validation.MapValidationHelper;
 import org.jfxcore.validation.PropertyHelper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import javafx.beans.Observable;
 import javafx.beans.property.ReadOnlyMapProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableMap;
 import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.Constraints;
 import javafx.validation.MapConstraint;
 import javafx.validation.ValidationResult;
-import javafx.validation.Validator;
 import javafx.validation.property.ConstrainedMapProperty;
 import javafx.validation.property.SimpleConstrainedMapProperty;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SuppressWarnings("Convert2Lambda")
 public class MapValidationHelperTest {
 
     private MapValidationHelper<Integer, String, String> helper;
@@ -68,7 +69,7 @@ public class MapValidationHelperTest {
     }
 
     @SafeVarargs
-    final void initialize(ObservableMap<Integer, String> initialValue, Constraint<? super String, String>... constraints) {
+    final void initialize(ObservableMap<Integer, String> initialValue, ConstraintBase<? super String, String>... constraints) {
         value = new SimpleConstrainedMapProperty<>(initialValue, constraints);
         constrainedValue = value.constrainedValueProperty();
         helper = (MapValidationHelper<Integer, String, String>)PropertyHelper.getValidationHelper(value);
@@ -106,14 +107,17 @@ public class MapValidationHelperTest {
 
         initialize(
             null,
-            new MapConstraint<Integer, String, String>(new Validator<>() {
+            new MapConstraint<Integer, String, String>() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(
-                        ObservableMap<? super Integer, ? super String> value) {
+                        Map<? super Integer, ? super String> value) {
                     validationCount[0]++;
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, null));
+
+                @Override public Executor getCompletionExecutor() { return null; }
+                @Override public Observable[] getDependencies() { return null; }
+            });
 
         assertEquals(1, validationCount[0]);
         assertEquals(Map.of(), constrainedValue);
@@ -126,13 +130,16 @@ public class MapValidationHelperTest {
 
         initialize(
             FXCollections.observableMap(Map.of(0, "foo", 1, "bar", 2, "baz")),
-            new Constraint<>(new Validator<>() {
+            new Constraint<>() {
                 @Override
                 public CompletableFuture<ValidationResult<String>> validate(String value) {
                     validationCount[0]++;
                     return CompletableFuture.completedFuture(ValidationResult.valid());
                 }
-            }, null, null));
+
+                @Override public Executor getCompletionExecutor() { return null; }
+                @Override public Observable[] getDependencies() { return null; }
+            });
 
         assertEquals(3, validationCount[0]);
         assertEquals(Map.of(0, "foo", 1, "bar", 2, "baz"), constrainedValue);

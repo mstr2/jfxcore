@@ -29,12 +29,21 @@ import javafx.collections.ObservableMap;
 import javafx.collections.ObservableSet;
 import javafx.validation.ConstrainedElement;
 import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.ValidationState;
 import javafx.validation.property.ReadOnlyConstrainedMapProperty;
 import java.lang.reflect.Array;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Adds map element validation capabilities to {@link ValidationHelper} to support
+ * data validation for {@link ReadOnlyConstrainedMapProperty}.
+ *
+ * @param <K> key type
+ * @param <V> value type
+ * @param <D> diagnostic type
+ */
 public class MapValidationHelper<K, V, D>
         extends ValidationHelper<ObservableMap<K, V>, D>
         implements ElementValidationHelper<V, D> {
@@ -50,13 +59,13 @@ public class MapValidationHelper<K, V, D>
             ReadOnlyConstrainedMapProperty<K, V, D> observable,
             DeferredProperty<ObservableMap<K, V>> constrainedValue,
             ValidationState initialValidationState,
-            Constraint<? super V, D>[] constraints) {
+            ConstraintBase<? super V, D>[] constraints) {
         super(observable, constrainedValue, initialValidationState, constraints, ConstraintType.MAP);
 
         if (constraints != null && constraints.length > 0) {
             int elementConstraints = 0;
             for (var constraint : constraints) {
-                if (constraint.getClass() == Constraint.class) {
+                if (constraint instanceof Constraint) {
                     elementConstraints++;
                 }
             }
@@ -66,8 +75,8 @@ public class MapValidationHelper<K, V, D>
                 (Constraint<? super V, D>[])NO_CONSTRAINTS;
 
             for (int i = 0, j = 0; i < constraints.length; ++i) {
-                if (constraints[i].getClass() == Constraint.class) {
-                    this.elementConstraints[j++] = constraints[i];
+                if (constraints[i] instanceof Constraint) {
+                    this.elementConstraints[j++] = (Constraint<? super V, D>)constraints[i];
                 }
             }
         } else {

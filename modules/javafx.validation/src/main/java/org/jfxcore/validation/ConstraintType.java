@@ -22,6 +22,7 @@
 package org.jfxcore.validation;
 
 import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.ListConstraint;
 import javafx.validation.MapConstraint;
 import javafx.validation.SetConstraint;
@@ -33,46 +34,60 @@ enum ConstraintType {
     SET,
     MAP;
 
-    boolean checkType(Constraint<?, ?> constraint) {
+    boolean checkType(ConstraintBase<?, ?> constraint) {
         if (constraint == null) {
             throw new NullPointerException("Constraint cannot be null.");
         }
 
         return switch (this) {
             case SCALAR -> {
-                if (constraint.getClass() == Constraint.class) {
+                if (constraint instanceof Constraint) {
                     yield true;
                 }
 
                 throw new IllegalArgumentException(String.format(
-                    "Illegal constraint: expected = %s; actual = %s",
+                    "Illegal constraint type: expected = %s; actual = %s",
                     Constraint.class.getSimpleName(),
-                    constraint.getClass().getSimpleName()));
+                    getClassName(constraint)));
             }
 
-            case LIST -> checkConstraintClass(constraint, ListConstraint.class);
+            case LIST -> constraint instanceof ListConstraint || checkConstraintClass(constraint, ListConstraint.class);
 
-            case SET -> checkConstraintClass(constraint, SetConstraint.class);
+            case SET -> constraint instanceof SetConstraint || checkConstraintClass(constraint, SetConstraint.class);
 
-            case MAP -> checkConstraintClass(constraint, MapConstraint.class);
+            case MAP -> constraint instanceof MapConstraint || checkConstraintClass(constraint, MapConstraint.class);
         };
     }
 
-    private static boolean checkConstraintClass(Constraint<?, ?> constraint, Class<?> expectedClass) {
-        var clazz = constraint.getClass();
-
-        if (clazz == expectedClass) {
-            return true;
-        }
-
-        if (clazz != Constraint.class) {
+    private static boolean checkConstraintClass(ConstraintBase<?, ?> constraint, Class<?> expectedClass) {
+        if (!(constraint instanceof Constraint)) {
             throw new IllegalArgumentException(String.format(
-                "Illegal constraint: expected = %s; actual = %s",
+                "Illegal constraint type: expected = %s; actual = %s",
                 expectedClass.getSimpleName(),
-                constraint.getClass().getSimpleName()));
+                getClassName(constraint)));
         }
 
         return false;
+    }
+
+    private static String getClassName(ConstraintBase<?, ?> constraint) {
+        if (constraint instanceof Constraint) {
+            return Constraint.class.getSimpleName();
+        }
+
+        if (constraint instanceof ListConstraint) {
+            return ListConstraint.class.getSimpleName();
+        }
+
+        if (constraint instanceof SetConstraint) {
+            return SetConstraint.class.getSimpleName();
+        }
+
+        if (constraint instanceof MapConstraint) {
+            return MapConstraint.class.getSimpleName();
+        }
+
+        return constraint.getClass().getName();
     }
 
 }

@@ -24,7 +24,7 @@ package javafx.validation;
 import javafx.util.Incubating;
 
 /**
- * Represents the result of an invocation of a {@link Validator}.
+ * Represents the result of an invocation of a {@link Constraint} validator.
  * <p>
  * A constraint validator can choose to add an application-specified diagnostic object to the returned
  * {@link ValidationResult}, which can be used to provide information about the validated value.
@@ -86,7 +86,7 @@ public class ValidationResult<D> {
 
     /**
      * Returns a {@code ValidationResult} representing a validation run that didn't produce a result.
-     * Returning this special value from a {@link Validator} effectively cancels the validation run.
+     * Returning this special value from a {@link Constraint} validator effectively cancels the validation run.
      *
      * @param <D> diagnostic type
      * @return a {@code ValidationResult}

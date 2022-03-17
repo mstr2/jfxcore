@@ -27,17 +27,24 @@ import javafx.beans.WeakInvalidationListener;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanPropertyBase;
 import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.DiagnosticList;
+import javafx.validation.ListConstraint;
+import javafx.validation.MapConstraint;
+import javafx.validation.SetConstraint;
 import javafx.validation.ValidationListener;
 import javafx.validation.ValidationResult;
 import javafx.validation.ValidationState;
-import javafx.validation.Validator;
 import javafx.validation.property.ReadOnlyConstrainedProperty;
 import javafx.validation.property.ReadOnlyDiagnosticListProperty;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 /**
  * Manages the validation state of a {@link ReadOnlyConstrainedProperty} and invokes
@@ -79,7 +86,7 @@ public class ValidationHelper<T, D> implements InvalidationListener {
             ReadOnlyConstrainedProperty<T, D> observable,
             DeferredProperty<T> constrainedValue,
             ValidationState initialValidationState,
-            Constraint<?, D>[] constraints) {
+            Constraint<? super T, D>[] constraints) {
         this(observable, constrainedValue, initialValidationState, constraints, ConstraintType.SCALAR);
     }
 
@@ -88,7 +95,7 @@ public class ValidationHelper<T, D> implements InvalidationListener {
             ReadOnlyConstrainedProperty<T, D> observable,
             DeferredProperty<T> constrainedValue,
             ValidationState initialValidationState,
-            Constraint<?, D>[] constraints,
+            ConstraintBase<?, D>[] constraints,
             ConstraintType constraintType) {
         Objects.requireNonNull(initialValidationState, "initialValidationState");
 
@@ -97,7 +104,7 @@ public class ValidationHelper<T, D> implements InvalidationListener {
         int length = 0;
 
         if (constraints != null) {
-            for (Constraint<?, D> constraint : constraints) {
+            for (ConstraintBase<?, D> constraint : constraints) {
                 if (constraintType.checkType(constraint)) {
                     ++length;
                 }
@@ -120,9 +127,12 @@ public class ValidationHelper<T, D> implements InvalidationListener {
                     continue;
                 }
 
-                for (Observable dependency : constraints[i].getDependencies()) {
-                    if (!isRecurringDependency(dependency)) {
-                        dependency.addListener(weakInvalidationListener);
+                Observable[] dependencies = constraints[i].getDependencies();
+                if (dependencies != null) {
+                    for (Observable dependency : dependencies) {
+                        if (!isRecurringDependency(dependency)) {
+                            dependency.addListener(weakInvalidationListener);
+                        }
                     }
                 }
 
@@ -133,12 +143,12 @@ public class ValidationHelper<T, D> implements InvalidationListener {
     }
 
     private boolean isRecurringDependency(Observable dependency) {
-        for (var constraintValidator : validators) {
-            if (constraintValidator == null) {
+        for (var validator : validators) {
+            if (validator == null) {
                 return false;
             }
 
-            if (constraintValidator.isDependency(dependency)) {
+            if (validator.isDependency(dependency)) {
                 return true;
             }
         }
@@ -480,26 +490,52 @@ public class ValidationHelper<T, D> implements InvalidationListener {
     }
 
     private static class ValidatorImpl<T, D> extends SerializedValidator<T, D> {
+        private final Function<T, CompletableFuture<ValidationResult<D>>> validateFunc;
         private final ValidationHelper<T, D> helper;
-        private final Constraint<?, D> constraint;
+        private final Observable[] dependencies;
         private final int index;
         private ValidationResult<D> validationResult;
 
-        @SuppressWarnings("unchecked")
-        ValidatorImpl(ValidationHelper<T, D> helper, Constraint<?, D> constraint, int index) {
-            super((Validator<? super T, D>)constraint.getValidator(), constraint.getCompletionExecutor());
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        ValidatorImpl(ValidationHelper<T, D> helper, ConstraintBase<?, D> constraint, int index) {
+            super(constraint);
             this.helper = helper;
-            this.constraint = constraint;
+            this.dependencies = constraint.getDependencies();
             this.index = index;
+
+            if (constraint instanceof Constraint c) {
+                validateFunc = value -> c.validate(value);
+            } else if (constraint instanceof ListConstraint c) {
+                validateFunc = value -> c.validate((List)value);
+            } else if (constraint instanceof SetConstraint c) {
+                validateFunc = value -> c.validate((Set)value);
+            } else if (constraint instanceof MapConstraint c) {
+                validateFunc = value -> c.validate((Map)value);
+            } else {
+                throw new IllegalArgumentException("constraint");
+            }
         }
 
         public boolean isDependency(Observable observable) {
-            return constraint.isDependency(observable);
+            if (dependencies != null) {
+                for (Observable dep : dependencies) {
+                    if (observable == dep) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         @Override
         public ValidationResult<D> getValidationResult() {
             return validationResult;
+        }
+
+        @Override
+        protected CompletableFuture<ValidationResult<D>> newValidationRun(T value) {
+            return validateFunc.apply(value);
         }
 
         @Override

@@ -28,6 +28,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.validation.ConstrainedElement;
 import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.ValidationState;
 import javafx.validation.property.ReadOnlyConstrainedListProperty;
 import java.lang.reflect.Array;
@@ -57,13 +58,13 @@ public class ListValidationHelper<T, D>
             ReadOnlyConstrainedListProperty<T, D> observable,
             DeferredListProperty<T> constrainedValue,
             ValidationState initialValidationState,
-            Constraint<? super T, D>[] constraints) {
+            ConstraintBase<? super T, D>[] constraints) {
         super(observable, constrainedValue, initialValidationState, constraints, ConstraintType.LIST);
 
         if (constraints != null && constraints.length > 0) {
             int elementConstraints = 0;
             for (var constraint : constraints) {
-                if (constraint.getClass() == Constraint.class) {
+                if (constraint instanceof Constraint) {
                     elementConstraints++;
                 }
             }
@@ -73,8 +74,8 @@ public class ListValidationHelper<T, D>
                 (Constraint<? super T, D>[])NO_CONSTRAINTS;
 
             for (int i = 0, j = 0; i < constraints.length; ++i) {
-                if (constraints[i].getClass() == Constraint.class) {
-                    this.elementConstraints[j++] = constraints[i];
+                if (constraints[i] instanceof Constraint) {
+                    this.elementConstraints[j++] = (Constraint<? super T, D>)constraints[i];
                 }
             }
         } else {

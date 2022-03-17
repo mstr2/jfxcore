@@ -23,7 +23,7 @@ package javafx.validation.property;
 
 import javafx.collections.ObservableSet;
 import javafx.util.Incubating;
-import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.ValidationState;
 
 /**
@@ -59,7 +59,7 @@ public class SimpleConstrainedSetProperty<E, D> extends ConstrainedSetPropertyBa
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public SimpleConstrainedSetProperty(Constraint<? super E, D>... constraints) {
+    public SimpleConstrainedSetProperty(ConstraintBase<? super E, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, null, ValidationState.UNKNOWN, constraints);
     }
 
@@ -72,7 +72,7 @@ public class SimpleConstrainedSetProperty<E, D> extends ConstrainedSetPropertyBa
      */
     @SafeVarargs
     public SimpleConstrainedSetProperty(
-            ObservableSet<E> initialValue, Constraint<? super E, D>... constraints) {
+            ObservableSet<E> initialValue, ConstraintBase<? super E, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, ValidationState.UNKNOWN, constraints);
     }
 
@@ -89,7 +89,7 @@ public class SimpleConstrainedSetProperty<E, D> extends ConstrainedSetPropertyBa
     public SimpleConstrainedSetProperty(
             ObservableSet<E> initialValue,
             ValidationState initialValidationState,
-            Constraint<? super E, D>... constraints) {
+            ConstraintBase<? super E, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, initialValidationState, constraints);
     }
 
@@ -103,7 +103,7 @@ public class SimpleConstrainedSetProperty<E, D> extends ConstrainedSetPropertyBa
      */
     @SafeVarargs
     public SimpleConstrainedSetProperty(
-            Object bean, String name, Constraint<? super E, D>... constraints) {
+            Object bean, String name, ConstraintBase<? super E, D>... constraints) {
         this(bean, name, null, ValidationState.UNKNOWN, constraints);
     }
 
@@ -121,7 +121,7 @@ public class SimpleConstrainedSetProperty<E, D> extends ConstrainedSetPropertyBa
             Object bean,
             String name,
             ObservableSet<E> initialValue,
-            Constraint<? super E, D>... constraints) {
+            ConstraintBase<? super E, D>... constraints) {
         this(bean, name, initialValue, ValidationState.UNKNOWN, constraints);
     }
 
@@ -142,7 +142,7 @@ public class SimpleConstrainedSetProperty<E, D> extends ConstrainedSetPropertyBa
             String name,
             ObservableSet<E> initialValue,
             ValidationState initialValidationState,
-            Constraint<? super E, D>... constraints) {
+            ConstraintBase<? super E, D>... constraints) {
         super(initialValue, initialValidationState, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

@@ -54,7 +54,7 @@ import javafx.util.Incubating;
  *
  * <pre>{@code
  * var textField = new TextField();
- * var firstName = new SimpleConstrainedStringProperty&lt;String&gt;(
+ * var firstName = new SimpleConstrainedStringProperty<String>(
  *     Constraints.notNullOrBlank(() -> "Value cannot be empty"),
  *     Constraints.matchesPattern("[^\\d\\W]*", v -> "Invalid value"));
  *
@@ -66,8 +66,8 @@ import javafx.util.Incubating;
  *
  * In an FXML document, the {@code ::} operator must be used to select the source property:
  * <pre>{@code
- * &lt;TextField text="{fx:sync firstName}"
- *            ValidationState.source="{fx:once ::firstName}"/&gt;
+ * <TextField text="{fx:sync firstName}"
+ *            ValidationState.source="{fx:once ::firstName}"/>
  * }</pre>
  *
  * @since JFXcore 18
@@ -91,9 +91,9 @@ public enum ValidationState {
     INVALID;
 
     /**
-     * Indicates whether the value is currently known to be valid after the user has significantly
-     * interacted with the specified {@link Node}. This information is only available when
-     * {@link #sourceProperty source} was set for the specified node.
+     * Returns an attached property for the specified {@link Node} that indicates whether the value
+     * is currently known to be valid after the user has significantly interacted with the node.
+     * This information is only available when {@link #sourceProperty source} was set for the node.
      */
     public static ReadOnlyBooleanProperty userValidProperty(Node node) {
         ValidationInfo info = (ValidationInfo)node.getProperties().get(ValidationInfo.class);
@@ -105,16 +105,16 @@ public enum ValidationState {
     }
 
     /**
-     * Gets the value of the {@link #userValidProperty(Node) userValid} property.
+     * Gets the value of the {@link #userValidProperty(Node) userValid} attached property.
      */
     public static boolean isUserValid(Node node) {
         return userValidProperty(node).get();
     }
 
     /**
-     * Indicates whether the value is currently known to be invalid after the user has significantly
-     * interacted with the specified {@link Node}. This information is only available when
-     * {@link #sourceProperty source} was set for the specified node.
+     * Returns an attached property for the specified {@link Node} that indicates whether the value
+     * is currently known to be invalid after the user has significantly interacted with the node.
+     * This information is only available when {@link #sourceProperty source} was set for the node.
      */
     public static ReadOnlyBooleanProperty userInvalidProperty(Node node) {
         ValidationInfo info = (ValidationInfo)node.getProperties().get(ValidationInfo.class);
@@ -126,15 +126,15 @@ public enum ValidationState {
     }
 
     /**
-     * Gets the value of the {@link #userInvalidProperty(Node) userInvalid} property.
+     * Gets the value of the {@link #userInvalidProperty(Node) userInvalid} attached property.
      */
     public static boolean isUserInvalid(Node node) {
         return userInvalidProperty(node).get();
     }
 
     /**
-     * Specifies the {@link ConstrainedValue} that provides validation
-     * states for the specified scene graph node.
+     * Returns an attached property for the specified {@link Node} that indicates the
+     * {@link ConstrainedValue} that provides validation states for the specified node.
      */
     public static ObjectProperty<ConstrainedValue<?, ?>> sourceProperty(Node node) {
         ValidationInfo info = (ValidationInfo)node.getProperties().get(ValidationInfo.class);
@@ -146,7 +146,7 @@ public enum ValidationState {
     }
 
     /**
-     * Gets the value of the {@link #sourceProperty(Node) source} property.
+     * Gets the value of the {@link #sourceProperty(Node) source} attached property.
      */
     public static ConstrainedValue<?, ?> getSource(Node node) {
         if (!node.hasProperties()) {
@@ -157,7 +157,7 @@ public enum ValidationState {
     }
 
     /**
-     * Sets the value of the {@link #sourceProperty(Node) source} property.
+     * Sets the value of the {@link #sourceProperty(Node) source} attached property.
      */
     public static void setSource(Node node, ConstrainedValue<?, ?> source) {
         sourceProperty(node).set(source);

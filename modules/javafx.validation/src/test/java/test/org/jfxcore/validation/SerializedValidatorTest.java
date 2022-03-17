@@ -28,9 +28,9 @@ import org.junit.jupiter.api.Test;
 import javafx.validation.Constraint;
 import javafx.validation.Constraints;
 import javafx.validation.ValidationResult;
-import javafx.validation.Validator;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,7 +44,6 @@ public class SerializedValidatorTest extends ConcurrentTestBase {
     }
 
     @Test
-    @SuppressWarnings("unchecked" )
     public void testIntermediateValidationRequestsAreElided() throws Exception {
         AtomicInteger validatorCalls = new AtomicInteger();
         AtomicInteger startedCount = new AtomicInteger();
@@ -61,8 +60,12 @@ public class SerializedValidatorTest extends ConcurrentTestBase {
             return ValidationResult.valid();
         }, ForkJoinPool.commonPool());
 
-        var validator = new SerializedValidator<>(
-                (Validator<Number, Object>)constraint.getValidator(), this::runLater) {
+        var validator = new SerializedValidator<Number, Object>(constraint) {
+            @Override
+            protected CompletableFuture<ValidationResult<Object>> newValidationRun(Number value) {
+                return constraint.validate(value);
+            }
+
             @Override
             public ValidationResult<Object> getValidationResult() {
                 throw new UnsupportedOperationException();

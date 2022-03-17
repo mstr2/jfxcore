@@ -23,7 +23,7 @@ package javafx.validation.property;
 
 import javafx.collections.ObservableList;
 import javafx.util.Incubating;
-import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.ValidationState;
 
 /**
@@ -59,7 +59,7 @@ public class SimpleConstrainedListProperty<E, D> extends ConstrainedListProperty
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public SimpleConstrainedListProperty(Constraint<? super E, D>... constraints) {
+    public SimpleConstrainedListProperty(ConstraintBase<? super E, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, null, ValidationState.UNKNOWN, constraints);
     }
 
@@ -72,7 +72,7 @@ public class SimpleConstrainedListProperty<E, D> extends ConstrainedListProperty
      */
     @SafeVarargs
     public SimpleConstrainedListProperty(
-            ObservableList<E> initialValue, Constraint<? super E, D>... constraints) {
+            ObservableList<E> initialValue, ConstraintBase<? super E, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, ValidationState.UNKNOWN, constraints);
     }
 
@@ -89,7 +89,7 @@ public class SimpleConstrainedListProperty<E, D> extends ConstrainedListProperty
     public SimpleConstrainedListProperty(
             ObservableList<E> initialValue,
             ValidationState initialValidationState,
-            Constraint<? super E, D>... constraints) {
+            ConstraintBase<? super E, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, initialValidationState, constraints);
     }
 
@@ -103,7 +103,7 @@ public class SimpleConstrainedListProperty<E, D> extends ConstrainedListProperty
      */
     @SafeVarargs
     public SimpleConstrainedListProperty(
-            Object bean, String name, Constraint<? super E, D>... constraints) {
+            Object bean, String name, ConstraintBase<? super E, D>... constraints) {
         this(bean, name, null, ValidationState.UNKNOWN, constraints);
     }
 
@@ -118,7 +118,7 @@ public class SimpleConstrainedListProperty<E, D> extends ConstrainedListProperty
      */
     @SafeVarargs
     public SimpleConstrainedListProperty(
-            Object bean, String name, ObservableList<E> initialValue, Constraint<? super E, D>... constraints) {
+            Object bean, String name, ObservableList<E> initialValue, ConstraintBase<? super E, D>... constraints) {
         this(bean, name, initialValue, ValidationState.UNKNOWN, constraints);
     }
 
@@ -139,7 +139,7 @@ public class SimpleConstrainedListProperty<E, D> extends ConstrainedListProperty
             String name,
             ObservableList<E> initialValue,
             ValidationState initialValidationState,
-            Constraint<? super E, D>... constraints) {
+            ConstraintBase<? super E, D>... constraints) {
         super(initialValue, initialValidationState, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

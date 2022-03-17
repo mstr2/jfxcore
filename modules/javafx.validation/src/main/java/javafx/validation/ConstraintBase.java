@@ -19,29 +19,37 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package javafx.validation.function;
+package javafx.validation;
 
+import javafx.application.Platform;
+import javafx.beans.Observable;
 import javafx.util.Incubating;
-import javafx.validation.ValidationResult;
+import java.util.concurrent.Executor;
 
 /**
- * Represents a validation function with four dependencies.
+ * The common base interface of all constraint types.
+ * This interface cannot be implemented directly; instead, applications should implement
+ * {@link Constraint}, {@link ListConstraint}, {@link SetConstraint}, or {@link MapConstraint}.
  *
- * @param <T> the type of the value to be validated
- * @param <P1> the type of the first dependency
- * @param <P2> the type of the second dependency
- * @param <P3> the type of the third dependency
- * @param <P4> the type of the fourth dependency
+ * @param <T> the data type
  * @param <D> the diagnostic type
- * @since JFXcore 18
  */
 @Incubating
-@FunctionalInterface
-public interface ValidationFunction4<T, P1, P2, P3, P4, D> {
+@SuppressWarnings("unused")
+public sealed interface ConstraintBase<T, D> permits Constraint, ListConstraint, SetConstraint, MapConstraint {
 
     /**
-     * Applies this function to the given arguments.
+     * Returns the executor that is used to yield the {@link ValidationResult} to the validation system,
+     * or {@code null} if no executor was specified.
+     *
+     * @implNote If this constraint is used with properties that live on the JavaFX application thread,
+     *           a method reference to {@link Platform#runLater} should be returned from this method.
      */
-    ValidationResult<D> apply(T value, P1 dependency1, P2 dependency2, P3 dependency3, P4 dependency4);
+    Executor getCompletionExecutor();
+
+    /**
+     * Returns the constraint dependencies.
+     */
+    Observable[] getDependencies();
 
 }

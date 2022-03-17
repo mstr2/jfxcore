@@ -41,13 +41,13 @@ public interface DiagnosticList<D> extends ObservableList<D> {
 
     /**
      * Returns an observable sublist view that only includes diagnostics of
-     * {@link Validator constraint validators} that successfully validated the value.
+     * {@link Constraint} validators that successfully validated the value.
      */
     ObservableList<D> validSubList();
 
     /**
      * Returns an observable sublist view that only includes diagnostics of
-     * {@link Validator constraint validators} that failed to validate the value.
+     * {@link Constraint} validators that failed to validate the value.
      */
     ObservableList<D> invalidSubList();
 

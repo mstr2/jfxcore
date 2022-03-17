@@ -23,7 +23,7 @@ package javafx.validation.property;
 
 import javafx.collections.ObservableMap;
 import javafx.util.Incubating;
-import javafx.validation.Constraint;
+import javafx.validation.ConstraintBase;
 import javafx.validation.ValidationState;
 
 /**
@@ -60,7 +60,7 @@ public class SimpleConstrainedMapProperty<K, V, D> extends ConstrainedMapPropert
      * @param constraints the value constraints
      */
     @SafeVarargs
-    public SimpleConstrainedMapProperty(Constraint<? super V, D>... constraints) {
+    public SimpleConstrainedMapProperty(ConstraintBase<? super V, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, null, ValidationState.UNKNOWN, constraints);
     }
 
@@ -74,7 +74,7 @@ public class SimpleConstrainedMapProperty<K, V, D> extends ConstrainedMapPropert
     @SafeVarargs
     public SimpleConstrainedMapProperty(
             ObservableMap<K, V> initialValue,
-            Constraint<? super V, D>... constraints) {
+            ConstraintBase<? super V, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, ValidationState.UNKNOWN, constraints);
     }
 
@@ -91,7 +91,7 @@ public class SimpleConstrainedMapProperty<K, V, D> extends ConstrainedMapPropert
     public SimpleConstrainedMapProperty(
             ObservableMap<K, V> initialValue,
             ValidationState initialValidationState,
-            Constraint<? super V, D>... constraints) {
+            ConstraintBase<? super V, D>... constraints) {
         this(DEFAULT_BEAN, DEFAULT_NAME, initialValue, initialValidationState, constraints);
     }
 
@@ -105,7 +105,7 @@ public class SimpleConstrainedMapProperty<K, V, D> extends ConstrainedMapPropert
      */
     @SafeVarargs
     public SimpleConstrainedMapProperty(
-            Object bean, String name, Constraint<? super V, D>... constraints) {
+            Object bean, String name, ConstraintBase<? super V, D>... constraints) {
         this(bean, name, null, ValidationState.UNKNOWN, constraints);
     }
 
@@ -123,7 +123,7 @@ public class SimpleConstrainedMapProperty<K, V, D> extends ConstrainedMapPropert
             Object bean,
             String name,
             ObservableMap<K, V> initialValue,
-            Constraint<? super V, D>... constraints) {
+            ConstraintBase<? super V, D>... constraints) {
         this(bean, name, initialValue, ValidationState.UNKNOWN, constraints);
     }
 
@@ -144,7 +144,7 @@ public class SimpleConstrainedMapProperty<K, V, D> extends ConstrainedMapPropert
             String name,
             ObservableMap<K, V> initialValue,
             ValidationState initialValidationState,
-            Constraint<? super V, D>... constraints) {
+            ConstraintBase<? super V, D>... constraints) {
         super(initialValue, initialValidationState, constraints);
         this.bean = bean;
         this.name = (name == null) ? DEFAULT_NAME : name;

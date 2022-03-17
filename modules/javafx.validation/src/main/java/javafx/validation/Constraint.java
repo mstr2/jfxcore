@@ -21,87 +21,69 @@
 
 package javafx.validation;
 
-import javafx.beans.Observable;
 import javafx.util.Incubating;
+import javafx.validation.function.CancellableValidationFunction0;
+import javafx.validation.function.ValidationFunction0;
 import javafx.validation.property.ConstrainedListProperty;
 import javafx.validation.property.ConstrainedMapProperty;
+import javafx.validation.property.ConstrainedProperty;
 import javafx.validation.property.ConstrainedSetProperty;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 /**
  * Defines a data constraint.
- * When used with {@link ConstrainedListProperty}, {@link ConstrainedSetProperty} or {@link ConstrainedMapProperty},
- * this type of constraint applies to each element individually.
  * <p>
- * For a list of predefined constraints, see {@link Constraints}.
+ * When used with {@link ConstrainedListProperty}, {@link ConstrainedSetProperty} or {@link ConstrainedMapProperty},
+ * this type of constraint applies to each element individually, and not to the collection instance itself.
+ * <p>
+ * Use {@link ListConstraint}, {@link SetConstraint} or {@link MapConstraint} to create a constraint that applies
+ * to the collection instance instead of its individual elements.
+ * <p>
+ * For a selection of predefined constraints, see {@link Constraints}.
  *
  * @param <T> data type
  * @param <D> diagnostic type
  * @since JFXcore 18
  */
 @Incubating
-public sealed class Constraint<T, D> permits ListConstraint, SetConstraint, MapConstraint {
-
-    private static final Observable[] EMPTY = new Observable[0];
-
-    private final Validator<?, D> validator;
-    private final Executor completionExecutor;
-    private final Observable[] dependencies;
+public non-sealed interface Constraint<T, D> extends ConstraintBase<T, D> {
 
     /**
-     * Creates a new instance of the {@code Constraint} class.
+     * Validates the specified value.
+     * <p>
+     * This method can be implemented to support synchronous or asynchronous validation:
+     * <ul>
+     *     <li>For synchronous validation, the method must return a completed future that can be obtained
+     *         by calling {@link CompletableFuture#completedFuture}.
+     *     <li>For asynchronous validation, the method must return a non-completed future.
+     *         It is up to the implementation to decide how the future computes its value.
+     *         For example, the implementation may choose to run the computation on a background thread.
+     *         <p>
+     *         Note: if the returned future completes on a background thread, an appropriate
+     *         {@link Constraint#getCompletionExecutor() completion executor} must be specified
+     *         that can safely yield the {@code ValidationResult} to the validation system.
+     * </ul>
+     * <p>
+     * At any point, the data validation system may choose to cancel a non-completed future by
+     * invoking {@link CompletableFuture#cancel(boolean)}.
+     * In practice, this happens when a {@link ConstrainedProperty} value is changed before the
+     * previous validation run has completed.
+     * Cancelling a {@code CompletableFuture} immediately transitions the future into the
+     * {@link CompletableFuture#isCancelled() cancelled} state, independent of whether the
+     * validation function is still running.
+     * <p>
+     * Applications are encouraged to implement cancellation support to stop the execution
+     * of a validation run after the data validation system has cancelled the future (see
+     * {@link Constraints#validateCancellableAsync(CancellableValidationFunction0, Executor) validateCancellableAsync}
+     * and {@link Constraints#validateInterruptibleAsync(ValidationFunction0, Executor) validateInterruptibleAsync}).
      *
-     * @param validator the validator
-     * @param completionExecutor the executor that completes the future returned by the validator, or {@code null}
-     * @param dependencies the constraint dependencies, or {@code null}
+     * @see Constraints#validateCancellableAsync(CancellableValidationFunction0, Executor)
+     * @see Constraints#validateInterruptibleAsync(ValidationFunction0, Executor)
+     *
+     * @param value the value to be validated
+     * @return a future that produces a {@code ValidationResult}
      */
-    public Constraint(Validator<? super T, D> validator, Executor completionExecutor, Observable[] dependencies) {
-        this(validator, completionExecutor, dependencies, 0);
-    }
-
-    Constraint(Validator<?, D> validator, Executor completionExecutor, Observable[] dependencies, int unused) {
-        if (validator == null) {
-            throw new NullPointerException("validator cannot be null");
-        }
-
-        this.validator = validator;
-        this.completionExecutor = completionExecutor;
-        this.dependencies = dependencies != null ? dependencies : EMPTY;
-    }
-
-    /**
-     * Returns the validator.
-     */
-    public Validator<?, D> getValidator() {
-        return validator;
-    }
-
-    /**
-     * Returns the executor that completes the future returned by {@link Validator#validate(Object)},
-     * or {@code null} if no executor was specified.
-     */
-    public Executor getCompletionExecutor() {
-        return completionExecutor;
-    }
-
-    /**
-     * Returns the constraint dependencies.
-     */
-    public Observable[] getDependencies() {
-        return dependencies;
-    }
-
-    /**
-     * Determines whether the specified {@link Observable observable} is a dependency of this constraint.
-     */
-    public boolean isDependency(Observable observable) {
-        for (Observable dep : dependencies) {
-            if (observable == dep) {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    CompletableFuture<ValidationResult<D>> validate(T value);
 
 }

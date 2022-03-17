@@ -34,9 +34,6 @@ import javafx.beans.value.ObservableIntegerValue;
 import javafx.beans.value.ObservableLongValue;
 import javafx.beans.value.ObservableStringValue;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
-import javafx.collections.ObservableSet;
 import javafx.util.Incubating;
 import javafx.validation.function.CancellableValidationFunction0;
 import javafx.validation.function.CancellableValidationFunction1;
@@ -56,7 +53,10 @@ import javafx.validation.function.ValidationFunction5;
 import javafx.validation.function.ValidationFunction6;
 import javafx.validation.function.ValidationFunction7;
 import javafx.validation.function.ValidationFunction8;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -75,6 +75,34 @@ public final class Constraints {
 
     private Constraints() {}
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static abstract class ConstraintImpl<T, D> implements Constraint<T, D> {
+        final ObservableValue[] dependencies;
+
+        ConstraintImpl() {
+            this.dependencies = null;
+        }
+
+        ConstraintImpl(ObservableValue... dependencies) {
+            this.dependencies = dependencies;
+        }
+
+        @SuppressWarnings("ConstantConditions")
+        final <P> ObservableValue<P> dependency(int index) {
+            return (ObservableValue<P>)dependencies[index];
+        }
+
+        @Override
+        public Executor getCompletionExecutor() {
+            return null;
+        }
+
+        @Override
+        public Observable[] getDependencies() {
+            return dependencies;
+        }
+    }
+
     /**
      * Creates a constraint that synchronously validates a value by applying a validation function.
      * <p>
@@ -92,7 +120,7 @@ public final class Constraints {
      *                 return ValidationResult.valid();
      *             }
      *
-     *             return new ValidationResult<>(false, "Value too short");
+     *             return ValidationResult.invalid("Value too short");
      *         }));
      * }</pre>
      *
@@ -107,16 +135,16 @@ public final class Constraints {
     public static <T, D> Constraint<T, D> validate(ValidationFunction0<T, D> validationFunc) {
         Objects.requireNonNull(validationFunc, "validationFunc");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 try {
                     return CompletableFuture.completedFuture(validationFunc.apply(value));
                 } catch (Throwable ex) {
                     return CompletableFuture.failedFuture(ex);
                 }
-            },
-            null,
-            null);
+            }
+        };
     }
 
     /**
@@ -140,7 +168,7 @@ public final class Constraints {
      *                 return ValidationResult.valid();
      *             }
      *
-     *             return new ValidationResult<>(false, "Value too short");
+     *             return ValidationResult.invalid("Value too short");
      *         },
      *         minLength));
      * }</pre>
@@ -160,16 +188,17 @@ public final class Constraints {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(dependency, "dependency");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>(dependency) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 try {
-                    return CompletableFuture.completedFuture(validationFunc.apply(value, dependency.getValue()));
+                    return CompletableFuture.completedFuture(validationFunc.apply(
+                        value, this.<P1>dependency(0).getValue()));
                 } catch (Throwable ex) {
                     return CompletableFuture.failedFuture(ex);
                 }
-            },
-            null,
-            new Observable[] {dependency});
+            }
+        };
     }
 
     /**
@@ -195,17 +224,17 @@ public final class Constraints {
         Objects.requireNonNull(dependency1, "dependency1");
         Objects.requireNonNull(dependency2, "dependency2");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>(dependency1, dependency2) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 try {
                     return CompletableFuture.completedFuture(validationFunc.apply(
-                        value, dependency1.getValue(), dependency2.getValue()));
+                        value, this.<P1>dependency(0).getValue(), this.<P2>dependency(1).getValue()));
                 } catch (Throwable ex) {
                     return CompletableFuture.failedFuture(ex);
                 }
-            },
-            null,
-            new Observable[] {dependency1, dependency2});
+            }
+        };
     }
 
     /**
@@ -235,17 +264,18 @@ public final class Constraints {
         Objects.requireNonNull(dependency2, "dependency2");
         Objects.requireNonNull(dependency3, "dependency3");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 try {
-                    return CompletableFuture.completedFuture(validationFunc.apply(
-                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue()));
+                    return CompletableFuture.completedFuture(validationFunc.apply(value,
+                        this.<P1>dependency(0).getValue(), this.<P2>dependency(1).getValue(),
+                        this.<P3>dependency(2).getValue()));
                 } catch (Throwable ex) {
                     return CompletableFuture.failedFuture(ex);
                 }
-            },
-            null,
-            new Observable[] {dependency1, dependency2, dependency3});
+            }
+        };
     }
 
     /**
@@ -279,18 +309,18 @@ public final class Constraints {
         Objects.requireNonNull(dependency3, "dependency3");
         Objects.requireNonNull(dependency4, "dependency4");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 try {
-                    return CompletableFuture.completedFuture(validationFunc.apply(
-                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue(),
-                        dependency4.getValue()));
+                    return CompletableFuture.completedFuture(validationFunc.apply(value,
+                        this.<P1>dependency(0).getValue(), this.<P2>dependency(1).getValue(),
+                        this.<P3>dependency(2).getValue(), this.<P4>dependency(3).getValue()));
                 } catch (Throwable ex) {
                     return CompletableFuture.failedFuture(ex);
                 }
-            },
-            null,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4});
+            }
+        };
     }
 
     /**
@@ -328,18 +358,19 @@ public final class Constraints {
         Objects.requireNonNull(dependency4, "dependency4");
         Objects.requireNonNull(dependency5, "dependency5");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4, dependency5) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 try {
-                    return CompletableFuture.completedFuture(validationFunc.apply(
-                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue(),
-                        dependency4.getValue(), dependency5.getValue()));
+                    return CompletableFuture.completedFuture(validationFunc.apply(value,
+                        this.<P1>dependency(0).getValue(), this.<P2>dependency(1).getValue(),
+                        this.<P3>dependency(2).getValue(), this.<P4>dependency(3).getValue(),
+                        this.<P5>dependency(4).getValue()));
                 } catch (Throwable ex) {
                     return CompletableFuture.failedFuture(ex);
                 }
-            },
-            null,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5});
+            }
+        };
     }
 
     /**
@@ -381,18 +412,20 @@ public final class Constraints {
         Objects.requireNonNull(dependency5, "dependency5");
         Objects.requireNonNull(dependency6, "dependency6");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>(
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 try {
-                    return CompletableFuture.completedFuture(validationFunc.apply(
-                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue(),
-                        dependency4.getValue(), dependency5.getValue(), dependency6.getValue()));
+                    return CompletableFuture.completedFuture(validationFunc.apply(value,
+                        this.<P1>dependency(0).getValue(), this.<P2>dependency(1).getValue(),
+                        this.<P3>dependency(2).getValue(), this.<P4>dependency(3).getValue(),
+                        this.<P5>dependency(4).getValue(), this.<P6>dependency(5).getValue()));
                 } catch (Throwable ex) {
                     return CompletableFuture.failedFuture(ex);
                 }
-            },
-            null,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5, dependency6});
+            }
+        };
     }
 
     /**
@@ -438,21 +471,21 @@ public final class Constraints {
         Objects.requireNonNull(dependency6, "dependency6");
         Objects.requireNonNull(dependency7, "dependency7");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>(
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 try {
-                    return CompletableFuture.completedFuture(validationFunc.apply(
-                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue(),
-                        dependency4.getValue(), dependency5.getValue(), dependency6.getValue(),
-                        dependency7.getValue()));
+                    return CompletableFuture.completedFuture(validationFunc.apply(value,
+                        this.<P1>dependency(0).getValue(), this.<P2>dependency(1).getValue(),
+                        this.<P3>dependency(2).getValue(), this.<P4>dependency(3).getValue(),
+                        this.<P5>dependency(4).getValue(), this.<P6>dependency(5).getValue(),
+                        this.<P7>dependency(6).getValue()));
                 } catch (Throwable ex) {
                     return CompletableFuture.failedFuture(ex);
                 }
-            },
-            null,
-            new Observable[] {
-                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7
-            });
+            }
+        };
     }
 
     /**
@@ -502,21 +535,21 @@ public final class Constraints {
         Objects.requireNonNull(dependency7, "dependency7");
         Objects.requireNonNull(dependency8, "dependency8");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>(
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7, dependency8) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 try {
-                    return CompletableFuture.completedFuture(validationFunc.apply(
-                        value, dependency1.getValue(), dependency2.getValue(), dependency3.getValue(),
-                        dependency4.getValue(), dependency5.getValue(), dependency6.getValue(),
-                        dependency7.getValue(), dependency8.getValue()));
+                    return CompletableFuture.completedFuture(validationFunc.apply(value,
+                        this.<P1>dependency(0).getValue(), this.<P2>dependency(1).getValue(),
+                        this.<P3>dependency(2).getValue(), this.<P4>dependency(3).getValue(),
+                        this.<P5>dependency(4).getValue(), this.<P6>dependency(5).getValue(),
+                        this.<P7>dependency(6).getValue(), this.<P8>dependency(7).getValue()));
                 } catch (Throwable ex) {
                     return CompletableFuture.failedFuture(ex);
                 }
-            },
-            null,
-            new Observable[] {
-                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7, dependency8
-            });
+            }
+        };
     }
 
     /**
@@ -543,7 +576,7 @@ public final class Constraints {
      *                 complexValidation(value);
      *                 return ValidationResult.valid();
      *             } catch (RuntimeException e) {
-     *                 return new ValidationResult<>(false, e.getMessage());
+     *                 return ValidationResult.invalid(e.getMessage());
      *             }
      *         },
      *         threadPool));
@@ -572,8 +605,9 @@ public final class Constraints {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 var task = new ValidateTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -582,9 +616,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            null);
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -621,12 +659,12 @@ public final class Constraints {
      *
      *                 // use the dependency value for additional validation
      *                 if (value.doubleValue() > maxValue.doubleValue()) {
-     *                     return new ValidationResult<>(false, "Value too large");
+     *                     return ValidationResult.invalid("Value too large");
      *                 } else {
      *                     return ValidationResult.valid();
      *                 }
      *             } catch (RuntimeException e) {
-     *                 return new ValidationResult<>(false, e.getMessage());
+     *                 return ValidationResult.invalid(e.getMessage());
      *             }
      *         },
      *         maxValue,
@@ -660,9 +698,10 @@ public final class Constraints {
         Objects.requireNonNull(dependency, "dependency");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                final var dep = dependency.getValue();
+        return new ConstraintImpl<>(dependency) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep = this.<P1>dependency(0).getValue();
                 var task = new ValidateTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -671,9 +710,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -703,10 +746,11 @@ public final class Constraints {
         Objects.requireNonNull(dependency2, "dependency2");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                final var dep1 = dependency1.getValue();
-                final var dep2 = dependency2.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
                 var task = new ValidateTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -715,9 +759,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -751,11 +799,12 @@ public final class Constraints {
         Objects.requireNonNull(dependency3, "dependency3");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                final var dep1 = dependency1.getValue();
-                final var dep2 = dependency2.getValue();
-                final var dep3 = dependency3.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
                 var task = new ValidateTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -764,9 +813,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -804,12 +857,13 @@ public final class Constraints {
         Objects.requireNonNull(dependency4, "dependency4");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                final var dep1 = dependency1.getValue();
-                final var dep2 = dependency2.getValue();
-                final var dep3 = dependency3.getValue();
-                final var dep4 = dependency4.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
                 var task = new ValidateTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -818,9 +872,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -862,13 +920,14 @@ public final class Constraints {
         Objects.requireNonNull(dependency5, "dependency5");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                final var dep1 = dependency1.getValue();
-                final var dep2 = dependency2.getValue();
-                final var dep3 = dependency3.getValue();
-                final var dep4 = dependency4.getValue();
-                final var dep5 = dependency5.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4, dependency5) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
                 var task = new ValidateTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -877,9 +936,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -925,14 +988,15 @@ public final class Constraints {
         Objects.requireNonNull(dependency6, "dependency6");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                final var dep1 = dependency1.getValue();
-                final var dep2 = dependency2.getValue();
-                final var dep3 = dependency3.getValue();
-                final var dep4 = dependency4.getValue();
-                final var dep5 = dependency5.getValue();
-                final var dep6 = dependency6.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4, dependency5, dependency6) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
+                final var dep6 = this.<P6>dependency(5).getValue();
                 var task = new ValidateTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -941,9 +1005,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5, dependency6});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -993,15 +1061,17 @@ public final class Constraints {
         Objects.requireNonNull(dependency7, "dependency7");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                final var dep1 = dependency1.getValue();
-                final var dep2 = dependency2.getValue();
-                final var dep3 = dependency3.getValue();
-                final var dep4 = dependency4.getValue();
-                final var dep5 = dependency5.getValue();
-                final var dep6 = dependency6.getValue();
-                final var dep7 = dependency7.getValue();
+        return new ConstraintImpl<>(
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
+                final var dep6 = this.<P6>dependency(5).getValue();
+                final var dep7 = this.<P7>dependency(6).getValue();
                 var task = new ValidateTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -1010,12 +1080,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {
-                dependency1, dependency2, dependency3, dependency4,
-                dependency5, dependency6, dependency7
-            });
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1069,16 +1140,18 @@ public final class Constraints {
         Objects.requireNonNull(dependency8, "dependency8");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                final var dep1 = dependency1.getValue();
-                final var dep2 = dependency2.getValue();
-                final var dep3 = dependency3.getValue();
-                final var dep4 = dependency4.getValue();
-                final var dep5 = dependency5.getValue();
-                final var dep6 = dependency6.getValue();
-                final var dep7 = dependency7.getValue();
-                final var dep8 = dependency8.getValue();
+        return new ConstraintImpl<>(
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7, dependency8) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
+                final var dep6 = this.<P6>dependency(5).getValue();
+                final var dep7 = this.<P7>dependency(6).getValue();
+                final var dep8 = this.<P8>dependency(7).getValue();
                 var task = new ValidateTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -1087,12 +1160,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {
-                dependency1, dependency2, dependency3, dependency4,
-                dependency5,dependency6, dependency7, dependency8
-            });
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1150,8 +1224,9 @@ public final class Constraints {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
@@ -1160,9 +1235,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            null);
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1215,12 +1294,12 @@ public final class Constraints {
      *
      *                 // Use the dependency value for additional validation
      *                 if (value.doubleValue() > maxValue.doubleValue()) {
-     *                     return new ValidationResult<>(false, "Value too large");
+     *                     return ValidationResult.invalid("Value too large");
      *                 } else {
      *                     return ValidationResult.valid();
      *                 }
      *             } catch (RuntimeException e) {
-     *                 return new ValidationResult<>(false, e.getMessage());
+     *                 return ValidationResult.invalid(e.getMessage());
      *             }
      *         },
      *         maxValue,
@@ -1243,9 +1322,10 @@ public final class Constraints {
         Objects.requireNonNull(dependency, "dependency");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep = dependency.getValue();
+        return new ConstraintImpl<>(dependency) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep = this.<P1>dependency(0).getValue();
                 var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
@@ -1254,9 +1334,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1286,10 +1370,11 @@ public final class Constraints {
         Objects.requireNonNull(dependency2, "dependency2");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
                 var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
@@ -1298,9 +1383,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1334,11 +1423,12 @@ public final class Constraints {
         Objects.requireNonNull(dependency3, "dependency3");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
                 var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
@@ -1347,9 +1437,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1387,12 +1481,13 @@ public final class Constraints {
         Objects.requireNonNull(dependency4, "dependency4");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
-                var dep4 = dependency4.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
                 var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
@@ -1401,9 +1496,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1445,13 +1544,14 @@ public final class Constraints {
         Objects.requireNonNull(dependency5, "dependency5");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
-                var dep4 = dependency4.getValue();
-                var dep5 = dependency5.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4, dependency5) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
                 var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
@@ -1460,9 +1560,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1508,14 +1612,15 @@ public final class Constraints {
         Objects.requireNonNull(dependency6, "dependency6");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
-                var dep4 = dependency4.getValue();
-                var dep5 = dependency5.getValue();
-                var dep6 = dependency6.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4, dependency5, dependency6) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
+                final var dep6 = this.<P6>dependency(5).getValue();
                 var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
@@ -1524,9 +1629,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5, dependency6});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1576,15 +1685,17 @@ public final class Constraints {
         Objects.requireNonNull(dependency7, "dependency7");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
-                var dep4 = dependency4.getValue();
-                var dep5 = dependency5.getValue();
-                var dep6 = dependency6.getValue();
-                var dep7 = dependency7.getValue();
+        return new ConstraintImpl<>(
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
+                final var dep6 = this.<P6>dependency(5).getValue();
+                final var dep7 = this.<P7>dependency(6).getValue();
                 var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
@@ -1594,11 +1705,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {
-                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7
-            });
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1652,16 +1765,18 @@ public final class Constraints {
         Objects.requireNonNull(dependency8, "dependency8");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
-                var dep4 = dependency4.getValue();
-                var dep5 = dependency5.getValue();
-                var dep6 = dependency6.getValue();
-                var dep7 = dependency7.getValue();
-                var dep8 = dependency8.getValue();
+        return new ConstraintImpl<>(
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7, dependency8) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
+                final var dep6 = this.<P6>dependency(5).getValue();
+                final var dep7 = this.<P7>dependency(6).getValue();
+                final var dep8 = this.<P8>dependency(7).getValue();
                 var task = new ValidateCancellableTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value, AtomicBoolean cancellationRequested) {
@@ -1671,11 +1786,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {
-                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7, dependency8
-            });
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1730,8 +1847,9 @@ public final class Constraints {
         Objects.requireNonNull(validationFunc, "validationFunc");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
                 var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -1740,9 +1858,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            null);
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1809,9 +1931,10 @@ public final class Constraints {
         Objects.requireNonNull(dependency, "dependency");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep = dependency.getValue();
+        return new ConstraintImpl<>(dependency) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep = this.<P1>dependency(0).getValue();
                 var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -1820,9 +1943,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1852,10 +1979,11 @@ public final class Constraints {
         Objects.requireNonNull(dependency2, "dependency2");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
                 var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -1864,9 +1992,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1900,11 +2032,12 @@ public final class Constraints {
         Objects.requireNonNull(dependency3, "dependency3");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
                 var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -1913,9 +2046,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -1953,12 +2090,13 @@ public final class Constraints {
         Objects.requireNonNull(dependency4, "dependency4");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
-                var dep4 = dependency4.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
                 var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -1967,9 +2105,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -2011,13 +2153,14 @@ public final class Constraints {
         Objects.requireNonNull(dependency5, "dependency5");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
-                var dep4 = dependency4.getValue();
-                var dep5 = dependency5.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4, dependency5) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
                 var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -2026,9 +2169,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -2074,14 +2221,15 @@ public final class Constraints {
         Objects.requireNonNull(dependency6, "dependency6");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
-                var dep4 = dependency4.getValue();
-                var dep5 = dependency5.getValue();
-                var dep6 = dependency6.getValue();
+        return new ConstraintImpl<>(dependency1, dependency2, dependency3, dependency4, dependency5, dependency6) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
+                final var dep6 = this.<P6>dependency(5).getValue();
                 var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -2090,9 +2238,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {dependency1, dependency2, dependency3, dependency4, dependency5, dependency6});
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -2142,15 +2294,17 @@ public final class Constraints {
         Objects.requireNonNull(dependency7, "dependency7");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
-                var dep4 = dependency4.getValue();
-                var dep5 = dependency5.getValue();
-                var dep6 = dependency6.getValue();
-                var dep7 = dependency7.getValue();
+        return new ConstraintImpl<>(
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
+                final var dep6 = this.<P6>dependency(5).getValue();
+                final var dep7 = this.<P7>dependency(6).getValue();
                 var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -2159,11 +2313,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {
-                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7
-            });
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -2217,16 +2373,18 @@ public final class Constraints {
         Objects.requireNonNull(dependency8, "dependency8");
         Objects.requireNonNull(executor, "executor");
 
-        return new Constraint<>(
-            value -> {
-                var dep1 = dependency1.getValue();
-                var dep2 = dependency2.getValue();
-                var dep3 = dependency3.getValue();
-                var dep4 = dependency4.getValue();
-                var dep5 = dependency5.getValue();
-                var dep6 = dependency6.getValue();
-                var dep7 = dependency7.getValue();
-                var dep8 = dependency8.getValue();
+        return new ConstraintImpl<>(
+                dependency1, dependency2, dependency3, dependency4, dependency5, dependency6, dependency7, dependency8) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                final var dep1 = this.<P1>dependency(0).getValue();
+                final var dep2 = this.<P2>dependency(1).getValue();
+                final var dep3 = this.<P3>dependency(2).getValue();
+                final var dep4 = this.<P4>dependency(3).getValue();
+                final var dep5 = this.<P5>dependency(4).getValue();
+                final var dep6 = this.<P6>dependency(5).getValue();
+                final var dep7 = this.<P7>dependency(6).getValue();
+                final var dep8 = this.<P8>dependency(7).getValue();
                 var task = new ValidateInterruptibleTask<T, D>(value) {
                     @Override
                     protected ValidationResult<D> apply(T value) {
@@ -2235,12 +2393,13 @@ public final class Constraints {
                 };
                 executor.execute(task);
                 return task;
-            },
-            Platform::runLater,
-            new Observable[] {
-                dependency1, dependency2, dependency3, dependency4,
-                dependency5, dependency6, dependency7, dependency8
-            });
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return Platform::runLater;
+            }
+        };
     }
 
     /**
@@ -2266,12 +2425,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> between(int minInclusive, int maxExclusive, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            int v = value != null ? value.intValue() : 0;
-            boolean valid = v >= minInclusive && v < maxExclusive;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                int v = value != null ? value.intValue() : 0;
+                boolean valid = v >= minInclusive && v < maxExclusive;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2297,12 +2459,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> between(long minInclusive, long maxExclusive, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            long v = value != null ? value.longValue() : 0;
-            boolean valid = v >= minInclusive && v < maxExclusive;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                long v = value != null ? value.longValue() : 0;
+                boolean valid = v >= minInclusive && v < maxExclusive;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2328,12 +2493,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> between(float minInclusive, float maxExclusive, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            float v = value != null ? value.floatValue() : 0;
-            boolean valid = v >= minInclusive && v < maxExclusive;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                float v = value != null ? value.floatValue() : 0;
+                boolean valid = v >= minInclusive && v < maxExclusive;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2359,12 +2527,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> between(double minInclusive, double maxExclusive, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            double v = value != null ? value.doubleValue() : 0;
-            boolean valid = v >= minInclusive && v < maxExclusive;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                double v = value != null ? value.doubleValue() : 0;
+                boolean valid = v >= minInclusive && v < maxExclusive;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2396,12 +2567,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> between(ObservableIntegerValue minInclusive, ObservableIntegerValue maxExclusive, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            int v = value != null ? value.intValue() : 0;
-            boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minInclusive, maxExclusive});
+        return new ConstraintImpl<>(minInclusive, maxExclusive) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                int v = value != null ? value.intValue() : 0;
+                boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2433,12 +2607,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> between(ObservableLongValue minInclusive, ObservableLongValue maxExclusive, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            long v = value != null ? value.longValue() : 0;
-            boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minInclusive, maxExclusive});
+        return new ConstraintImpl<>(minInclusive, maxExclusive) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                long v = value != null ? value.longValue() : 0;
+                boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2470,12 +2647,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> between(ObservableFloatValue minInclusive, ObservableFloatValue maxExclusive, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            float v = value != null ? value.floatValue() : 0;
-            boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minInclusive, maxExclusive});
+        return new ConstraintImpl<>(minInclusive, maxExclusive) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                float v = value != null ? value.floatValue() : 0;
+                boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2507,12 +2687,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> between(ObservableDoubleValue minInclusive, ObservableDoubleValue maxExclusive, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            double v = value != null ? value.doubleValue() : 0;
-            boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minInclusive, maxExclusive});
+        return new ConstraintImpl<>(minInclusive, maxExclusive) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                double v = value != null ? value.doubleValue() : 0;
+                boolean valid = v >= minInclusive.get() && v < maxExclusive.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2536,12 +2719,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThan(int minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            int v = value != null ? value.intValue() : 0;
-            boolean valid = v > minimum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                int v = value != null ? value.intValue() : 0;
+                boolean valid = v > minimum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2565,12 +2751,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThan(long minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            long v = value != null ? value.longValue() : 0;
-            boolean valid = v > minimum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                long v = value != null ? value.longValue() : 0;
+                boolean valid = v > minimum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2594,12 +2783,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThan(float minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            float v = value != null ? value.floatValue() : 0;
-            boolean valid = v > minimum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                float v = value != null ? value.floatValue() : 0;
+                boolean valid = v > minimum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2623,12 +2815,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThan(double minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            double v = value != null ? value.doubleValue() : 0;
-            boolean valid = v > minimum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                double v = value != null ? value.doubleValue() : 0;
+                boolean valid = v > minimum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2658,12 +2853,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThan(ObservableIntegerValue minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            int v = value != null ? value.intValue() : 0;
-            boolean valid = v > minimum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minimum});
+        return new ConstraintImpl<>(minimum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                int v = value != null ? value.intValue() : 0;
+                boolean valid = v > minimum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2693,12 +2891,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThan(ObservableLongValue minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            long v = value != null ? value.longValue() : 0;
-            boolean valid = v > minimum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minimum});
+        return new ConstraintImpl<>(minimum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                long v = value != null ? value.longValue() : 0;
+                boolean valid = v > minimum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2728,12 +2929,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThan(ObservableFloatValue minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            float v = value != null ? value.floatValue() : 0;
-            boolean valid = v > minimum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minimum});
+        return new ConstraintImpl<>(minimum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                float v = value != null ? value.floatValue() : 0;
+                boolean valid = v > minimum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2763,12 +2967,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThan(ObservableDoubleValue minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            double v = value != null ? value.doubleValue() : 0;
-            boolean valid = v > minimum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minimum});
+        return new ConstraintImpl<>(minimum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                double v = value != null ? value.doubleValue() : 0;
+                boolean valid = v > minimum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2792,12 +2999,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThanOrEqualTo(int minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            int v = value != null ? value.intValue() : 0;
-            boolean valid = v >= minimum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                int v = value != null ? value.intValue() : 0;
+                boolean valid = v >= minimum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2821,12 +3031,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThanOrEqualTo(long minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            long v = value != null ? value.longValue() : 0;
-            boolean valid = v >= minimum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                long v = value != null ? value.longValue() : 0;
+                boolean valid = v >= minimum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2850,12 +3063,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThanOrEqualTo(float minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            float v = value != null ? value.floatValue() : 0;
-            boolean valid = v >= minimum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                float v = value != null ? value.floatValue() : 0;
+                boolean valid = v >= minimum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2879,12 +3095,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThanOrEqualTo(double minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            double v = value != null ? value.doubleValue() : 0;
-            boolean valid = v >= minimum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                double v = value != null ? value.doubleValue() : 0;
+                boolean valid = v >= minimum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2914,12 +3133,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableIntegerValue minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            int v = value != null ? value.intValue() : 0;
-            boolean valid = v >= minimum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minimum});
+        return new ConstraintImpl<>(minimum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                int v = value != null ? value.intValue() : 0;
+                boolean valid = v >= minimum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2949,12 +3171,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableLongValue minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            long v = value != null ? value.longValue() : 0;
-            boolean valid = v >= minimum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minimum});
+        return new ConstraintImpl<>(minimum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                long v = value != null ? value.longValue() : 0;
+                boolean valid = v >= minimum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -2984,12 +3209,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableFloatValue minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            float v = value != null ? value.floatValue() : 0;
-            boolean valid = v >= minimum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minimum});
+        return new ConstraintImpl<>(minimum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                float v = value != null ? value.floatValue() : 0;
+                boolean valid = v >= minimum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3019,12 +3247,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> greaterThanOrEqualTo(ObservableDoubleValue minimum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            double v = value != null ? value.doubleValue() : 0;
-            boolean valid = v >= minimum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {minimum});
+        return new ConstraintImpl<>(minimum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                double v = value != null ? value.doubleValue() : 0;
+                boolean valid = v >= minimum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3048,12 +3279,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThan(int maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            int v = value != null ? value.intValue() : 0;
-            boolean valid = v < maximum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                int v = value != null ? value.intValue() : 0;
+                boolean valid = v < maximum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3077,12 +3311,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThan(long maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            long v = value != null ? value.longValue() : 0;
-            boolean valid = v < maximum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                long v = value != null ? value.longValue() : 0;
+                boolean valid = v < maximum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3106,12 +3343,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThan(float maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            float v = value != null ? value.floatValue() : 0;
-            boolean valid = v < maximum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                float v = value != null ? value.floatValue() : 0;
+                boolean valid = v < maximum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3135,12 +3375,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThan(double maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            double v = value != null ? value.doubleValue() : 0;
-            boolean valid = v < maximum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                double v = value != null ? value.doubleValue() : 0;
+                boolean valid = v < maximum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3170,12 +3413,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThan(ObservableIntegerValue maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            int v = value != null ? value.intValue() : 0;
-            boolean valid = v < maximum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {maximum});
+        return new ConstraintImpl<>(maximum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                int v = value != null ? value.intValue() : 0;
+                boolean valid = v < maximum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3205,12 +3451,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThan(ObservableLongValue maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            long v = value != null ? value.longValue() : 0;
-            boolean valid = v < maximum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {maximum});
+        return new ConstraintImpl<>(maximum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                long v = value != null ? value.longValue() : 0;
+                boolean valid = v < maximum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3240,12 +3489,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThan(ObservableFloatValue maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            float v = value != null ? value.floatValue() : 0;
-            boolean valid = v < maximum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {maximum});
+        return new ConstraintImpl<>(maximum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                float v = value != null ? value.floatValue() : 0;
+                boolean valid = v < maximum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3275,12 +3527,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThan(ObservableDoubleValue maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            double v = value != null ? value.doubleValue() : 0;
-            boolean valid = v < maximum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {maximum});
+        return new ConstraintImpl<>(maximum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                double v = value != null ? value.doubleValue() : 0;
+                boolean valid = v < maximum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3304,12 +3559,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThanOrEqualTo(int maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            int v = value != null ? value.intValue() : 0;
-            boolean valid = v <= maximum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null,null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                int v = value != null ? value.intValue() : 0;
+                boolean valid = v <= maximum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3333,12 +3591,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThanOrEqualTo(long maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            long v = value != null ? value.longValue() : 0;
-            boolean valid = v <= maximum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                long v = value != null ? value.longValue() : 0;
+                boolean valid = v <= maximum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3362,12 +3623,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThanOrEqualTo(float maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            float v = value != null ? value.floatValue() : 0;
-            boolean valid = v <= maximum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                float v = value != null ? value.floatValue() : 0;
+                boolean valid = v <= maximum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3391,12 +3655,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThanOrEqualTo(double maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            double v = value != null ? value.doubleValue() : 0;
-            boolean valid = v <= maximum;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                double v = value != null ? value.doubleValue() : 0;
+                boolean valid = v <= maximum;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3426,12 +3693,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableIntegerValue maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            int v = value != null ? value.intValue() : 0;
-            boolean valid = v <= maximum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {maximum});
+        return new ConstraintImpl<>(maximum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                int v = value != null ? value.intValue() : 0;
+                boolean valid = v <= maximum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3461,12 +3731,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableLongValue maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            long v = value != null ? value.longValue() : 0;
-            boolean valid = v <= maximum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {maximum});
+        return new ConstraintImpl<>(maximum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                long v = value != null ? value.longValue() : 0;
+                boolean valid = v <= maximum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3496,12 +3769,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableFloatValue maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            float v = value != null ? value.floatValue() : 0;
-            boolean valid = v <= maximum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {maximum});
+        return new ConstraintImpl<>(maximum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                float v = value != null ? value.floatValue() : 0;
+                boolean valid = v <= maximum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3531,12 +3807,15 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<Number, D> lessThanOrEqualTo(ObservableDoubleValue maximum, Function<Number, D> error) {
-        return new Constraint<>(value -> {
-            double v = value != null ? value.doubleValue() : 0;
-            boolean valid = v <= maximum.get();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
-        }, null, new Observable[] {maximum});
+        return new ConstraintImpl<>(maximum) {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(Number value) {
+                double v = value != null ? value.doubleValue() : 0;
+                boolean valid = v <= maximum.get();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+            }
+        };
     }
 
     /**
@@ -3559,11 +3838,14 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <T, D> Constraint<T, D> notNull(Supplier<D> error) {
-        return new Constraint<>(value -> {
-            boolean valid = value != null;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(T value) {
+                boolean valid = value != null;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
+            }
+        };
     }
 
     /**
@@ -3584,11 +3866,14 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<String, D> notNullOrEmpty(Supplier<D> error) {
-        return new Constraint<>(value -> {
-            boolean valid = value != null && !value.isEmpty();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
-        }, null, null);
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(String value) {
+                boolean valid = value != null && !value.isEmpty();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
+            }
+        };
     }
 
     /**
@@ -3609,22 +3894,25 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<String, D> notNullOrBlank(Supplier<D> error) {
-        return new Constraint<>(value -> {
-            boolean blank = true;
+        return new ConstraintImpl<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(String value) {
+                boolean blank = true;
 
-            if (value != null) {
-                for (int i = 0; i < value.length(); ++i) {
-                    if (!Character.isWhitespace(value.charAt(i))) {
-                        blank = false;
-                        break;
+                if (value != null) {
+                    for (int i = 0; i < value.length(); ++i) {
+                        if (!Character.isWhitespace(value.charAt(i))) {
+                            blank = false;
+                            break;
+                        }
                     }
                 }
-            }
 
-            boolean valid = !blank;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
-        }, null, null);
+                boolean valid = !blank;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
+            }
+        };
     }
 
     /**
@@ -3647,7 +3935,7 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<String, D> matchesPattern(String regex, Function<String, D> error) {
-        return new Constraint<>(new Validator<>() {
+        return new ConstraintImpl<>() {
             final Pattern pattern = Pattern.compile(regex);
 
             @Override
@@ -3656,7 +3944,7 @@ public final class Constraints {
                 return CompletableFuture.completedFuture(
                     new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
             }
-        }, null, null);
+        };
     }
 
     /**
@@ -3685,7 +3973,7 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<String, D> matchesPattern(ObservableStringValue regex, Function<String, D> error) {
-        return new Constraint<>(new ObservablePatternValidator<>(regex, error, false), null, new Observable[] {regex});
+        return new ObservablePatternConstraint<>(regex, error, false);
     }
 
     /**
@@ -3708,7 +3996,7 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<String, D> notMatchesPattern(String regex, Function<String, D> error) {
-        return new Constraint<>(new Validator<>() {
+        return new ConstraintImpl<>() {
             final Pattern pattern = Pattern.compile(regex);
 
             @Override
@@ -3717,7 +4005,7 @@ public final class Constraints {
                 return CompletableFuture.completedFuture(
                     new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
             }
-        }, null, null);
+        };
     }
 
     /**
@@ -3746,20 +4034,21 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> Constraint<String, D> notMatchesPattern(ObservableStringValue regex, Function<String, D> error) {
-        return new Constraint<>(
-            new ObservablePatternValidator<>(regex, error, true), null, new Observable[] {regex});
+        return new ObservablePatternConstraint<>(regex, error, true);
     }
 
-    private static final class ObservablePatternValidator<D> implements Validator<String, D>, InvalidationListener {
+    private static final class ObservablePatternConstraint<D> implements Constraint<String, D>, InvalidationListener {
         private final boolean flip;
         private final ObservableStringValue regex;
         private final Function<String, D> error;
+        private final Observable[] dependencies;
         private Pattern pattern;
 
-        ObservablePatternValidator(ObservableStringValue regex, Function<String, D> error, boolean flip) {
+        ObservablePatternConstraint(ObservableStringValue regex, Function<String, D> error, boolean flip) {
             this.flip = flip;
             this.regex = regex;
             this.error = error;
+            this.dependencies = new Observable[] {regex};
             regex.addListener(new WeakInvalidationListener(this));
             invalidated(null);
         }
@@ -3775,6 +4064,16 @@ public final class Constraints {
             boolean valid = (pattern != null && pattern.matcher(value != null ? value : "").matches()) ^ flip;
             return CompletableFuture.completedFuture(
                 new ValidationResult<>(valid, !valid && error != null ? error.apply(value) : null));
+        }
+
+        @Override
+        public Executor getCompletionExecutor() {
+            return null;
+        }
+
+        @Override
+        public Observable[] getDependencies() {
+            return dependencies;
         }
     }
 
@@ -3798,11 +4097,24 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <T, D> ListConstraint<T, D> listNotNull(Supplier<D> error) {
-        return new ListConstraint<>(value -> {
-            boolean valid = value != null;
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
-        }, null, null);
+        return new ListConstraint<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(List<? super T> value) {
+                boolean valid = value != null;
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return null;
+            }
+
+            @Override
+            public Observable[] getDependencies() {
+                return null;
+            }
+        };
     }
 
     /**
@@ -3823,11 +4135,24 @@ public final class Constraints {
      * @return the new constraint
      */
     public static <D> ListConstraint<String, D> listNotNullOrEmpty(Supplier<D> error) {
-        return new ListConstraint<>(value -> {
-            boolean valid = value != null && !value.isEmpty();
-            return CompletableFuture.completedFuture(
-                new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
-        }, null, null);
+        return new ListConstraint<>() {
+            @Override
+            public CompletableFuture<ValidationResult<D>> validate(List<? super String> value) {
+                boolean valid = value != null && !value.isEmpty();
+                return CompletableFuture.completedFuture(
+                    new ValidationResult<>(valid, !valid && error != null ? error.get() : null));
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return null;
+            }
+
+            @Override
+            public Observable[] getDependencies() {
+                return null;
+            }
+        };
     }
 
     /**
@@ -3839,13 +4164,24 @@ public final class Constraints {
      * @param <D> diagnostic type
      * @return the new {@code ListConstraint}
      */
-    @SuppressWarnings("unchecked")
-    public static <T, D> ListConstraint<T, D> forList(
-            Constraint<? super ObservableList<T>, D> constraint) {
-        return new ListConstraint<>(
-            (Validator<? super ObservableList<? super T>, D>)constraint.getValidator(),
-            constraint.getCompletionExecutor(),
-            constraint.getDependencies());
+    public static <T, D> ListConstraint<T, D> forList(Constraint<? super List<T>, D> constraint) {
+        return new ListConstraint<>() {
+            @Override
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            public CompletableFuture<ValidationResult<D>> validate(List value) {
+                return ((Constraint)constraint).validate(value);
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return constraint.getCompletionExecutor();
+            }
+
+            @Override
+            public Observable[] getDependencies() {
+                return constraint.getDependencies();
+            }
+        };
     }
 
     /**
@@ -3857,13 +4193,24 @@ public final class Constraints {
      * @param <D> diagnostic type
      * @return the new {@code SetConstraint}
      */
-    @SuppressWarnings("unchecked")
-    public static <T, D> SetConstraint<T, D> forSet(
-            Constraint<? super ObservableSet<T>, D> constraint) {
-        return new SetConstraint<>(
-            (Validator<? super ObservableSet<? super T>, D>)constraint.getValidator(),
-            constraint.getCompletionExecutor(),
-            constraint.getDependencies());
+    public static <T, D> SetConstraint<T, D> forSet(Constraint<? super Set<T>, D> constraint) {
+        return new SetConstraint<>() {
+            @Override
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            public CompletableFuture<ValidationResult<D>> validate(Set value) {
+                return ((Constraint)constraint).validate(value);
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return constraint.getCompletionExecutor();
+            }
+
+            @Override
+            public Observable[] getDependencies() {
+                return constraint.getDependencies();
+            }
+        };
     }
 
     /**
@@ -3876,13 +4223,24 @@ public final class Constraints {
      * @param <D> diagnostic type
      * @return the new {@code MapConstraint}
      */
-    @SuppressWarnings("unchecked")
-    public static <K, V, D> MapConstraint<K, V, D> forMap(
-            Constraint<? super ObservableMap<K, V>, D> constraint) {
-        return new MapConstraint<>(
-            (Validator<? super ObservableMap<? super K, ? super V>, D>)constraint.getValidator(),
-            constraint.getCompletionExecutor(),
-            constraint.getDependencies());
+    public static <K, V, D> MapConstraint<K, V, D> forMap(Constraint<? super Map<K, V>, D> constraint) {
+        return new MapConstraint<>() {
+            @Override
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            public CompletableFuture<ValidationResult<D>> validate(Map value) {
+                return ((Constraint)constraint).validate(value);
+            }
+
+            @Override
+            public Executor getCompletionExecutor() {
+                return constraint.getCompletionExecutor();
+            }
+
+            @Override
+            public Observable[] getDependencies() {
+                return constraint.getDependencies();
+            }
+        };
     }
 
 }
