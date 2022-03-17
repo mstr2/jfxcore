@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,9 +22,7 @@
 package javafx.scene.input;
 
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.Property;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Node;
 import javafx.util.Incubating;
 
@@ -40,34 +38,6 @@ public final class NodeState {
 
     private static final String USER_MODIFIED_KEY = NodeState.class.getName() + ".userModifiedProperty";
 
-    @SuppressWarnings("unchecked")
-    public static <T> Property<T> defaultValueProperty(Property<T> property) {
-        if (!(property.getBean() instanceof Node bean)) {
-            throw new IllegalArgumentException("Property must be defined on a scene graph node.");
-        }
-
-        String name = property.getName();
-        if (name == null || name.isEmpty()) {
-            throw new IllegalArgumentException("Property name cannot be null or empty.");
-        }
-
-        String key = name + "-defaultValue";
-        Property<T> defaultValueProperty = (Property<T>)bean.getProperties().get(key);
-        if (defaultValueProperty == null) {
-            defaultValueProperty = new SimpleObjectProperty<>(bean, name, property.getValue());
-        }
-
-        return defaultValueProperty;
-    }
-
-    public static <T> T getDefaultValue(Property<T> property) {
-        return defaultValueProperty(property).getValue();
-    }
-
-    public static <T> void setDefaultValue(Property<T> property, T value) {
-        defaultValueProperty(property).setValue(value);
-    }
-
     /**
      * Returns the {@code userModified} attached property for the specified node, which indicates whether
      * the value of the node was changed as a result of user input.
@@ -75,7 +45,7 @@ public final class NodeState {
     public static BooleanProperty userModifiedProperty(Node node) {
         BooleanProperty property = (BooleanProperty)node.getProperties().get(USER_MODIFIED_KEY);
         if (property == null) {
-            property = new SimpleBooleanProperty(node, "userModified", false);
+            property = new SimpleBooleanProperty(NodeState.class, "userModified", false);
             node.getProperties().put(USER_MODIFIED_KEY, property);
         }
 
