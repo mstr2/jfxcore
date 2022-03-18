@@ -18,6 +18,7 @@
             <option value="$PROJECT_DIR$/modules/javafx.media" />
             <option value="$PROJECT_DIR$/modules/javafx.swing" />
             <option value="$PROJECT_DIR$/modules/javafx.swt" />
+            <option value="$PROJECT_DIR$/modules/javafx.validation" />
             <option value="$PROJECT_DIR$/modules/javafx.web" />
             <option value="$PROJECT_DIR$/tests/system" />
           </set>
