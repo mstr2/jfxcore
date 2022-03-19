@@ -31,6 +31,8 @@ import static java.lang.annotation.ElementType.*;
 /**
  * Indicates that the annotated element is part of an incubating feature,
  * which may be subject to changes or removal in a future version.
+ *
+ * @since JFXcore 18
  */
 @Documented
 @Retention(RetentionPolicy.CLASS)

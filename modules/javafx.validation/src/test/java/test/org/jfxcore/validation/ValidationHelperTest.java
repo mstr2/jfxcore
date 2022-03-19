@@ -46,7 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -102,7 +102,7 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testAlwaysValidValidator() {
+    public void testAlwaysValidConstraint() {
         initialize(
             new ConstraintImpl() {
                 @Override
@@ -117,7 +117,7 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testAlwaysInvalidValidator() {
+    public void testAlwaysInvalidConstraint() {
         initialize(
             new ConstraintImpl() {
                 @Override
@@ -132,7 +132,7 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testUserValidWithAlwaysValidValidator() {
+    public void testUserValidWithAlwaysValidConstraint() {
         initialize(
             new ConstraintImpl() {
                 @Override
@@ -156,7 +156,7 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testUserInvalidWithAlwaysInvalidValidator() {
+    public void testUserInvalidWithAlwaysInvalidConstraint() {
         initialize(
             new ConstraintImpl() {
                 @Override
@@ -180,7 +180,7 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testExceptionInValidatorStopsValidation() {
+    public void testExceptionInConstraintStopsValidation() {
         initialize(
             new ConstraintImpl() {
                 @Override
@@ -193,7 +193,7 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testValidatorYieldsDiagnosticOrError() {
+    public void testValidationYieldsDiagnosticOrError() {
         initialize(
             new ConstraintImpl() {
                 @Override
@@ -336,7 +336,7 @@ public class ValidationHelperTest {
     }
 
     @Test
-    public void testValidatorDoesNotValidateObservable() {
+    public void testConstraintDoesNotValidateObservable() {
         initialize(
             new ConstraintImpl() {
                 @Override
@@ -357,6 +357,29 @@ public class ValidationHelperTest {
         listener.check(null, 0);
     }
 
+    @Test
+    public void testSynchronousValidationDoNotToggleValidatingProperty() {
+        class Impl extends ConstraintImpl {
+            @Override
+            public CompletableFuture<ValidationResult<String>> validate(String value) {
+                return CompletableFuture.completedFuture(ValidationResult.valid());
+            }
+        }
+
+        initialize(new Impl(), new Impl(), new Impl());
+
+        int[] count = new int[1];
+        value.validatingProperty().addListener((obs, oldV, newV) -> {
+            count[0]++;
+        });
+
+        value.set("foo");
+        assertEquals(0, count[0]);
+
+        value.set("bar");
+        assertEquals(0, count[0]);
+    }
+
     @Nested
     class AsynchronousTests extends ConcurrentTestBase {
         private abstract class AsyncConstraintImpl implements Constraint<String, String> {
@@ -372,7 +395,7 @@ public class ValidationHelperTest {
         }
 
         @Test
-        public void testValidatingIsTrueWhileValidatorIsRunning() {
+        public void testValidatingIsTrueWhileValidationIsRunning() {
             runNow(() -> {
                 initialize(
                     new AsyncConstraintImpl() {
@@ -407,7 +430,7 @@ public class ValidationHelperTest {
         }
 
         @Test
-        public void testExceptionInValidatorStopsValidation() {
+        public void testExceptionInConstraintStopsValidation() {
             runNow(() -> {
                 initialize(
                     new AsyncConstraintImpl() {
@@ -427,7 +450,7 @@ public class ValidationHelperTest {
         }
 
         @Test
-        public void testExceptionInValidatorFutureStopsValidation() {
+        public void testExceptionInConstraintFutureStopsValidation() {
             runNow(() -> {
                 initialize(
                     new AsyncConstraintImpl() {
@@ -451,7 +474,7 @@ public class ValidationHelperTest {
         }
 
         @Test
-        public void testValidatorYieldsDiagnosticOrError() {
+        public void testValidationYieldsDiagnosticOrError() {
             runNow(() -> {
                 initialize(
                     new AsyncConstraintImpl() {
@@ -645,6 +668,8 @@ public class ValidationHelperTest {
             });
         }
 
+        private final Executor threadPool = Executors.newFixedThreadPool(2);
+
         private class TestConstraint implements Constraint<String, String> {
             final Supplier<ValidationResult<String>> action;
 
@@ -660,7 +685,7 @@ public class ValidationHelperTest {
                         return action.get();
                     }
                 };
-                ForkJoinPool.commonPool().execute(task);
+                threadPool.execute(task);
                 return task;
             }
 
