@@ -32,8 +32,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import test.javafx.beans.InvalidationListenerMock;
 import javafx.beans.Observable;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.scene.input.NodeState;
+import javafx.scene.input.InputNode;
 import javafx.scene.layout.Region;
 import javafx.validation.Constraint;
 import javafx.validation.ValidationResult;
@@ -139,7 +141,7 @@ public class ValidationHelperTest {
                 }
             });
 
-        var control = new Region();
+        var control = new InputRegion();
         var userValid = ValidationState.userValidProperty(control);
         ValidationState.setSource(control, value);
 
@@ -148,7 +150,7 @@ public class ValidationHelperTest {
         assertFalse(userValid.get());
         assertValidationState(helper, false, true, false);
 
-        NodeState.setUserModified(control, true);
+        control.setUserModified(true);
         assertTrue(userValid.get());
         assertValidationState(helper, false, true, false);
     }
@@ -163,7 +165,7 @@ public class ValidationHelperTest {
                 }
             });
 
-        var control = new Region();
+        var control = new InputRegion();
         var userInvalid = ValidationState.userInvalidProperty(control);
         ValidationState.setSource(control, value);
 
@@ -172,7 +174,7 @@ public class ValidationHelperTest {
         assertFalse(userInvalid.get());
         assertValidationState(helper, false, false, true);
 
-        NodeState.setUserModified(control, true);
+        control.setUserModified(true);
         assertTrue(userInvalid.get());
         assertValidationState(helper, false, false, true);
     }
@@ -789,6 +791,25 @@ public class ValidationHelperTest {
                 assertEquals(1, constrainedValues.size());
                 assertEquals("bar", constrainedValues.get(0));
             });
+        }
+    }
+
+    private static class InputRegion extends Region implements InputNode {
+        private final BooleanProperty userModified = new SimpleBooleanProperty(this, "userModified");
+
+        @Override
+        public BooleanProperty userModifiedProperty() {
+            return userModified;
+        }
+
+        @Override
+        public boolean isUserModified() {
+            return userModified.get();
+        }
+
+        @Override
+        public void setUserModified(boolean value) {
+            userModified.set(value);
         }
     }
 

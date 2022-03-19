@@ -29,7 +29,7 @@ import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanPropertyBase;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
-import javafx.scene.input.NodeState;
+import javafx.scene.input.InputNode;
 import javafx.util.Incubating;
 
 /**
@@ -181,8 +181,11 @@ public enum ValidationState {
 
         ValidationInfo(Node node) {
             this.node = node;
-            this.userModified = NodeState.userModifiedProperty(node);
-            this.userModified.addListener(this);
+            this.userModified = node instanceof InputNode inputNode ? inputNode.userModifiedProperty() : null;
+            if (this.userModified != null) {
+                this.userModified.addListener(this);
+            }
+
             this.source = new ObjectPropertyBase<>() {
                 ConstrainedValue<?, ?> oldValue;
 
@@ -198,6 +201,7 @@ public enum ValidationState {
 
                 @Override
                 protected void invalidated() {
+                    boolean userModified = isUserModified();
                     ConstrainedValue<?, ?> newValue = get();
 
                     if (oldValue != null) {
@@ -209,17 +213,17 @@ public enum ValidationState {
                     }
 
                     if (userValid != null) {
-                        userValid.set(newValue != null && newValue.isValid() && userModified.get());
+                        userValid.set(newValue != null && newValue.isValid() && userModified);
                     }
 
                     if (userInvalid != null) {
-                        userInvalid.set(newValue != null && newValue.isInvalid() && userModified.get());
+                        userInvalid.set(newValue != null && newValue.isInvalid() && userModified);
                     }
 
                     node.pseudoClassStateChanged(VALID_PSEUDOCLASS, newValue != null && newValue.isValid());
                     node.pseudoClassStateChanged(INVALID_PSEUDOCLASS, newValue != null && newValue.isInvalid());
-                    node.pseudoClassStateChanged(USER_VALID_PSEUDOCLASS, userModified.get() && newValue != null && newValue.isValid());
-                    node.pseudoClassStateChanged(USER_INVALID_PSEUDOCLASS, userModified.get() && newValue != null && newValue.isInvalid());
+                    node.pseudoClassStateChanged(USER_VALID_PSEUDOCLASS, userModified && newValue != null && newValue.isValid());
+                    node.pseudoClassStateChanged(USER_INVALID_PSEUDOCLASS, userModified && newValue != null && newValue.isInvalid());
                     node.pseudoClassStateChanged(VALIDATING_PSEUDOCLASS, newValue != null && newValue.isValidating());
 
                     oldValue = newValue;
@@ -236,7 +240,7 @@ public enum ValidationState {
         public ReadOnlyBooleanProperty userValidProperty() {
             if (userValid == null) {
                 boolean valid = source.get() != null && source.get().isValid();
-                userValid = new BooleanPropertyImpl(valid && userModified.get()) {
+                userValid = new BooleanPropertyImpl(valid && isUserModified()) {
                     @Override public Object getBean() { return ValidationState.class; }
                     @Override public String getName() { return "userValid"; }
                 };
@@ -248,7 +252,7 @@ public enum ValidationState {
         public ReadOnlyBooleanProperty userInvalidProperty() {
             if (userInvalid == null) {
                 boolean invalid = source.get() != null && source.get().isInvalid();
-                userInvalid = new BooleanPropertyImpl(invalid && userModified.get()) {
+                userInvalid = new BooleanPropertyImpl(invalid && isUserModified()) {
                     @Override public Object getBean() { return ValidationState.class; }
                     @Override public String getName() { return "userInvalid"; }
                 };
@@ -263,8 +267,9 @@ public enum ValidationState {
         @Override
         public void invalidated(Observable observable) {
             ConstrainedValue<?, ?> source = this.source.get();
-            boolean userValid = source != null && source.isValid() && userModified.get();
-            boolean userInvalid = source != null && source.isInvalid() && userModified.get();
+            boolean userModified = isUserModified();
+            boolean userValid = source != null && source.isValid() && userModified;
+            boolean userInvalid = source != null && source.isInvalid() && userModified;
 
             if (this.userValid != null) {
                 this.userValid.set(userValid);
@@ -286,24 +291,28 @@ public enum ValidationState {
             switch (changeType) {
                 case VALID -> {
                     if (userValid != null) {
-                        userValid.set(newValue && userModified.get());
+                        userValid.set(newValue && isUserModified());
                     }
 
                     node.pseudoClassStateChanged(VALID_PSEUDOCLASS, newValue);
-                    node.pseudoClassStateChanged(USER_VALID_PSEUDOCLASS, newValue && userModified.get());
+                    node.pseudoClassStateChanged(USER_VALID_PSEUDOCLASS, newValue && isUserModified());
                 }
 
                 case INVALID -> {
                     if (userInvalid != null) {
-                        userInvalid.set(newValue && userModified.get());
+                        userInvalid.set(newValue && isUserModified());
                     }
 
                     node.pseudoClassStateChanged(INVALID_PSEUDOCLASS, newValue);
-                    node.pseudoClassStateChanged(USER_INVALID_PSEUDOCLASS, newValue && userModified.get());
+                    node.pseudoClassStateChanged(USER_INVALID_PSEUDOCLASS, newValue && isUserModified());
                 }
 
                 case VALIDATING -> node.pseudoClassStateChanged(VALIDATING_PSEUDOCLASS, newValue);
             }
+        }
+
+        private boolean isUserModified() {
+            return userModified != null && userModified.get();
         }
     }
 

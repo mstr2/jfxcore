@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -76,7 +77,7 @@ import javafx.util.StringConverter;
  * @since JavaFX 2.0
  */
 @DefaultProperty("text")
-public abstract class TextInputControl extends Control {
+public abstract class TextInputControl extends InputControl {
     /**
      * Interface representing a text input's content. Since it is an ObservableStringValue,
      * you can also bind to, or observe the content.

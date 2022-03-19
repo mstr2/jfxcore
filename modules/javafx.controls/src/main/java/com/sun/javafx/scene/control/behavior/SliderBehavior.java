@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010, 2016, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,7 +32,6 @@ import javafx.scene.control.Slider;
 import com.sun.javafx.scene.control.inputmap.InputMap;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.input.NodeState;
 import com.sun.javafx.util.Utils;
 import static javafx.scene.input.KeyCode.*;
 
@@ -122,7 +121,7 @@ public class SliderBehavior extends BehaviorBase<Slider> {
         }
         double newValue = slider.getValue();
         if (oldValue != newValue) {
-            NodeState.setUserModified(slider, true);
+            slider.setUserModified(true);
         }
     }
 
@@ -157,7 +156,7 @@ public class SliderBehavior extends BehaviorBase<Slider> {
         // is then snapped to the nearest tick on mouse release.
         slider.adjustValue(slider.getValue());
         if (thumbPressedValue != slider.getValue()) {
-            NodeState.setUserModified(slider, true);
+            slider.setUserModified(true);
         }
     }
 
@@ -167,7 +166,7 @@ public class SliderBehavior extends BehaviorBase<Slider> {
         slider.adjustValue(slider.getMin());
         double newValue = slider.getValue();
         if (oldValue != newValue) {
-            NodeState.setUserModified(slider, true);
+            slider.setUserModified(true);
         }
     }
 
@@ -183,7 +182,7 @@ public class SliderBehavior extends BehaviorBase<Slider> {
         }
         double newValue = slider.getValue();
         if (oldValue != newValue) {
-            NodeState.setUserModified(slider, true);
+            slider.setUserModified(true);
         }
     }
 
@@ -193,7 +192,7 @@ public class SliderBehavior extends BehaviorBase<Slider> {
         slider.adjustValue(slider.getMax());
         double newValue = slider.getValue();
         if (oldValue != newValue) {
-            NodeState.setUserModified(slider, true);
+            slider.setUserModified(true);
         }
     }
 
@@ -209,7 +208,7 @@ public class SliderBehavior extends BehaviorBase<Slider> {
         }
         double newValue = slider.getValue();
         if (oldValue != newValue) {
-            NodeState.setUserModified(slider, true);
+            slider.setUserModified(true);
         }
     }
 

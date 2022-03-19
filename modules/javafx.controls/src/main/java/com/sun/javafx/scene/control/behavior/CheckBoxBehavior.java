@@ -24,7 +24,6 @@ package com.sun.javafx.scene.control.behavior;
 import javafx.scene.control.CheckBox;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.input.NodeState;
 
 public class CheckBoxBehavior extends ButtonBehavior<CheckBox> {
 
@@ -34,23 +33,25 @@ public class CheckBoxBehavior extends ButtonBehavior<CheckBox> {
 
     @Override
     protected void keyReleased(KeyEvent e) {
-        boolean oldValue = getNode().isSelected();
+        CheckBox node = getNode();
+        boolean oldValue = node.isSelected();
         super.keyReleased(e);
-        boolean newValue = getNode().isSelected();
+        boolean newValue = node.isSelected();
 
         if (oldValue != newValue) {
-            NodeState.setUserModified(getNode(), true);
+            node.setUserModified(true);
         }
     }
 
     @Override
     protected void mouseReleased(MouseEvent e) {
-        boolean oldValue = getNode().isSelected();
+        CheckBox node = getNode();
+        boolean oldValue = node.isSelected();
         super.mouseReleased(e);
-        boolean newValue = getNode().isSelected();
+        boolean newValue = node.isSelected();
 
         if (oldValue != newValue) {
-            NodeState.setUserModified(getNode(), true);
+            node.setUserModified(true);
         }
     }
 

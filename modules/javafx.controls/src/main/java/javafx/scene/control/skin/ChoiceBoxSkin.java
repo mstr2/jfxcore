@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,6 @@ import com.sun.javafx.scene.control.ContextMenuContent;
 import com.sun.javafx.scene.control.behavior.BehaviorBase;
 import javafx.scene.control.Control;
 import javafx.scene.control.SkinBase;
-import javafx.scene.input.NodeState;
 import javafx.beans.InvalidationListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -392,7 +391,7 @@ public class ChoiceBoxSkin<T> extends SkinBase<ChoiceBox<T>> {
                 item.setSelected(true);
                 int newIndex = selectionModel.getSelectedIndex();
                 if (oldIndex != newIndex) {
-                    NodeState.setUserModified(getSkinnable(), true);
+                    getSkinnable().setUserModified(true);
                 }
             });
             popupItem = item;

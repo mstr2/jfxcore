@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ import javafx.scene.Node;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.skin.SpinnerSkin;
-import javafx.scene.input.NodeState;
 import org.junit.Before;
 import org.junit.Test;
 import test.com.sun.javafx.scene.control.infrastructure.MouseEventFirer;
@@ -48,7 +47,7 @@ public class SpinnerSkinTest {
         Node button = spinner.getSkin().getNode().lookup(".decrement-arrow-button");
         new MouseEventFirer(button).fireMousePressAndRelease();
         assertEquals(0, spinner.getValue(), 0.001);
-        assertFalse(NodeState.isUserModified(spinner));
+        assertFalse(spinner.isUserModified());
     }
 
     @Test
@@ -56,13 +55,13 @@ public class SpinnerSkinTest {
         Node button = spinner.getSkin().getNode().lookup(".increment-arrow-button");
         new MouseEventFirer(button).fireMousePressAndRelease();
         assertEquals(1, spinner.getValue(), 0.001);
-        assertTrue(NodeState.isUserModified(spinner));
+        assertTrue(spinner.isUserModified());
     }
 
     @Test
     public void testNotUserModifiedWhenIncrementedProgrammatically() {
         spinner.increment();
         assertEquals(1, spinner.getValue(), 0.001);
-        assertFalse(NodeState.isUserModified(spinner));
+        assertFalse(spinner.isUserModified());
     }
 }

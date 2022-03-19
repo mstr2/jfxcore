@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -89,7 +90,7 @@ import javafx.css.StyleableProperty;
 // which are all on the same toggle group, and how the selected state on the
 // toggle group is affected or not in such a case.
 
- public class ToggleButton extends ButtonBase implements Toggle {
+ public class ToggleButton extends InputButtonBase implements Toggle {
 
     /* *************************************************************************
      *                                                                         *

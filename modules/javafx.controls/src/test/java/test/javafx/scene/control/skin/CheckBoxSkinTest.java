@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2011, 2017, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,7 +35,6 @@ import javafx.scene.control.skin.CheckBoxSkin;
 import com.sun.javafx.tk.Toolkit;
 import javafx.scene.Group;
 import javafx.scene.Scene;
-import javafx.scene.input.NodeState;
 import javafx.stage.Stage;
 
 import org.junit.BeforeClass;
@@ -94,22 +93,22 @@ public class CheckBoxSkinTest {
 
     @Test
     public void testUserModifiedWhenClicked() {
-        assertFalse(NodeState.isUserModified(checkbox));
+        assertFalse(checkbox.isUserModified());
         assertFalse(checkbox.isSelected());
 
         var mouseEventFirer = new MouseEventFirer(checkbox.getSkin().getNode());
         mouseEventFirer.fireMousePressAndRelease();
-        assertTrue(NodeState.isUserModified(checkbox));
+        assertTrue(checkbox.isUserModified());
         assertTrue(checkbox.isSelected());
     }
 
     @Test
     public void testNotUserModifiedWhenProgrammaticallyFired() {
-        assertFalse(NodeState.isUserModified(checkbox));
+        assertFalse(checkbox.isUserModified());
         assertFalse(checkbox.isSelected());
 
         checkbox.fire();
-        assertFalse(NodeState.isUserModified(checkbox));
+        assertFalse(checkbox.isUserModified());
         assertTrue(checkbox.isSelected());
     }
 

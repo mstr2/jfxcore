@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -54,7 +54,6 @@ import javafx.scene.input.DragEvent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.input.NodeState;
 import javafx.scene.layout.Region;
 import javafx.stage.WindowEvent;
 import javafx.util.StringConverter;
@@ -318,7 +317,7 @@ public abstract class ComboBoxPopupControl<T> extends ComboBoxBaseSkin<T> {
                 if ((value != null || oldValue != null) && (value == null || !value.equals(oldValue))) {
                     // no point updating values needlessly if they are the same
                     comboBoxBase.setValue(value);
-                    NodeState.setUserModified(comboBoxBase, true);
+                    comboBoxBase.setUserModified(true);
                 }
 
                 updateDisplayNode();

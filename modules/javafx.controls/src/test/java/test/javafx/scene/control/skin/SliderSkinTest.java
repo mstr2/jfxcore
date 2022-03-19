@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2011, 2015, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,7 +34,6 @@ import javafx.scene.control.skin.SliderSkin;
 
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.input.NodeState;
 import org.junit.Before;
 import org.junit.Test;
 import test.com.sun.javafx.scene.control.infrastructure.KeyEventFirer;
@@ -66,17 +65,17 @@ public class SliderSkinTest {
 
     @Test public void testUserModifiedWhenTrackIsClicked() {
         slider.setValue(1);
-        assertFalse(NodeState.isUserModified(slider));
+        assertFalse(slider.isUserModified());
 
         var track = slider.getSkin().getNode().lookup(".track");
         MouseEventFirer firer = new MouseEventFirer(track);
         firer.fireMousePressAndRelease();
-        assertTrue(NodeState.isUserModified(slider));
+        assertTrue(slider.isUserModified());
     }
 
     @Test public void testNotUserModifiedWhenThumbIsDraggedBackAndForth() {
         slider.setSnapToTicks(true);
-        assertFalse(NodeState.isUserModified(slider));
+        assertFalse(slider.isUserModified());
 
         var thumb = slider.getSkin().getNode().lookup(".thumb");
         MouseEventFirer firer = new MouseEventFirer(thumb);
@@ -84,34 +83,34 @@ public class SliderSkinTest {
         firer.fireMouseEvent(MouseEvent.MOUSE_DRAGGED, 100, 0);
         firer.fireMouseEvent(MouseEvent.MOUSE_DRAGGED, -100, 0);
         firer.fireMouseReleased();
-        assertFalse(NodeState.isUserModified(slider));
+        assertFalse(slider.isUserModified());
     }
 
     @Test public void testUserModifiedWhenHomeIsPressed() {
         slider.setValue(0);
-        assertFalse(NodeState.isUserModified(slider));
+        assertFalse(slider.isUserModified());
 
         KeyEventFirer firer = new KeyEventFirer(slider.getSkin().getNode());
         firer.doKeyPress(KeyCode.HOME);
-        assertFalse(NodeState.isUserModified(slider)); // slider thumb didn't move
+        assertFalse(slider.isUserModified()); // slider thumb didn't move
 
         slider.setValue(1);
         firer.doKeyPress(KeyCode.HOME);
-        assertTrue(NodeState.isUserModified(slider));
+        assertTrue(slider.isUserModified());
     }
 
     @Test public void testUserModifiedWhenEndIsPressed() {
         slider.setValue(0);
-        assertFalse(NodeState.isUserModified(slider));
+        assertFalse(slider.isUserModified());
 
         KeyEventFirer firer = new KeyEventFirer(slider.getSkin().getNode());
         firer.doKeyPress(KeyCode.END);
-        assertTrue(NodeState.isUserModified(slider));
+        assertTrue(slider.isUserModified());
 
         slider.setValue(100);
-        NodeState.setUserModified(slider, false);
+        slider.setUserModified(false);
         firer.doKeyPress(KeyCode.END);
-        assertFalse(NodeState.isUserModified(slider));
+        assertFalse(slider.isUserModified());
     }
 
     public static final class SliderSkinMock extends SliderSkin {

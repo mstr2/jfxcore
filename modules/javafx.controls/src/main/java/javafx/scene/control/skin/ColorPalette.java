@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -57,7 +57,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.input.NodeState;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -119,7 +118,7 @@ class ColorPalette extends Region {
                         Color oldColor = colorPicker.getValue();
                         colorPicker.setValue(customColorDialog.customColorProperty().get());
                         if (!Objects.equals(oldColor, colorPicker.getValue())) {
-                            NodeState.setUserModified(colorPicker, true);
+                            colorPicker.setUserModified(true);
                         }
                     });
                     customColorDialog.setOnSave(() -> {
@@ -489,7 +488,7 @@ class ColorPalette extends Region {
                             Color oldColor = colorPicker.getValue();
                             colorPicker.setValue(fill);
                             if (!Objects.equals(oldColor, colorPicker.getValue())) {
-                                NodeState.setUserModified(colorPicker, true);
+                                colorPicker.setUserModified(true);
                             }
                             colorPicker.fireEvent(new ActionEvent());
                             updateSelection(fill);
@@ -536,7 +535,7 @@ class ColorPalette extends Region {
                     Color oldColor = colorPicker.getValue();
                     colorPicker.setValue((Color) rectangle.getFill());
                     if (!Objects.equals(oldColor, colorPicker.getValue())) {
-                        NodeState.setUserModified(colorPicker, true);
+                        colorPicker.setUserModified(true);
                     }
                     colorPicker.fireEvent(new ActionEvent());
                 }
@@ -615,7 +614,7 @@ class ColorPalette extends Region {
                 Color oldColor = colorPicker.getValue();
                 colorPicker.setValue((Color) squares.get(index).rectangle.getFill());
                 if (!Objects.equals(oldColor, colorPicker.getValue())) {
-                    NodeState.setUserModified(colorPicker, true);
+                    colorPicker.setUserModified(true);
                 }
                 updateSelection(colorPicker.getValue());
             });
@@ -630,7 +629,7 @@ class ColorPalette extends Region {
                         Color oldColor = colorPicker.getValue();
                         colorPicker.setValue(mouseDragColor);
                         if (!Objects.equals(oldColor, colorPicker.getValue())) {
-                            NodeState.setUserModified(colorPicker, true);
+                            colorPicker.setUserModified(true);
                         }
                         updateSelection(mouseDragColor);
                     }

@@ -342,16 +342,16 @@ import java.util.concurrent.Executor;
  * {@link ConstrainedProperty} instances to which they apply are only accessed on the JavaFX
  * application thread.
  * <p>
- * When dependencies are passed into the validation function, their current values are read
- * <em>before</em> the validation function is executed by the user-specified {@link Executor}.
- * This ensures that no concurrent reads or writes can happen for dependencies.
+ * The values of dependencies are read <em>before</em> the validation function is executed by
+ * the user-specified {@link Executor}.
+ * This ensures that no concurrent reads or writes can happen when dependency values are
+ * accessed on a background thread within the validation function.
  * <p>
  * However, this guarantee does not cover the <em>internal state</em> of dependency values.
  * If a dependency value is a mutable object, then the application must manually synchronize
- * access to shared state to prevent concurrent modifications or memory ordering effects.
+ * access to its shared state to prevent concurrent modifications or memory ordering effects.
  * <p>
- * In general, it is recommended to use deeply immutable objects to prevent race conditions
- * due to bugs in shared state synchronization.
+ * In general, it is recommended to use deeply immutable objects to prevent race conditions.
  *
  * <a id="Visualization"></a>
  * <h2>Visualization</h2>
@@ -359,7 +359,7 @@ import java.util.concurrent.Executor;
  * This can be easily achieved by binding the {@link ValidationState} of a {@link ConstrainedValue}
  * to a UI control that serves as the representation of that value:
  * <pre>{@code
- *    class Model {
+ *    class ViewModel {
  *        private final ConstrainedStringProperty<String> name =
  *                new SimpleConstrainedStringProperty<>(Constraints.notNullOrEmpty());
  *
@@ -369,13 +369,13 @@ import java.util.concurrent.Executor;
  *    }
  *
  *    class View extends Pane {
- *        View(Model model) {
+ *        View(ViewModel viewModel) {
  *            var textField = new TextField();
  *            getChildren().add(textField);
- *            textField.textProperty().bindBidirectional(model.nameProperty());
+ *            textField.textProperty().bindBidirectional(viewModel.nameProperty());
  *
  *            // The 'name' property will provide validation states for the 'textField' node:
- *            ValidationState.setSource(textField, model.nameProperty());
+ *            ValidationState.setSource(textField, viewModel.nameProperty());
  *        }
  *    }
  * }</pre>
@@ -389,28 +389,30 @@ import java.util.concurrent.Executor;
  *     <caption></caption>
  *     <tr><th></th><th>Description</th><th>Corresponding property</th></tr>
  *     <tr>
- *         <td><b>:validating</b></td>
+ *         <td><b><span style="white-space: nowrap;">:validating</span></b></td>
  *         <td>Selects an element that is currently validating</td>
  *         <td>{@link ConstrainedProperty#validatingProperty()}</td>
  *     </tr>
  *     <tr>
- *         <td><b>:invalid</b></td>
+ *         <td><b><span style="white-space: nowrap;">:invalid</span></b></td>
  *         <td>Selects an element that failed data validation</td>
  *         <td>{@link ConstrainedProperty#invalidProperty()}</td>
  *     </tr>
  *     <tr>
- *         <td><b>:valid</b></td>
+ *         <td><b><span style="white-space: nowrap;">:valid</span></b></td>
  *         <td>Selects an element that successfully completed data validation</td>
  *         <td>{@link ConstrainedProperty#validProperty()}</td>
  *     </tr>
  *     <tr>
- *         <td><b>:user-invalid</b></td>
- *         <td>Selects an element that failed data validation after the user has interacted with it</td>
+ *         <td><b><span style="white-space: nowrap;">:user-invalid</span></b></td>
+ *         <td>Selects an element that failed data validation after the user has interacted with it,
+ *             for example by typing or clicking</td>
  *         <td>{@link ValidationState#userInvalidProperty(Node)}</td>
  *     </tr>
  *     <tr>
- *         <td><b>:user-valid</b></td>
- *         <td>Selects an element that successfully completed data validation after the user has interacted with it</td>
+ *         <td><b><span style="white-space: nowrap;">:user-valid</span></b></td>
+ *         <td>Selects an element that successfully completed data validation after the user has
+ *             interacted with it, for example by typing or clicking</td>
  *         <td>{@link ValidationState#userValidProperty(Node)}</td>
  *     </tr>
  * </table>
