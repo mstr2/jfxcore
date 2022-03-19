@@ -22,6 +22,8 @@
 package test.org.jfxcore.validation;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,18 +31,38 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Execution(ExecutionMode.SAME_THREAD)
 class ConcurrentTestBase {
 
-    private final long DEFAULT_TIMEOUT_MILLIS = 10000;
+    private final static int MAX_RETRY = 4;
+    private final static long DEFAULT_TIMEOUT_MILLIS = 10000;
 
     private final ExecutorService executorService =
         Executors.newSingleThreadExecutor(r -> new Thread(r, "FX Test Thread"));
 
-    private static long deadline;
+    private int invocation;
+    private long deadline;
 
     @BeforeEach
     void setupEach() {
         setTimeout(DEFAULT_TIMEOUT_MILLIS);
+    }
+
+    public void retry(Runnable runnable) {
+        for (int i = 0; true; ++i) {
+            try {
+                invocation = i;
+                runnable.run();
+                return;
+            } catch (AssertionError ex) {
+                if (i == MAX_RETRY - 1) {
+                    throw ex;
+                } else {
+                    System.err.println(
+                        runnable.getClass().getName() + " FAILED, retrying with relaxed timings");
+                }
+            }
+        }
     }
 
     public void setTimeout(long millis) {
@@ -49,7 +71,7 @@ class ConcurrentTestBase {
 
     public void sleep(long millis) {
         try {
-            Thread.sleep(millis);
+            Thread.sleep(millis * (long)Math.pow(2, invocation));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

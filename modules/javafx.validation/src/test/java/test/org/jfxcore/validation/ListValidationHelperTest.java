@@ -325,7 +325,7 @@ public class ListValidationHelperTest {
     @Nested
     class AsynchronousTests extends ConcurrentTestBase {
         @Test
-        public void testListConstraintForEmptyListIsEvaluatedOnce() {
+        public void testListConstraintForEmptyListIsEvaluatedOnce() { retry(() -> {
             var validationCount = new AtomicInteger();
 
             runNow(() -> {
@@ -355,10 +355,10 @@ public class ListValidationHelperTest {
                 assertEquals(List.of(), constrainedValue);
                 assertValidationState(helper, false, true, false);
             });
-        }
+        }); }
 
         @Test
-        public void testElementConstraintIsEvaluatedOnceForEachInitialElement() {
+        public void testElementConstraintIsEvaluatedOnceForEachInitialElement() { retry(() -> {
             var validationCount = new AtomicInteger();
 
             runNow(() -> {
@@ -401,10 +401,10 @@ public class ListValidationHelperTest {
                 assertEquals(List.of("<blank>"), elements.get(1).getDiagnostics());
                 assertEquals(List.of(), elements.get(2).getDiagnostics());
             });
-        }
+        }); }
 
         @Test
-        public void testConcurrentValidationWithManyInitialValues() {
+        public void testConcurrentValidationWithManyInitialValues() { retry(() -> {
             List<String> testStrings = new ArrayList<>();
             for (int i = 0; i < 1000; ++i) {
                 testStrings.add(i % 2 == 0 ? "abc" : "   ");
@@ -447,10 +447,10 @@ public class ListValidationHelperTest {
                     }
                 }
             });
-        }
+        }); }
 
         @Test
-        public void testConcurrentValidationWithManySubsequentlyAddedValues() {
+        public void testConcurrentValidationWithManySubsequentlyAddedValues() { retry(() -> {
             List<String> testStrings = new ArrayList<>();
             for (int i = 0; i < 250; ++i) {
                 testStrings.add(i % 2 == 0 ? "abc" : "   ");
@@ -498,7 +498,7 @@ public class ListValidationHelperTest {
                     }
                 }
             });
-        }
+        }); }
     }
 
 }

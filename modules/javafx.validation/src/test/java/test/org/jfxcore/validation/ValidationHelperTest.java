@@ -46,7 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -395,7 +395,7 @@ public class ValidationHelperTest {
         }
 
         @Test
-        public void testValidatingIsTrueWhileValidationIsRunning() {
+        public void testValidatingIsTrueWhileValidationIsRunning() { retry(() -> {
             runNow(() -> {
                 initialize(
                     new AsyncConstraintImpl() {
@@ -427,10 +427,10 @@ public class ValidationHelperTest {
                 assertValidationState(helper, false, true, false);
                 assertEquals("foo", constrainedValue.get());
             });
-        }
+        }); }
 
         @Test
-        public void testExceptionInConstraintStopsValidation() {
+        public void testExceptionInConstraintStopsValidation() { retry(() -> {
             runNow(() -> {
                 initialize(
                     new AsyncConstraintImpl() {
@@ -447,10 +447,10 @@ public class ValidationHelperTest {
             runNow(() -> {
                 assertValidationState(helper, false, false, false);
             });
-        }
+        }); }
 
         @Test
-        public void testExceptionInConstraintFutureStopsValidation() {
+        public void testExceptionInConstraintFutureStopsValidation() { retry(() -> {
             runNow(() -> {
                 initialize(
                     new AsyncConstraintImpl() {
@@ -471,10 +471,10 @@ public class ValidationHelperTest {
             runNow(() -> {
                 assertValidationState(helper, false, false, false);
             });
-        }
+        }); }
 
         @Test
-        public void testValidationYieldsDiagnosticOrError() {
+        public void testValidationYieldsDiagnosticOrError() { retry(() -> {
             runNow(() -> {
                 initialize(
                     new AsyncConstraintImpl() {
@@ -527,10 +527,10 @@ public class ValidationHelperTest {
                 assertEquals("foo", constrainedValue.get());
                 assertValidationState(helper, false, true, false);
             });
-        }
+        }); }
 
         @Test
-        public void testMultipleDiagnosticsAndErrors() {
+        public void testMultipleDiagnosticsAndErrors() { retry(() -> {
             runNow(() -> {
                 initialize(
                     new AsyncConstraintImpl() {
@@ -666,9 +666,7 @@ public class ValidationHelperTest {
                 assertEquals("foobar", constrainedValue.get());
                 assertValidationState(helper, false, true, false);
             });
-        }
-
-        private final Executor threadPool = Executors.newFixedThreadPool(2);
+        }); }
 
         private class TestConstraint implements Constraint<String, String> {
             final Supplier<ValidationResult<String>> action;
@@ -685,7 +683,7 @@ public class ValidationHelperTest {
                         return action.get();
                     }
                 };
-                threadPool.execute(task);
+                ForkJoinPool.commonPool().execute(task);
                 return task;
             }
 
@@ -701,7 +699,7 @@ public class ValidationHelperTest {
         }
 
         @Test
-        public void testConstraintIsEvaluatedWhenDependencyIsInvalidated() {
+        public void testConstraintIsEvaluatedWhenDependencyIsInvalidated() { retry(() -> {
             var dep1 = new SimpleDoubleProperty();
             var dep2 = new SimpleDoubleProperty();
             var validator1Count = new AtomicInteger();
@@ -771,10 +769,10 @@ public class ValidationHelperTest {
                 assertEquals(3, validator2Count.get());
                 assertValidationState(helper, false, true, false);
             });
-        }
+        }); }
 
         @Test
-        public void testChangeNotificationIsElidedForIntermediateCompletion() {
+        public void testChangeNotificationIsElidedForIntermediateCompletion() { retry(() -> {
             var validValues = new ArrayList<Boolean>();
             var invalidValues = new ArrayList<Boolean>();
             var validatingValues = new ArrayList<Boolean>();
@@ -816,7 +814,7 @@ public class ValidationHelperTest {
                 assertEquals(1, constrainedValues.size());
                 assertEquals("bar", constrainedValues.get(0));
             });
-        }
+        }); }
     }
 
     private static class InputRegion extends Region implements InputNode {
