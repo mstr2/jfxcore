@@ -338,7 +338,7 @@ public class ListValidationHelperTest {
                                 sleep(50);
                                 validationCount.getAndIncrement();
                                 return ValidationResult.valid();
-                            });
+                            }, getThreadPool());
                         }
 
                         @Override public Executor getCompletionExecutor() { return AsynchronousTests.this::runLater; }
@@ -371,7 +371,7 @@ public class ListValidationHelperTest {
                                 sleep(50);
                                 validationCount.getAndIncrement();
                                 return new ValidationResult<>(!value.isBlank(), value.isBlank() ? "<blank>" : null);
-                            });
+                            }, getThreadPool());
                         }
 
                         @Override public Executor getCompletionExecutor() { return AsynchronousTests.this::runLater; }
@@ -421,7 +421,7 @@ public class ListValidationHelperTest {
                             sleep(10);
                             validationCount.getAndIncrement();
                             return new ValidationResult<>(!value.isBlank(), value.isBlank() ? "<blank>" : null);
-                        });
+                        }, getThreadPool());
                     }
 
                     @Override public Executor getCompletionExecutor() { return AsynchronousTests.this::runLater; }
@@ -467,7 +467,7 @@ public class ListValidationHelperTest {
                             sleep(10);
                             validationCount.getAndIncrement();
                             return new ValidationResult<>(!value.isBlank(), value.isBlank() ? "<blank>" : null);
-                        });
+                        }, getThreadPool());
                     }
 
                     @Override public Executor getCompletionExecutor() { return AsynchronousTests.this::runLater; }

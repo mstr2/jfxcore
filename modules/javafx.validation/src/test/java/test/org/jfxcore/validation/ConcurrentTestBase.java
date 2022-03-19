@@ -37,7 +37,8 @@ class ConcurrentTestBase {
     private final static int MAX_RETRY = 4;
     private final static long DEFAULT_TIMEOUT_MILLIS = 10000;
 
-    private final ExecutorService executorService =
+    private final ExecutorService threadPool = Executors.newFixedThreadPool(8);
+    private final ExecutorService fxExecutor =
         Executors.newSingleThreadExecutor(r -> new Thread(r, "FX Test Thread"));
 
     private int invocation;
@@ -46,6 +47,10 @@ class ConcurrentTestBase {
     @BeforeEach
     void setupEach() {
         setTimeout(DEFAULT_TIMEOUT_MILLIS);
+    }
+
+    public ExecutorService getThreadPool() {
+        return threadPool;
     }
 
     public void retry(Runnable runnable) {
@@ -85,7 +90,7 @@ class ConcurrentTestBase {
         Throwable[] exception = new Throwable[1];
         var countDownLatch = new CountDownLatch(1);
 
-        executorService.submit(() -> {
+        fxExecutor.submit(() -> {
             try {
                 runnable.run();
             } catch (Throwable ex) {
@@ -114,7 +119,7 @@ class ConcurrentTestBase {
     }
 
     public void runLater(Runnable runnable) {
-        executorService.submit(runnable);
+        fxExecutor.submit(runnable);
     }
 
     @SuppressWarnings("unchecked")

@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -404,7 +403,7 @@ public class ValidationHelperTest {
                             return CompletableFuture.supplyAsync(() -> {
                                 sleep(50);
                                 return ValidationResult.valid();
-                            });
+                            }, getThreadPool());
                         }
                     });
 
@@ -459,7 +458,7 @@ public class ValidationHelperTest {
                             return CompletableFuture.supplyAsync(() -> {
                                 sleep(50);
                                 throw new RuntimeException();
-                            });
+                            }, getThreadPool());
                         }
                     });
 
@@ -486,7 +485,7 @@ public class ValidationHelperTest {
                                     return new ValidationResult<>(true, value.isBlank() ? "<blank>" : null);
                                 }
                                 return new ValidationResult<>(false, "<null>");
-                            });
+                            }, getThreadPool());
                         }
                     });
 
@@ -542,7 +541,7 @@ public class ValidationHelperTest {
                                     return new ValidationResult<>(false, "<blank-null>");
                                 }
                                 return new ValidationResult<>(true, value.isBlank() ? "<blank>" : null);
-                            });
+                            }, getThreadPool());
                         }
                     },
                     new AsyncConstraintImpl() {
@@ -554,7 +553,7 @@ public class ValidationHelperTest {
                                     return new ValidationResult<>(false, "<empty-null>");
                                 }
                                 return new ValidationResult<>(true, value.isEmpty() ? "<empty>" : null);
-                            });
+                            }, getThreadPool());
                         }
                     },
                     new AsyncConstraintImpl() {
@@ -564,7 +563,7 @@ public class ValidationHelperTest {
                                 sleep(100);
                                 boolean valid = value != null && value.length() > 4;
                                 return new ValidationResult<>(valid, !valid ? "<short>" : null);
-                            });
+                            }, getThreadPool());
                         }
                     });
 
@@ -683,7 +682,7 @@ public class ValidationHelperTest {
                         return action.get();
                     }
                 };
-                ForkJoinPool.commonPool().execute(task);
+                getThreadPool().execute(task);
                 return task;
             }
 
