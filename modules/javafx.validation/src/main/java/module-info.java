@@ -265,14 +265,14 @@ import java.util.concurrent.Executor;
  * </ul>
  * <p>
  * The four general-purpose constraint factories are overloaded to accept up to eight dependencies
- * (shown are the overloads for a single dependency):
+ * (shown here are the overloads for a single dependency):
  * <ul>
  *     <li>{@link Constraints#validate(ValidationFunction1, ObservableValue)}
  *     <li>{@link Constraints#validateAsync(ValidationFunction1, ObservableValue, Executor)}
  *     <li>{@link Constraints#validateCancellableAsync(CancellableValidationFunction1, ObservableValue, Executor)}
  *     <li>{@link Constraints#validateInterruptibleAsync(ValidationFunction1, ObservableValue, Executor)}
  * </ul>
- * The current values of the dependencies are passed into the validation function:
+ * The current values of the dependencies are passed into each invocation of the validation function:
  * <pre>{@code
  *    var dependency1 = new SimpleIntegerProperty();
  *    var dependency2 = new SimpleStringProperty();
@@ -332,7 +332,7 @@ import java.util.concurrent.Executor;
  *         When the data validation system cancels a future that was produced by this factory,
  *         the thread that is executing the validation function is interrupted.
  * </ul>
- * It is recommended to use the build-in factories instead of implementing the {@link Constraint}
+ * It is recommended to use the built-in factories instead of implementing the {@link Constraint}
  * interface directly for asynchronous constraints.
  * <p>
  * <h3>Thread safety considerations</h3>

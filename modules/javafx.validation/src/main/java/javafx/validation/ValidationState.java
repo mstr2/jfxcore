@@ -64,12 +64,6 @@ import javafx.util.Incubating;
  * ValidationState.setSource(textField, firstName);
  * }</pre>
  *
- * In an FXML document, the {@code ::} operator must be used to select the source property:
- * <pre>{@code
- * <TextField text="{fx:sync firstName}"
- *            ValidationState.source="{fx:once ::firstName}"/>
- * }</pre>
- *
  * @since JFXcore 18
  */
 @Incubating

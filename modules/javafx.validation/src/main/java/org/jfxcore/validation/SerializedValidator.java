@@ -97,12 +97,7 @@ public abstract class SerializedValidator<T, D> {
                     onValidationCompleted(value, null, false);
                 } else if (future.isDone()) {
                     try {
-                        ValidationResult<D> result = future.get();
-                        if (result == ValidationResult.none()) {
-                            result = null;
-                        }
-
-                        onValidationCompleted(value, result, false);
+                        onValidationCompleted(value, getResult(future.get()), false);
                     } catch (Throwable ex) {
                         if (!(ex instanceof CancellationException)) {
                             getLogger().severe(
@@ -146,7 +141,7 @@ public abstract class SerializedValidator<T, D> {
             exception = CANCELLED;
         }
 
-        onValidationCompleted(currentValue, exception != null ? null : result, hasNextValue);
+        onValidationCompleted(currentValue, exception != null ? null : getResult(result), hasNextValue);
 
         currentValue = null;
         validatingFuture = null;
@@ -158,6 +153,10 @@ public abstract class SerializedValidator<T, D> {
 
             validate(value);
         }
+    }
+
+    private static <D> ValidationResult<D> getResult(ValidationResult<D> result) {
+        return result == ValidationResult.none() ? null : result;
     }
 
     private static PlatformLogger getLogger() {

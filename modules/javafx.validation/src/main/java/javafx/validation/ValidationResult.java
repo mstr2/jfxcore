@@ -22,9 +22,10 @@
 package javafx.validation;
 
 import javafx.util.Incubating;
+import javafx.validation.property.ReadOnlyConstrainedProperty;
 
 /**
- * Represents the result of an invocation of a {@link Constraint} validator.
+ * Represents the result of a {@link Constraint} evaluation.
  * <p>
  * A constraint validator can choose to add an application-specified diagnostic object to the returned
  * {@link ValidationResult}, which can be used to provide information about the validated value.
@@ -85,8 +86,14 @@ public class ValidationResult<D> {
     }
 
     /**
-     * Returns a {@code ValidationResult} representing a validation run that didn't produce a result.
-     * Returning this special value from a {@link Constraint} validator effectively cancels the validation run.
+     * Returns a {@code ValidationResult} for a validation run that didn't produce a result.
+     * <p>
+     * Returning this result from a constraint validator will cancel the validation run without
+     * changing the {@link ReadOnlyConstrainedProperty#constrainedValueProperty() constrainedValue}
+     * of the property to which the constraint is applied.
+     * {@link ConstrainedValue#isValid()} and {@link ConstrainedValue#isInvalid()} will both
+     * return {@code false}, since a cancelled validation run means that the data validation
+     * system was not able to determine whether the current value is valid or invalid.
      *
      * @param <D> diagnostic type
      * @return a {@code ValidationResult}

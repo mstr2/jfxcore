@@ -379,6 +379,23 @@ public class ValidationHelperTest {
         assertEquals(0, count[0]);
     }
 
+    @Test
+    public void testCancelledValidationDoesNotChangeValidationState() {
+        initialize(new ConstraintImpl() {
+            @Override
+            public CompletableFuture<ValidationResult<String>> validate(String value) {
+                return CompletableFuture.completedFuture(ValidationResult.none());
+            }
+        });
+
+        assertValidationState(helper, false, false, false);
+        assertNull(constrainedValue.get());
+
+        value.set("foo");
+        assertValidationState(helper, false, false, false);
+        assertNull(constrainedValue.get());
+    }
+
     @Nested
     class AsynchronousTests extends ConcurrentTestBase {
         private abstract class AsyncConstraintImpl implements Constraint<String, String> {
@@ -812,6 +829,32 @@ public class ValidationHelperTest {
                 assertEquals(List.of(true, false), validatingValues);
                 assertEquals(1, constrainedValues.size());
                 assertEquals("bar", constrainedValues.get(0));
+            });
+        }); }
+
+        @Test
+        public void testCancelledValidationDoesNotChangeValidationState() { retry(() -> {
+            runNow(() -> {
+                initialize(new AsyncConstraintImpl() {
+                    @Override
+                    public CompletableFuture<ValidationResult<String>> validate(String value) {
+                        return CompletableFuture.supplyAsync(() -> {
+                            sleep(50);
+                            return ValidationResult.none();
+                        });
+                    }
+                });
+
+                assertValidationState(helper, true, false, false);
+                assertNull(constrainedValue.get());
+                value.set("foo");
+            });
+
+            sleep(100);
+
+            runNow(() -> {
+                assertValidationState(helper, false, false, false);
+                assertNull(constrainedValue.get());
             });
         }); }
     }
