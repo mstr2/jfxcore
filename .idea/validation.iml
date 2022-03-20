@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/modules/javafx.validation">
+      <sourceFolder url="file://$MODULE_DIR$/modules/javafx.validation/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/modules/javafx.validation/src/main/resources" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/modules/javafx.validation/src/test/java" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/modules/javafx.validation/src/test/resources" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/modules/javafx.validation/src/shims/java" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/modules/javafx.validation/build" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="base" exported="" />
+    <orderEntry type="module" module-name="graphics" exported="" />
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="library" scope="TEST" name="junit4" level="application" />
+  </component>
+</module>
