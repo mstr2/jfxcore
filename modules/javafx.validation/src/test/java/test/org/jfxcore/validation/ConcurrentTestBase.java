@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Execution(ExecutionMode.SAME_THREAD)
 class ConcurrentTestBase {
 
-    private final static int MAX_RETRY = 4;
+    private final static int MAX_RETRY = 5;
     private final static long DEFAULT_TIMEOUT_MILLIS = 10000;
 
     private final ExecutorService threadPool = Executors.newFixedThreadPool(8);

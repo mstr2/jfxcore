@@ -31,7 +31,6 @@ import javafx.validation.ValidationResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,21 +43,17 @@ public class SerializedValidatorTest extends ConcurrentTestBase {
     }
 
     @Test
-    public void testIntermediateValidationRequestsAreElided() throws Exception {
+    public void testIntermediateValidationRequestsAreElided() { retry(() -> {
         AtomicInteger validatorCalls = new AtomicInteger();
         AtomicInteger startedCount = new AtomicInteger();
         AtomicInteger completedCount = new AtomicInteger();
         List<Number> validatedNumbers = new ArrayList<>();
 
         Constraint<Number, Object> constraint = Constraints.validateAsync(value -> {
-            try {
-                validatorCalls.getAndIncrement();
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            validatorCalls.getAndIncrement();
+            sleep(50);
             return ValidationResult.valid();
-        }, ForkJoinPool.commonPool());
+        }, getThreadPool());
 
         var validator = new SerializedValidator<Number, Object>(constraint) {
             @Override
@@ -101,7 +96,7 @@ public class SerializedValidatorTest extends ConcurrentTestBase {
             validator.validate(5);
         });
 
-        Thread.sleep(200);
+        sleep(200);
 
         runNow(() -> {
             assertEquals(2, startedCount.get());
@@ -109,6 +104,6 @@ public class SerializedValidatorTest extends ConcurrentTestBase {
             assertEquals(2, validatorCalls.get());
             assertEquals(List.of(5), validatedNumbers);
         });
-    }
+    }); }
 
 }
