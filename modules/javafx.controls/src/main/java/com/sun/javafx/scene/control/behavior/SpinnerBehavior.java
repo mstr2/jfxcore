@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,6 +36,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.util.Duration;
 
 import java.util.List;
+import java.util.Objects;
 
 import static javafx.scene.input.KeyCode.*;
 import static com.sun.javafx.scene.control.inputmap.InputMap.KeyMapping;
@@ -113,11 +115,21 @@ public class SpinnerBehavior<T> extends BehaviorBase<Spinner<T>> {
     }
 
     public void increment(int steps) {
+        T oldValue = getNode().getValue();
         getNode().increment(steps);
+        T newValue = getNode().getValue();
+        if (!Objects.equals(oldValue, newValue)) {
+            getNode().setUserModified(true);
+        }
     }
 
     public void decrement(int steps) {
+        T oldValue = getNode().getValue();
         getNode().decrement(steps);
+        T newValue = getNode().getValue();
+        if (!Objects.equals(oldValue, newValue)) {
+            getNode().setUserModified(true);
+        }
     }
 
     public void startSpinning(boolean increment) {

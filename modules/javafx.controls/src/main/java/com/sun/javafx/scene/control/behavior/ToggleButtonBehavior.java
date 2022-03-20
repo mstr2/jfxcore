@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +28,8 @@ package com.sun.javafx.scene.control.behavior;
 import com.sun.javafx.scene.control.skin.Utils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
@@ -40,6 +43,8 @@ import static com.sun.javafx.scene.control.inputmap.InputMap.*;
 import static javafx.scene.input.KeyCode.*;
 
 public class ToggleButtonBehavior<C extends ToggleButton> extends ButtonBehavior<C>{
+
+    private final EventHandler<? super ActionEvent> fired;
 
     public ToggleButtonBehavior(C button) {
         super(button);
@@ -61,6 +66,15 @@ public class ToggleButtonBehavior<C extends ToggleButton> extends ButtonBehavior
         InputMap<C> overriddenFocusInput = new InputMap<>(button);
         overriddenFocusInput.getMappings().addAll(mappings);
         addDefaultChildMap(getInputMap(), overriddenFocusInput);
+
+        fired = handler -> button.setUserModified(true);
+        button.addEventHandler(ActionEvent.ACTION, fired);
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        getNode().removeEventHandler(ActionEvent.ACTION, fired);
     }
 
     /**

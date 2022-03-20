@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,6 +66,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.StrokeType;
 
 import java.util.List;
+import java.util.Objects;
 
 import static com.sun.javafx.scene.control.Properties.getColorPickerString;
 
@@ -113,7 +115,11 @@ class ColorPalette extends Region {
                 if (customColorDialog == null) {
                     customColorDialog = new CustomColorDialog(popupControl);
                     customColorDialog.customColorProperty().addListener((ov, t1, t2) -> {
+                        Color oldColor = colorPicker.getValue();
                         colorPicker.setValue(customColorDialog.customColorProperty().get());
+                        if (!Objects.equals(oldColor, colorPicker.getValue())) {
+                            colorPicker.setUserModified(true);
+                        }
                     });
                     customColorDialog.setOnSave(() -> {
                         Color customColor = customColorDialog.customColorProperty().get();
@@ -479,7 +485,11 @@ class ColorPalette extends Region {
                     if (!dragDetected && event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 1) {
                         if (!isEmpty) {
                             Color fill = (Color) rectangle.getFill();
+                            Color oldColor = colorPicker.getValue();
                             colorPicker.setValue(fill);
+                            if (!Objects.equals(oldColor, colorPicker.getValue())) {
+                                colorPicker.setUserModified(true);
+                            }
                             colorPicker.fireEvent(new ActionEvent());
                             updateSelection(fill);
                             event.consume();
@@ -522,7 +532,11 @@ class ColorPalette extends Region {
         public void selectColor(KeyEvent event) {
             if (rectangle.getFill() != null) {
                 if (rectangle.getFill() instanceof Color) {
+                    Color oldColor = colorPicker.getValue();
                     colorPicker.setValue((Color) rectangle.getFill());
+                    if (!Objects.equals(oldColor, colorPicker.getValue())) {
+                        colorPicker.setUserModified(true);
+                    }
                     colorPicker.fireEvent(new ActionEvent());
                 }
                 event.consume();
@@ -597,7 +611,11 @@ class ColorPalette extends Region {
                 int yIndex = com.sun.javafx.util.Utils.clamp(0,
                         (int)t.getY()/(SQUARE_SIZE + 1), NUM_OF_ROWS - 1);
                 int index = xIndex + yIndex*NUM_OF_COLUMNS;
+                Color oldColor = colorPicker.getValue();
                 colorPicker.setValue((Color) squares.get(index).rectangle.getFill());
+                if (!Objects.equals(oldColor, colorPicker.getValue())) {
+                    colorPicker.setUserModified(true);
+                }
                 updateSelection(colorPicker.getValue());
             });
             addEventHandler(MouseEvent.MOUSE_RELEASED, t -> {
@@ -608,7 +626,11 @@ class ColorPalette extends Region {
                 } else {
                     // restore color as mouse release happened outside the grid.
                     if (mouseDragColor != null) {
+                        Color oldColor = colorPicker.getValue();
                         colorPicker.setValue(mouseDragColor);
+                        if (!Objects.equals(oldColor, colorPicker.getValue())) {
+                            colorPicker.setUserModified(true);
+                        }
                         updateSelection(mouseDragColor);
                     }
                 }

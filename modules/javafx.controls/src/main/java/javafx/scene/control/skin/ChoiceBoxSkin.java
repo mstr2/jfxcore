@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -387,8 +388,13 @@ public class ChoiceBoxSkin<T> extends SkinBase<ChoiceBox<T>> {
             item.setOnAction(e -> {
                 if (selectionModel == null) return;
                 int index = getSkinnable().getItems().indexOf(o);
+                int oldIndex = selectionModel.getSelectedIndex();
                 selectionModel.select(index);
                 item.setSelected(true);
+                int newIndex = selectionModel.getSelectedIndex();
+                if (oldIndex != newIndex) {
+                    getSkinnable().setUserModified(true);
+                }
             });
             popupItem = item;
         }

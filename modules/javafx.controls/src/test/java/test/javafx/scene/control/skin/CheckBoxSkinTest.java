@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +26,7 @@
 
 package test.javafx.scene.control.skin;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
@@ -39,6 +40,7 @@ import javafx.stage.Stage;
 import org.junit.BeforeClass;
 import org.junit.Before;
 import org.junit.Test;
+import test.com.sun.javafx.scene.control.infrastructure.MouseEventFirer;
 
 /**
  */
@@ -87,6 +89,27 @@ public class CheckBoxSkinTest {
         double actualArea = checkbox.getSkin().getNode().computeAreaInScreen();
 
         assertEquals(expectedArea, actualArea, 0.001);
+    }
+
+    @Test
+    public void testUserModifiedWhenClicked() {
+        assertFalse(checkbox.isUserModified());
+        assertFalse(checkbox.isSelected());
+
+        var mouseEventFirer = new MouseEventFirer(checkbox.getSkin().getNode());
+        mouseEventFirer.fireMousePressAndRelease();
+        assertTrue(checkbox.isUserModified());
+        assertTrue(checkbox.isSelected());
+    }
+
+    @Test
+    public void testNotUserModifiedWhenProgrammaticallyFired() {
+        assertFalse(checkbox.isUserModified());
+        assertFalse(checkbox.isSelected());
+
+        checkbox.fire();
+        assertFalse(checkbox.isUserModified());
+        assertTrue(checkbox.isSelected());
     }
 
     public static final class CheckBoxSkinMock extends CheckBoxSkin {

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +32,7 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import com.sun.javafx.PlatformUtil;
 import com.sun.javafx.scene.control.Properties;
@@ -193,6 +195,8 @@ public abstract class TextInputControlSkin<T extends TextInputControl> extends S
     private List<Shape> imattrs = new java.util.ArrayList<Shape>();
 
     private EventHandler<InputMethodEvent> inputMethodTextChangedHandler;
+
+    private String textWhenFocused;
 
 
     /* ************************************************************************
@@ -387,6 +391,18 @@ public abstract class TextInputControlSkin<T extends TextInputControl> extends S
 
             @Override public int getCommittedTextLength() {
                 return getSkinnable().getText().length() - imlength;
+            }
+        });
+
+        registerInvalidationListener(control.focusedProperty(), e -> {
+            if (control.isFocused()) {
+                textWhenFocused = control.getText();
+            } else {
+                if (!Objects.equals(textWhenFocused, control.getText())) {
+                    control.setUserModified(true);
+                }
+
+                textWhenFocused = null;
             }
         });
     }

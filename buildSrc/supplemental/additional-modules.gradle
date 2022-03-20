@@ -1,0 +1,47 @@
+project(":validation") {
+    project.ext.buildModule = true
+    project.ext.includeSources = true
+    project.ext.moduleRuntime = true
+    project.ext.moduleName = "javafx.validation"
+
+    sourceSets {
+        main
+        shims {
+            java {
+                compileClasspath += sourceSets.main.output
+                runtimeClasspath += sourceSets.main.output
+            }
+        }
+        test {
+            java {
+                compileClasspath += sourceSets.shims.output
+                runtimeClasspath += sourceSets.shims.output
+            }
+        }
+    }
+
+    project.ext.moduleSourcePath = defaultModuleSourcePath
+    project.ext.moduleSourcePathShim = defaultModuleSourcePathShim
+
+    commonModuleSetup(project, [ 'base', 'graphics', 'validation' ])
+
+    dependencies {
+        testImplementation project(":graphics").sourceSets.test.output
+        testImplementation project(":base").sourceSets.test.output
+        implementation project(":base")
+        implementation project(":graphics")
+    }
+
+    test {
+        // StubToolkit is not *really* needed here, but because some code inadvertently invokes performance
+        // tracker and this attempts to fire up the toolkit and this looks for native libraries and fails,
+        // we have to use the stub toolkit for now.
+        jvmArgs "-Djavafx.toolkit=test.com.sun.javafx.pgstub.StubToolkit"
+        // FIXME: change this to also allow JDK 9 boot jdk
+        classpath += files("$JDK_HOME/jre/lib/ext/nashorn.jar")
+    }
+
+    addMavenPublication(project, [ 'graphics' ])
+
+    addValidateSourceSets(project, sourceSets)
+}

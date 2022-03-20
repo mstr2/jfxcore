@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -69,12 +70,20 @@ public class ComboBoxListViewBehavior<T> extends ComboBoxBaseBehavior<T> {
     private void selectPrevious() {
         SelectionModel<T> sm = getComboBox().getSelectionModel();
         if (sm == null) return;
+        int oldIndex = sm.getSelectedIndex();
         sm.selectPrevious();
+        if (oldIndex != sm.getSelectedIndex()) {
+            getComboBox().setUserModified(true);
+        }
     }
 
     private void selectNext() {
         SelectionModel<T> sm = getComboBox().getSelectionModel();
         if (sm == null) return;
+        int oldIndex = sm.getSelectedIndex();
         sm.selectNext();
+        if (oldIndex != sm.getSelectedIndex()) {
+            getComboBox().setUserModified(true);
+        }
     }
 }
