@@ -19,6 +19,7 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/swt.iml" filepath="$PROJECT_DIR$/.idea/swt.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/tests.iml" filepath="$PROJECT_DIR$/.idea/tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/web.iml" filepath="$PROJECT_DIR$/.idea/web.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/validation.iml" filepath="$PROJECT_DIR$/.idea/validation.iml" />
     </modules>
   </component>
 </project>
