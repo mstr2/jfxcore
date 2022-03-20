@@ -24,12 +24,14 @@ package javafx.scene.control;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.input.InputNode;
+import javafx.util.Incubating;
 
 /**
  * Base class for all user interface controls that support data input.
  *
  * @since JFXcore 18
  */
+@Incubating
 public abstract class InputControl extends Control implements InputNode {
 
     /**

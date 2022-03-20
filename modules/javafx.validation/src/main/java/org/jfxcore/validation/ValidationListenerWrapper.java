@@ -25,6 +25,10 @@ import javafx.validation.ConstrainedValue;
 import javafx.validation.ValidationListener;
 import java.util.Objects;
 
+/**
+ * Wraps a {@link ValidationListener} for use with read-only property wrappers.
+ * The purpose of this wrapper is to change the 'value' argument of the validation event.
+ */
 public final class ValidationListenerWrapper<T, D> implements ValidationListener<T, D> {
 
     private final ConstrainedValue<T, D> value;

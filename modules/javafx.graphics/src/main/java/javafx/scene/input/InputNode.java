@@ -22,12 +22,14 @@
 package javafx.scene.input;
 
 import javafx.beans.property.BooleanProperty;
+import javafx.util.Incubating;
 
 /**
  * Identifies a node that supports data input.
  *
  * @since JFXcore 18
  */
+@Incubating
 public interface InputNode {
 
     /**

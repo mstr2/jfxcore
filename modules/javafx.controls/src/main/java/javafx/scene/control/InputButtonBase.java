@@ -25,12 +25,14 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.Node;
 import javafx.scene.input.InputNode;
+import javafx.util.Incubating;
 
 /**
  * Base class for all button-like controls that support data input.
  *
  * @since JFXcore 18
  */
+@Incubating
 public abstract class InputButtonBase extends ButtonBase implements InputNode {
 
     /**

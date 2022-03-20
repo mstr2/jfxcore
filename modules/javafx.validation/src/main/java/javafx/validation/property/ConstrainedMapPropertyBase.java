@@ -169,7 +169,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, D> extends ConstrainedMap
     }
 
     @Override
-    public boolean isValid() {
+    public final boolean isValid() {
         return validationHelper.isValid();
     }
 
@@ -179,7 +179,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, D> extends ConstrainedMap
     }
 
     @Override
-    public boolean isInvalid() {
+    public final boolean isInvalid() {
         return validationHelper.isInvalid();
     }
 
@@ -189,7 +189,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, D> extends ConstrainedMap
     }
 
     @Override
-    public boolean isValidating() {
+    public final boolean isValidating() {
         return validationHelper.isValidating();
     }
 
@@ -204,7 +204,7 @@ public abstract class ConstrainedMapPropertyBase<K, V, D> extends ConstrainedMap
     }
 
     @Override
-    public DiagnosticList<D> getDiagnostics() {
+    public final DiagnosticList<D> getDiagnostics() {
         return validationHelper.getDiagnostics();
     }
 
