@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -76,6 +77,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
 import javafx.geometry.Point3D;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.command.CommandBinding;
 import javafx.scene.effect.BlendMode;
 import javafx.scene.effect.Effect;
 import javafx.scene.image.WritableImage;
@@ -150,6 +152,7 @@ import com.sun.javafx.scene.NodeEventDispatcher;
 import com.sun.javafx.scene.NodeHelper;
 import com.sun.javafx.scene.SceneHelper;
 import com.sun.javafx.scene.SceneUtils;
+import com.sun.javafx.scene.command.CommandBindingList;
 import com.sun.javafx.scene.input.PickResultChooser;
 import com.sun.javafx.scene.transform.TransformHelper;
 import com.sun.javafx.scene.transform.TransformUtils;
@@ -8092,6 +8095,27 @@ public abstract class Node implements EventTarget, Styleable {
      */
     public final ObjectProperty<InputMethodRequests> inputMethodRequestsProperty() {
         return getMiscProperties().inputMethodRequestsProperty();
+    }
+
+    /* *************************************************************************
+     *                                                                         *
+     *                             Command Bindings                            *
+     *                                                                         *
+     **************************************************************************/
+
+    private CommandBindingList commandBindings;
+
+    /**
+     * Gets the list of {@link CommandBinding command bindings} defined on this node.
+     *
+     * @return the list of command bindings
+     * @since JFXcore 18
+     */
+    public final ObservableList<CommandBinding<?>> getCommandBindings() {
+        if (commandBindings == null) {
+            commandBindings = new CommandBindingList(this);
+        }
+        return commandBindings;
     }
 
     /* *************************************************************************

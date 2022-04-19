@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,6 +47,8 @@ import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.event.EventType;
 import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.command.CommandSource;
 import javafx.scene.input.KeyCombination;
 
 import com.sun.javafx.event.EventHandlerManager;
@@ -56,6 +59,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectPropertyBase;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.ObservableMap;
 import javafx.scene.Parent;
@@ -94,7 +98,7 @@ MenuBar menuBar = new MenuBar(menu);</code></pre>
  * @since JavaFX 2.0
  */
 @IDProperty("id")
-public class MenuItem implements EventTarget, Styleable {
+public class MenuItem implements EventTarget, Styleable, CommandSource {
 
     /* *************************************************************************
      *                                                                         *
@@ -238,9 +242,52 @@ public class MenuItem implements EventTarget, Styleable {
 
     private ReadOnlyObjectWrapper<ContextMenu> parentPopupPropertyImpl() {
         if (parentPopup == null) {
-            parentPopup = new ReadOnlyObjectWrapper<ContextMenu>(this, "parentPopup");
+            parentPopup = new ReadOnlyObjectWrapper<ContextMenu>(this, "parentPopup") {
+                @Override
+                protected void invalidated() {
+                    if (scene != null) {
+                        scene.fireValueChangedEvent();
+                    }
+                }
+            };
         }
         return parentPopup;
+    }
+
+
+    // --- Scene
+    private class SceneProperty extends ReadOnlyObjectPropertyBase<Scene> {
+        @Override
+        public Object getBean() {
+            return MenuItem.this;
+        }
+
+        @Override
+        public String getName() {
+            return "scene";
+        }
+
+        @Override
+        public Scene get() {
+            ContextMenu parentPopup = getParentPopup();
+            return parentPopup != null ? parentPopup.getScene() : null;
+        }
+
+        @Override
+        public void fireValueChangedEvent() {
+            super.fireValueChangedEvent();
+        }
+    }
+
+    private SceneProperty scene;
+
+    public final ReadOnlyObjectProperty<Scene> sceneProperty() {
+        return scene != null ? scene : (scene = new SceneProperty());
+    }
+
+    public final Scene getScene() {
+        ContextMenu parentPopup = getParentPopup();
+        return parentPopup != null ? parentPopup.getScene() : null;
     }
 
 
@@ -469,7 +516,7 @@ public class MenuItem implements EventTarget, Styleable {
      * @param eventHandler the handler to register
      * @throws NullPointerException if the event type or handler is null
      */
-    public <E extends Event> void addEventHandler(EventType<E> eventType, EventHandler<E> eventHandler) {
+    public <E extends Event> void addEventHandler(EventType<E> eventType, EventHandler<? super E> eventHandler) {
         eventHandlerManager.addEventHandler(eventType, eventHandler);
     }
 
@@ -484,7 +531,7 @@ public class MenuItem implements EventTarget, Styleable {
      * @param eventHandler the handler to unregister
      * @throws NullPointerException if the event type or handler is null
      */
-    public <E extends Event> void removeEventHandler(EventType<E> eventType, EventHandler<E> eventHandler) {
+    public <E extends Event> void removeEventHandler(EventType<E> eventType, EventHandler<? super E> eventHandler) {
         eventHandlerManager.removeEventHandler(eventType, eventHandler);
     }
 

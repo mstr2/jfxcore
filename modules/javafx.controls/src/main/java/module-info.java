@@ -48,4 +48,5 @@ module javafx.controls {
     exports com.sun.javafx.scene.control.skin to
         javafx.graphics,
         javafx.web;
+    exports javafx.scene.control.command;
 }

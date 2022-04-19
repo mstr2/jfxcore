@@ -25,15 +25,21 @@
 
 package javafx.scene.control;
 
+import com.sun.javafx.scene.command.CommandPropertyImpl;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.PseudoClass;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.event.EventTarget;
 import javafx.scene.AccessibleAction;
 import javafx.scene.Node;
+import javafx.scene.command.Command;
+import javafx.scene.command.CommandSource;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.scene.control.command.UICommand;
 
 /**
  * Base class for button-like UI Controls, including Hyperlinks, Buttons,
@@ -47,7 +53,7 @@ import javafx.beans.property.ReadOnlyBooleanWrapper;
  * @since JavaFX 2.0
  */
 
-public abstract class ButtonBase extends Labeled {
+public abstract class ButtonBase extends Labeled implements CommandSource {
 
     /* *************************************************************************
      *                                                                         *
@@ -138,6 +144,33 @@ public abstract class ButtonBase extends Labeled {
             return "onAction";
         }
     };
+
+    private ObjectProperty<Command> command;
+    @Override public final ObjectProperty<Command> commandProperty() {
+        return command != null ? command : (command = new CommandPropertyImpl(this) {
+            Command oldCommand;
+            @Override
+            protected void invalidated() {
+                super.invalidated();
+
+                Command newCommand = get();
+                if (newCommand instanceof UICommand uiCommand) {
+                    ButtonBase.this.textProperty().bind(uiCommand.textProperty());
+                    ButtonBase.this.graphicProperty().bind(uiCommand.graphicProperty());
+                }
+            }
+        });
+    }
+    @Override public final Command getCommand() { return CommandSource.super.getCommand(); }
+    @Override public final void setCommand(Command command) { CommandSource.super.setCommand(command); }
+
+    @Override public final ObjectProperty<Object> commandParameterProperty() { return CommandSource.super.commandParameterProperty(); }
+    @Override public final Object getCommandParameter() { return CommandSource.super.getCommandParameter(); }
+    @Override public void setCommandParameter(Object parameter) { CommandSource.super.setCommandParameter(parameter); }
+
+    @Override public final ObjectProperty<EventTarget> commandTargetProperty() { return CommandSource.super.commandTargetProperty(); }
+    @Override public final EventTarget getCommandTarget() { return CommandSource.super.getCommandTarget(); }
+    @Override public final void setCommandTarget(EventTarget target) { CommandSource.super.setCommandTarget(target); }
 
 
     /* *************************************************************************
