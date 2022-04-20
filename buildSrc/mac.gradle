@@ -226,7 +226,7 @@ MAC.iio.nativeSource = [
 MAC.iio.compiler = compiler
 MAC.iio.ccFlags = [ccFlags].flatten()
 MAC.iio.linker = linker
-MAC.iio.linkLibs = ["${project("graphics").projectDir}/src/main/native-iio/resvg/target/release/libresvg"]
+MAC.iio.linkLibs = ["${project("graphics").projectDir}/src/main/native-iio/resvg/target/release/libresvg.a"]
 MAC.iio.linkFlags = [linkFlags].flatten()
 MAC.iio.lib = "javafx_iio"
 
