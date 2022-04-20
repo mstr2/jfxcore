@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -72,8 +73,9 @@ public interface ImageLoader {
      * @param preserveAspectRatio whether to preserve the width-to-height ratio
      * of the image.
      * @param smooth whether to use a smooth downscaling algorithm.
+     * @param pixelScale pixel scale for variable-density images
      * @return the image at the specified index or <code>null</code> on error.
      */
-    public ImageFrame load(int imageIndex, int width, int height,
-            boolean preserveAspectRatio, boolean smooth) throws IOException;
+    public ImageFrame load(int imageIndex, double width, double height,
+            boolean preserveAspectRatio, boolean smooth, float pixelScale) throws IOException;
 }

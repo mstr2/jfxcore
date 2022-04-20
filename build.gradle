@@ -1393,7 +1393,7 @@ ext.BUILD_SRC = rootProject.files("buildSrc/build/libs/buildSrc.jar")
  *        in the name of the generated task, such as ccPrismCommon, and also
  *        in the name of the final library, such as libprism-common.dylib.
  */
-void addNative(Project project, String name) {
+void addNative(Project project, String name, Task dependsOn = null) {
     // TODO if we want to handle 32/64 bit windows in the same build,
     // Then we will need to modify the win compile target to be win32 or win64
     def capitalName = name.split("-").collect{it.capitalize()}.join()
@@ -1448,9 +1448,13 @@ void addNative(Project project, String name) {
                 source(variantProperties.nativeSource)
                 cleanTask.delete ccOutput
             }
+            if (dependsOn != null) {
+                ccTask.dependsOn(dependsOn)
+            }
             def linkTask = project.task("link${t.capital}$capitalName$capitalVariant", type: LinkTask, dependsOn: ccTask, group: "Build") {
                 description = "Creates native dynamic library for $name for ${t.name}${capitalVariant != '' ? ' for variant ' + capitalVariant : ''}"
                 objectDir = ccOutput
+                linkLibs = variantProperties.linkLibs
                 linkParams.addAll(variantProperties.linkFlags)
                 lib = file("$libRootDir/${t.name}/${variant == '' ? library(properties.lib) : library(variantProperties.lib)}")
                 linker = variantProperties.linker
@@ -2240,12 +2244,30 @@ project(":graphics") {
     project.ext.nativeAllTask = task("native", group: "Build", description: "Compiles and Builds all native libraries for Graphics");
     project.ext.cleanNativeAllTask = task("cleanNative", group: "Build", description: "Clean all native libraries and objects for Graphics");
 
+    clean.dependsOn project.task("cleanResvg", type: Exec) {
+        workingDir "src/main/native-iio/resvg/c-api"
+        if (IS_WINDOWS) {
+            commandLine "cmd", "/c", "cargo", "clean"
+        } else {
+            commandLine "cargo", "clean"
+        }
+    }
+
+    def buildResvg = project.task("buildResvg", type: Exec) {
+        workingDir "src/main/native-iio/resvg/c-api"
+        if (IS_WINDOWS) {
+            commandLine "cmd", "/c", "cargo", "build", "--release"
+        } else {
+            commandLine "cargo", "build", "--release"
+        }
+    }
+
     // Add tasks for native compilation
     addNative(project, "glass");
     addNative(project, "prism")
     addNative(project, "prismSW")
     addNative(project, "font")
-    addNative(project, "iio")
+    addNative(project, "iio", buildResvg)
     if (IS_INCLUDE_ES2) {
         addNative(project, "prismES2")
     }

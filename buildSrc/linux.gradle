@@ -284,6 +284,7 @@ LINUX.iio.nativeSource = [
 LINUX.iio.compiler = compiler
 LINUX.iio.ccFlags = [cFlags, "-fvisibility=hidden"].flatten()
 LINUX.iio.linker = IS_STATIC_BUILD ? "ld" : linker
+LINUX.iio.linkLibs = ["${project("graphics").projectDir}/src/main/native-iio/resvg/target/release/libresvg"]
 LINUX.iio.linkFlags = [linkFlags].flatten()
 LINUX.iio.lib = "javafx_iio"
 

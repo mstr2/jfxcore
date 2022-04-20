@@ -401,6 +401,7 @@ WIN.iio.compiler = compiler
 WIN.iio.ccFlags = [ccFlags].flatten()
 WIN.iio.linker = linker
 WIN.iio.linkFlags = [linkFlags].flatten()
+WIN.iio.linkLibs = ["${project("graphics").projectDir}/src/main/native-iio/resvg/target/release/resvg.lib", "Ws2_32.lib", "Advapi32.lib", "Userenv.lib", "Bcrypt.lib"]
 WIN.iio.lib = "javafx_iio"
 WIN.iio.rcCompiler = rcCompiler;
 WIN.iio.rcSource = defaultRcSource
