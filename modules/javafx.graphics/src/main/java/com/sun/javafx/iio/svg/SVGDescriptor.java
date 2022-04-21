@@ -24,16 +24,11 @@ package com.sun.javafx.iio.svg;
 import com.sun.javafx.iio.common.ImageDescriptor;
 
 public class SVGDescriptor extends ImageDescriptor {
-    public static final int SOI = 0xD8;
 
     private static final String formatName = "SVG";
-
     private static final String[] extensions = { "svg" };
-
     private static final Signature[] signatures = {};
-
     private static final String[] mimeSubtypes = { "svg+xml" };
-
     private static ImageDescriptor theInstance = null;
 
     private SVGDescriptor() {
@@ -46,4 +41,5 @@ public class SVGDescriptor extends ImageDescriptor {
         }
         return theInstance;
     }
+
 }

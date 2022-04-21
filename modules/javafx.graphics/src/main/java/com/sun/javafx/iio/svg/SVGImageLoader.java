@@ -46,22 +46,25 @@ public class SVGImageLoader extends ImageLoaderImpl {
         init();
     }
 
-    private final long documentHandle;
+    private long documentHandle;
 
-    protected SVGImageLoader(InputStream input) throws IOException {
+    public SVGImageLoader(InputStream input) throws IOException {
         super(SVGDescriptor.getInstance());
         documentHandle = parseDocument(input.readAllBytes());
     }
 
     @Override
     public void dispose() {
-        freeDocument(documentHandle);
+        if (documentHandle != 0) {
+            freeDocument(documentHandle);
+            documentHandle = 0;
+        }
     }
 
     @Override
     public ImageFrame load(int imageIndex, double width, double height, boolean preserveAspectRatio,
                            boolean smooth, float pixelScale) throws IOException {
-        if (imageIndex > 0) {
+        if (documentHandle == 0 || imageIndex > 0) {
             return null;
         }
 

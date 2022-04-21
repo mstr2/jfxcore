@@ -24,7 +24,7 @@
 
 static resvg_options* svg_options = 0;
 
-static const char* errorMessage(resvg_error err) {
+static const char* svg_error_message(resvg_error err) {
     switch (err) {
         case RESVG_ERROR_NOT_AN_UTF8_STR: return "Only UTF-8 content is supported";
         case RESVG_ERROR_FILE_OPEN_FAILED: return "Failed to open the provided file";
@@ -61,14 +61,18 @@ JNIEXPORT jlong JNICALL Java_com_sun_javafx_iio_svg_SVGImageLoader_parseDocument
     }
 
     jbyte* dataPtr = (*env)->GetByteArrayElements(env, data, 0);
+    if (dataPtr == 0) {
+        return 0;
+    }
+
     resvg_render_tree* tree = 0;
     resvg_error err = (resvg_error)resvg_parse_tree_from_data(
         (const char*)dataPtr, (*env)->GetArrayLength(env, data), svg_options, &tree);
     (*env)->ReleaseByteArrayElements(env, data, dataPtr, JNI_COMMIT);
 
     if (err != RESVG_OK) {
-        jclass cls = (*env)->FindClass(env, "java/lang/InvalidArgumentException");
-        (*env)->ThrowNew(env, cls, errorMessage(err));
+        jclass cls = (*env)->FindClass(env, "java/io/IOException");
+        (*env)->ThrowNew(env, cls, svg_error_message(err));
         return 0;
     }
 
@@ -97,13 +101,16 @@ JNIEXPORT jobject JNICALL Java_com_sun_javafx_iio_svg_SVGImageLoader_renderDocum
         return 0;
     }
 
-    jbyte* pixelsPtr = (*env)->GetByteArrayElements(env, pixels, 0);
     resvg_fit_to fit_to;
     fit_to.type = RESVG_FIT_TO_TYPE_ORIGINAL;
+    fit_to.value = 0;
+
     resvg_transform identity;
     identity.a = scaleX;
     identity.d = scaleY;
-    identity.b = identity.c = identity.e = identity.f = 0.0;
+    identity.b = identity.c = identity.e = identity.f = 0;
+
+    jbyte* pixelsPtr = (*env)->GetByteArrayElements(env, pixels, 0);
     resvg_render((resvg_render_tree*)handle, fit_to, identity, (uint32_t)width, (uint32_t)height, (char*)pixelsPtr);
     (*env)->ReleaseByteArrayElements(env, pixels, pixelsPtr, JNI_COMMIT);
 
