@@ -42,6 +42,8 @@ public class SVGImageLoader extends ImageLoaderImpl {
             NativeLibLoader.loadLibrary("javafx_iio");
             return null;
         });
+
+        init();
     }
 
     private final long documentHandle;
@@ -82,6 +84,7 @@ public class SVGImageLoader extends ImageLoaderImpl {
             imageData.getHeight(), imageData.getWidth() * 4, null, pixelScale, metadata);
     }
 
+    private static native void init();
     private static native long parseDocument(byte[] data);
     private static native long freeDocument(long handle);
     private static native SVGImageData renderDocument(long handle, int width, int height, double scaleX, double scaleY);

@@ -144,7 +144,7 @@ def ccBaseFlags = [
 
 def ccFlags = [
         ccBaseFlags,
-        "-std=c++11",
+        "-std=c99",
         "-c",
         IS_STATIC_BUILD ? "-DSTATIC_BUILD" : "",
         IS_DEBUG_NATIVE ? "-DDEBUG" : ["-O3", "-DNDEBUG"]].flatten()
