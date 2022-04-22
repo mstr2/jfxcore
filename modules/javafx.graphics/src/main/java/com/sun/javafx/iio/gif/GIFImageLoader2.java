@@ -199,7 +199,8 @@ public class GIFImageLoader2 extends ImageLoaderImpl {
     }
 
     // loads next image frame or null if no more
-    public ImageFrame load(int imageIndex, double imgw, double imgh, boolean preserveAspectRatio, boolean smooth, float pixelScale) throws IOException {
+    public ImageFrame load(int imageIndex, double imgw, double imgh, boolean preserveAspectRatio, boolean smooth,
+                           float screenPixelScale, float imagePixelScale) throws IOException {
         int imageControlCode = waitForImageFrame();
 
         if (imageControlCode < 0) {
@@ -223,7 +224,7 @@ public class GIFImageLoader2 extends ImageLoaderImpl {
         byte palette[][] = localPalette ? readPalete(2 << (imgCtrl & 7), trnsIndex) : globalPalette;
 
         int[] outWH = ImageTools.computeDimensions(
-            screenW, screenH, (int)(imgw * pixelScale), (int)(imgh * pixelScale), preserveAspectRatio);
+            screenW, screenH, (int)(imgw * imagePixelScale), (int)(imgh * imagePixelScale), preserveAspectRatio);
         int width = outWH[0];
         int height = outWH[1];
 
@@ -242,7 +243,7 @@ public class GIFImageLoader2 extends ImageLoaderImpl {
         }
 
         return new ImageFrame(ImageStorage.ImageType.RGBA, img,
-                width, height, width * 4, null, pixelScale, metadata);
+                width, height, width * 4, null, imagePixelScale, metadata);
     }
 
     // IO helpers

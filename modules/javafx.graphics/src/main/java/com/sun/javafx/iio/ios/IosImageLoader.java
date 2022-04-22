@@ -217,8 +217,8 @@ public class IosImageLoader extends ImageLoaderImpl {
    /**
     * @inheritDoc
     */
-    public ImageFrame load(int imageIndex, double w, double h, boolean preserveAspectRatio, boolean smooth, float pixelScale)
-            throws IOException {
+    public ImageFrame load(int imageIndex, double w, double h, boolean preserveAspectRatio, boolean smooth,
+                           float screenPixelScale, float imagePixelScale) throws IOException {
 
         if (imageIndex >= nImages) {
             dispose();
@@ -227,7 +227,7 @@ public class IosImageLoader extends ImageLoaderImpl {
 
         // Determine output image dimensions.
         int[] widthHeight = ImageTools.computeDimensions(
-            inWidth, inHeight, (int)(w * pixelScale), (int)(h * pixelScale), preserveAspectRatio);
+            inWidth, inHeight, (int)(w * imagePixelScale), (int)(h * imagePixelScale), preserveAspectRatio);
         int width = widthHeight[0];
         int height = widthHeight[1];
 
@@ -262,7 +262,7 @@ public class IosImageLoader extends ImageLoaderImpl {
                 height,
                 width * nComponents,
                 null,
-                pixelScale,
+                imagePixelScale,
                 md);
     }
 }

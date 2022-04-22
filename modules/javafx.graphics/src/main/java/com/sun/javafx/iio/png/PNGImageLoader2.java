@@ -628,7 +628,8 @@ public final class PNGImageLoader2 extends ImageLoaderImpl {
     }
 
     public ImageFrame load(int imageIndex, double w, double h,
-            boolean preserveAspectRatio, boolean smooth, float pixelScale) throws IOException {
+            boolean preserveAspectRatio, boolean smooth,
+            float screenPixelScale, float imagePixelScale) throws IOException {
 
         if (imageIndex != 0) {
             return null;
@@ -642,7 +643,7 @@ public final class PNGImageLoader2 extends ImageLoaderImpl {
         }
 
         int[] outWH = ImageTools.computeDimensions(
-            width, height, (int)(w * pixelScale), (int)(h * pixelScale), preserveAspectRatio);
+            width, height, (int)(w * imagePixelScale), (int)(h * imagePixelScale), preserveAspectRatio);
         int rWidth = outWH[0];
         int rHeight = outWH[1];
 
@@ -669,7 +670,7 @@ public final class PNGImageLoader2 extends ImageLoaderImpl {
 
         ImageFrame imgPNG = colorType == PNG_COLOR_PALETTE
                 ? decodePalette(bb.array(), metaData)
-                : new ImageFrame(getType(), bb, width, height, bpp * width, palette, pixelScale, metaData);
+                : new ImageFrame(getType(), bb, width, height, bpp * width, palette, imagePixelScale, metaData);
 
         if (width != rWidth || height != rHeight) {
             imgPNG = ImageTools.scaleImageFrame(imgPNG, rWidth, rHeight, smooth);

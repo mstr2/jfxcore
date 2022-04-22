@@ -43,14 +43,14 @@ public class SVGImageLoaderTest {
 
     @Test
     public void testEmptyFile() {
-        assertThrows(IOException.class, () -> newImageLoader("").load(0, 0, 0, true, false, 1));
+        assertThrows(IOException.class, () -> newImageLoader("").load(0, 0, 0, true, false, 1, 1));
     }
 
     @Test
     public void testEmptySvg() throws IOException {
         ImageFrame imageFrame = newImageLoader("""
             <svg version="1.1" width="30" height="20" xmlns="http://www.w3.org/2000/svg"/>
-            """).load(0, 0, 0, true, false, 1);
+            """).load(0, 0, 0, true, false, 1, 1);
 
         assertEquals(30, imageFrame.getWidth());
         assertEquals(20, imageFrame.getHeight());
@@ -65,7 +65,7 @@ public class SVGImageLoaderTest {
                <rect x="30%" width="30%" height="100%" fill="lime" />
                <rect x="60%" width="30%" height="100%" fill="blue" />
             </svg>
-            """).load(0, 0, 0, true, false, 1);
+            """).load(0, 0, 0, true, false, 1, 1);
 
         assertEquals(30, imageFrame.getWidth());
         assertEquals(20, imageFrame.getHeight());
@@ -98,11 +98,11 @@ public class SVGImageLoaderTest {
         for (String testFile : testFiles) {
             ImageFrame pngImageFrame = new PNGImageLoader2(
                     new ByteArrayInputStream(Files.readAllBytes(testsDir.resolve("png").resolve(testFile + ".png"))))
-                .load(0, 0, 0, true, false, 1);
+                .load(0, 0, 0, true, false, 1, 1);
 
             ImageFrame svgImageFrame = new SVGImageLoader(
                     new ByteArrayInputStream(Files.readAllBytes(testsDir.resolve("svg").resolve(testFile + ".svg"))))
-                .load(0, pngImageFrame.getWidth(), 0, true, false, 1);
+                .load(0, pngImageFrame.getWidth(), 0, true, false, 1, 1);
 
             byte[] pngImg = (byte[])pngImageFrame.getImageData().array();
             byte[] svgImg = (byte[])svgImageFrame.getImageData().array();

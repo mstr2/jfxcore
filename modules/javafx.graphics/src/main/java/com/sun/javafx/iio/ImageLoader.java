@@ -73,9 +73,11 @@ public interface ImageLoader {
      * @param preserveAspectRatio whether to preserve the width-to-height ratio
      * of the image.
      * @param smooth whether to use a smooth downscaling algorithm.
-     * @param pixelScale pixel scale for variable-density images
+     * @param screenPixelScale screen pixel scale (used for variable-density images)
+     * @param imagePixelScale image pixel scale (used for fixed-density images)
      * @return the image at the specified index or <code>null</code> on error.
      */
     public ImageFrame load(int imageIndex, double width, double height,
-            boolean preserveAspectRatio, boolean smooth, float pixelScale) throws IOException;
+            boolean preserveAspectRatio, boolean smooth,
+            float screenPixelScale, float imagePixelScale) throws IOException;
 }

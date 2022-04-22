@@ -63,16 +63,18 @@ public class SVGImageLoader extends ImageLoaderImpl {
 
     @Override
     public ImageFrame load(int imageIndex, double width, double height, boolean preserveAspectRatio,
-                           boolean smooth, float pixelScale) throws IOException {
+                           boolean smooth, float screenPixelScale, float imagePixelScale) throws IOException {
         if (documentHandle == 0 || imageIndex > 0) {
             return null;
         }
 
         double[] imageSize = getImageSize(documentHandle);
-        int sourceWidth = (int)(imageSize[0] * pixelScale);
-        int sourceHeight = (int)(imageSize[1] * pixelScale);
+        int sourceWidth = (int)(imageSize[0] * screenPixelScale);
+        int sourceHeight = (int)(imageSize[1] * screenPixelScale);
         int[] widthHeight = ImageTools.computeDimensions(
-            sourceWidth, sourceHeight, (int)(width * pixelScale), (int)(height * pixelScale), preserveAspectRatio);
+            sourceWidth, sourceHeight,
+            (int)(width * screenPixelScale), (int)(height * screenPixelScale),
+            preserveAspectRatio);
         double scaleX = (double)widthHeight[0] / (double)sourceWidth;
         double scaleY = (double)widthHeight[1] / (double)sourceHeight;
 
@@ -84,7 +86,7 @@ public class SVGImageLoader extends ImageLoaderImpl {
 
         return new ImageFrame(
             ImageStorage.ImageType.RGBA_PRE, ByteBuffer.wrap(imageData.getPixels()), imageData.getWidth(),
-            imageData.getHeight(), imageData.getWidth() * 4, null, pixelScale, metadata);
+            imageData.getHeight(), imageData.getWidth() * 4, null, screenPixelScale, metadata);
     }
 
     private static native void init();

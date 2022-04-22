@@ -273,6 +273,7 @@ public class ImageStorage {
      * original image height will be used.
      * @param preserveAspectRatio whether to preserve the width-to-height ratio
      * of the image.
+     * @param pixelScale the screen pixel scale
      * @param smooth whether to apply smoothing when downsampling.
      * @return the sequence of all images in the specified source or
      * <code>null</code> on error.
@@ -292,7 +293,7 @@ public class ImageStorage {
                 loader = getLoaderBySignature(input, listener);
             }
             if (loader != null) {
-                images = loadAll(loader, width, height, preserveAspectRatio, pixelScale, smooth);
+                images = loadAll(loader, width, height, preserveAspectRatio, pixelScale, 1, smooth);
             } else {
                 throw new ImageStorageException("No loader for image data");
             }
@@ -325,7 +326,7 @@ public class ImageStorage {
         ImageLoader loader = null;
 
         try {
-            float imgPixelScale = devPixelScale;
+            float imgPixelScale = 1;
             try {
                 DataURI dataUri = DataURI.tryParse(input);
                 if (dataUri != null) {
@@ -399,7 +400,7 @@ public class ImageStorage {
             }
 
             if (loader != null) {
-                images = loadAll(loader, width, height, preserveAspectRatio, imgPixelScale, smooth);
+                images = loadAll(loader, width, height, preserveAspectRatio, devPixelScale, imgPixelScale, smooth);
             } else {
                 throw new ImageStorageException("No loader for image data");
             }
@@ -435,14 +436,14 @@ public class ImageStorage {
 
     private ImageFrame[] loadAll(ImageLoader loader,
             double width, double height, boolean preserveAspectRatio,
-            float pixelScale, boolean smooth) throws ImageStorageException {
+            float devPixelScale, float imgPixelScale, boolean smooth) throws ImageStorageException {
         ImageFrame[] images = null;
         ArrayList<ImageFrame> list = new ArrayList<ImageFrame>();
         int imageIndex = 0;
         ImageFrame image = null;
         do {
             try {
-                image = loader.load(imageIndex++, width, height, preserveAspectRatio, smooth, pixelScale);
+                image = loader.load(imageIndex++, width, height, preserveAspectRatio, smooth, devPixelScale, imgPixelScale);
             } catch (Exception e) {
                 // allow partially loaded animated images
                 if (imageIndex > 1) {

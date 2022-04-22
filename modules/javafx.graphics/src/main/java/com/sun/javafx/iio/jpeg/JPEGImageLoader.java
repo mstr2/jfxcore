@@ -203,7 +203,8 @@ public class JPEGImageLoader extends ImageLoaderImpl {
         }
     }
 
-    public ImageFrame load(int imageIndex, double w, double h, boolean preserveAspectRatio, boolean smooth, float pixelScale) throws IOException {
+    public ImageFrame load(int imageIndex, double w, double h, boolean preserveAspectRatio, boolean smooth,
+                           float screenPixelScale, float imagePixelScale) throws IOException {
         if (imageIndex != 0) {
             return null;
         }
@@ -212,7 +213,7 @@ public class JPEGImageLoader extends ImageLoaderImpl {
 
         // Determine output image dimensions.
         int[] widthHeight = ImageTools.computeDimensions(
-            inWidth, inHeight, (int)(w * pixelScale), (int)(h * pixelScale), preserveAspectRatio);
+            inWidth, inHeight, (int)(w * imagePixelScale), (int)(h * imagePixelScale), preserveAspectRatio);
         int width = widthHeight[0];
         int height = widthHeight[1];
 
@@ -267,7 +268,7 @@ public class JPEGImageLoader extends ImageLoaderImpl {
         }
 
         return new ImageFrame(outImageType, buffer,
-                width, height, width * outNumComponents, null, pixelScale, md);
+                width, height, width * outNumComponents, null, imagePixelScale, md);
     }
 
     private static class Lock {

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -88,7 +89,7 @@ public class BMPImageLoaderTest {
         ImageLoader loader = loaderFactory.createImageLoader(stream);
         assertNotNull(loader);
 
-        ImageFrame frame = loader.load(0, 0, 0, true, true, 1);
+        ImageFrame frame = loader.load(0, 0, 0, true, true, 1, 1);
         return Image.convertImageFrame(frame);
     }
 

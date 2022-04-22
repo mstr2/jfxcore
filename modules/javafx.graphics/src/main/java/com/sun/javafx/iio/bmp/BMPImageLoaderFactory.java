@@ -468,7 +468,8 @@ final class BMPImageLoader extends ImageLoaderImpl {
     }
 
     public ImageFrame load(int imageIndex, double w, double h,
-            boolean preserveAspectRatio, boolean smooth, float pixelScale) throws IOException
+            boolean preserveAspectRatio, boolean smooth,
+            float screenPixelScale, float imagePixelScale) throws IOException
     {
         if (0 != imageIndex) {
             return null;
@@ -477,7 +478,7 @@ final class BMPImageLoader extends ImageLoaderImpl {
         int hght = Math.abs(bih.biHeight);
 
         int[] outWH = ImageTools.computeDimensions(
-            bih.biWidth, hght, (int)(w * pixelScale), (int)(h * pixelScale), preserveAspectRatio);
+            bih.biWidth, hght, (int)(w * imagePixelScale), (int)(h * imagePixelScale), preserveAspectRatio);
         int width = outWH[0];
         int height = outWH[1];
 
@@ -538,7 +539,7 @@ final class BMPImageLoader extends ImageLoaderImpl {
         }
 
         return new ImageFrame(ImageStorage.ImageType.RGB, img,
-                width, height, width * bpp, null, pixelScale, imageMetadata);
+                width, height, width * bpp, null, imagePixelScale, imageMetadata);
     }
 }
 
