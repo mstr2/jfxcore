@@ -69,14 +69,14 @@ public class SVGImageLoader extends ImageLoaderImpl {
         }
 
         double[] imageSize = getImageSize(documentHandle);
-        int sourceWidth = (int)(imageSize[0] * screenPixelScale);
-        int sourceHeight = (int)(imageSize[1] * screenPixelScale);
+
         int[] widthHeight = ImageTools.computeDimensions(
-            sourceWidth, sourceHeight,
+            (int)(imageSize[0] * screenPixelScale), (int)(imageSize[1] * screenPixelScale),
             (int)(width * screenPixelScale), (int)(height * screenPixelScale),
             preserveAspectRatio);
-        double scaleX = (double)widthHeight[0] / (double)sourceWidth;
-        double scaleY = (double)widthHeight[1] / (double)sourceHeight;
+
+        double scaleX = (double)widthHeight[0] / imageSize[0];
+        double scaleY = (double)widthHeight[1] / imageSize[1];
 
         SVGImageData imageData = renderDocument(documentHandle, widthHeight[0], widthHeight[1], scaleX, scaleY);
 
