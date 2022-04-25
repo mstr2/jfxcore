@@ -78,6 +78,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: jfx
+          submodules: true
 
       - name: Install dependencies
         run: |
@@ -160,6 +161,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: jfx
+          submodules: true
 
       - name: Install dependencies
         run: |
@@ -243,6 +245,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: jfx
+          submodules: true
 
 # FIXME: enable cache for boot JDK
 #      - name: Restore boot JDK from cache

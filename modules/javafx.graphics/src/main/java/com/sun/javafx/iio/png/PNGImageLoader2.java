@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -626,8 +627,9 @@ public final class PNGImageLoader2 extends ImageLoaderImpl {
         return bitDepth == 16 ? 2 : 1;
     }
 
-    public ImageFrame load(int imageIndex, int rWidth, int rHeight,
-            boolean preserveAspectRatio, boolean smooth) throws IOException {
+    public ImageFrame load(int imageIndex, double w, double h,
+            boolean preserveAspectRatio, boolean smooth,
+            float screenPixelScale, float imagePixelScale) throws IOException {
 
         if (imageIndex != 0) {
             return null;
@@ -640,9 +642,10 @@ public final class PNGImageLoader2 extends ImageLoaderImpl {
             return null;
         }
 
-        int[] outWH = ImageTools.computeDimensions(width, height, rWidth, rHeight, preserveAspectRatio);
-        rWidth = outWH[0];
-        rHeight = outWH[1];
+        int[] outWH = ImageTools.computeDimensions(
+            width, height, (int)(w * imagePixelScale), (int)(h * imagePixelScale), preserveAspectRatio);
+        int rWidth = outWH[0];
+        int rHeight = outWH[1];
 
         ImageMetadata metaData = new ImageMetadata(null, true,
                 null, null, null, null, null, rWidth, rHeight, null, null, null);
@@ -667,7 +670,7 @@ public final class PNGImageLoader2 extends ImageLoaderImpl {
 
         ImageFrame imgPNG = colorType == PNG_COLOR_PALETTE
                 ? decodePalette(bb.array(), metaData)
-                : new ImageFrame(getType(), bb, width, height, bpp * width, palette, metaData);
+                : new ImageFrame(getType(), bb, width, height, bpp * width, palette, imagePixelScale, metaData);
 
         if (width != rWidth || height != rHeight) {
             imgPNG = ImageTools.scaleImageFrame(imgPNG, rWidth, rHeight, smooth);

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,6 +34,7 @@ import com.sun.javafx.iio.gif.GIFImageLoaderFactory;
 import com.sun.javafx.iio.ios.IosImageLoaderFactory;
 import com.sun.javafx.iio.jpeg.JPEGImageLoaderFactory;
 import com.sun.javafx.iio.png.PNGImageLoaderFactory;
+import com.sun.javafx.iio.svg.SVGImageLoaderFactory;
 import com.sun.javafx.logging.PlatformLogger;
 import com.sun.javafx.util.DataURI;
 import com.sun.javafx.util.Logging;
@@ -45,6 +47,7 @@ import java.io.SequenceInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * A convenience class for simple image loading. Factories for creating loaders
@@ -113,10 +116,10 @@ public class ImageStorage {
          */
         RGBA_PRE
     };
-//    /**
-//     * A mapping of lower case file extensions to loader factories.
-//     */
-//    private static HashMap<String, ImageLoaderFactory> loaderFactoriesByExtension;
+    /**
+     * A mapping of lower case file extensions to loader factories.
+     */
+    private final HashMap<String, ImageLoaderFactory> loaderFactoriesByExtension;
     /**
      * A mapping of format signature byte sequences to loader factories.
      */
@@ -150,12 +153,13 @@ public class ImageStorage {
                 GIFImageLoaderFactory.getInstance(),
                 JPEGImageLoaderFactory.getInstance(),
                 PNGImageLoaderFactory.getInstance(),
-                BMPImageLoaderFactory.getInstance()
+                BMPImageLoaderFactory.getInstance(),
+                SVGImageLoaderFactory.getInstance()
                 // Note: append ImageLoadFactory for any new format here.
             };
         }
 
-//        loaderFactoriesByExtension = new HashMap(numExtensions);
+        loaderFactoriesByExtension = new HashMap<>(loaderFactories.length);
         loaderFactoriesBySignature = new HashMap<>(loaderFactories.length);
         loaderFactoriesByMimeSubtype = new HashMap<>(loaderFactories.length);
 
@@ -214,10 +218,9 @@ public class ImageStorage {
      */
     public void addImageLoaderFactory(ImageLoaderFactory factory) {
         ImageFormatDescription desc = factory.getFormatDescription();
-//        String[] extensions = desc.getExtensions();
-//        for (int j = 0; j < extensions.length; j++) {
-//            loaderFactoriesByExtension.put(extensions[j].toLowerCase(), factory);
-//        }
+        for (String extension : desc.getExtensions()) {
+            loaderFactoriesByExtension.put(extension.toLowerCase(), factory);
+        }
 
         for (final Signature signature: desc.getSignatures()) {
             loaderFactoriesBySignature.put(signature, factory);
@@ -270,6 +273,7 @@ public class ImageStorage {
      * original image height will be used.
      * @param preserveAspectRatio whether to preserve the width-to-height ratio
      * of the image.
+     * @param pixelScale the screen pixel scale
      * @param smooth whether to apply smoothing when downsampling.
      * @return the sequence of all images in the specified source or
      * <code>null</code> on error.
@@ -289,7 +293,7 @@ public class ImageStorage {
                 loader = getLoaderBySignature(input, listener);
             }
             if (loader != null) {
-                images = loadAll(loader, width, height, preserveAspectRatio, pixelScale, smooth);
+                images = loadAll(loader, width, height, preserveAspectRatio, pixelScale, 1, smooth);
             } else {
                 throw new ImageStorageException("No loader for image data");
             }
@@ -322,7 +326,7 @@ public class ImageStorage {
         ImageLoader loader = null;
 
         try {
-            float imgPixelScale = 1.0f;
+            float imgPixelScale = 1;
             try {
                 DataURI dataUri = DataURI.tryParse(input);
                 if (dataUri != null) {
@@ -386,6 +390,9 @@ public class ImageStorage {
                         loader = IosImageLoaderFactory.getInstance().createImageLoader(theStream);
                     } else {
                         loader = getLoaderBySignature(theStream, listener);
+                        if (loader == null) {
+                            loader = getLoaderByExtension(input, listener);
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -393,7 +400,7 @@ public class ImageStorage {
             }
 
             if (loader != null) {
-                images = loadAll(loader, width, height, preserveAspectRatio, imgPixelScale, smooth);
+                images = loadAll(loader, width, height, preserveAspectRatio, devPixelScale, imgPixelScale, smooth);
             } else {
                 throw new ImageStorageException("No loader for image data");
             }
@@ -429,16 +436,14 @@ public class ImageStorage {
 
     private ImageFrame[] loadAll(ImageLoader loader,
             double width, double height, boolean preserveAspectRatio,
-            float pixelScale, boolean smooth) throws ImageStorageException {
+            float devPixelScale, float imgPixelScale, boolean smooth) throws ImageStorageException {
         ImageFrame[] images = null;
         ArrayList<ImageFrame> list = new ArrayList<ImageFrame>();
         int imageIndex = 0;
         ImageFrame image = null;
-        int imgw = (int) Math.round(width * pixelScale);
-        int imgh = (int) Math.round(height * pixelScale);
         do {
             try {
-                image = loader.load(imageIndex++, imgw, imgh, preserveAspectRatio, smooth);
+                image = loader.load(imageIndex++, width, height, preserveAspectRatio, smooth, devPixelScale, imgPixelScale);
             } catch (Exception e) {
                 // allow partially loaded animated images
                 if (imageIndex > 1) {
@@ -448,7 +453,6 @@ public class ImageStorage {
                 }
             }
             if (image != null) {
-                image.setPixelScale(pixelScale);
                 list.add(image);
             } else {
                 break;
@@ -462,27 +466,27 @@ public class ImageStorage {
         return images;
     }
 
-//    private static ImageLoader getLoaderByExtension(String input, ImageLoadListener listener) {
-//        ImageLoader loader = null;
-//
-//        int dotIndex = input.lastIndexOf(".");
-//        if (dotIndex != -1) {
-//            String extension = input.substring(dotIndex + 1).toLowerCase();
-//            Set extensions = loaderFactoriesByExtension.keySet();
-//            if (extensions.contains(extension)) {
-//                ImageLoaderFactory factory = loaderFactoriesByExtension.get(extension);
-//                InputStream stream = ImageTools.createInputStream(input);
-//                if (stream != null) {
-//                    loader = factory.createImageLoader(stream);
-//                    if (listener != null) {
-//                        loader.addListener(listener);
-//                    }
-//                }
-//            }
-//        }
-//
-//        return loader;
-//    }
+    private ImageLoader getLoaderByExtension(String input, ImageLoadListener listener) throws IOException {
+        ImageLoader loader = null;
+
+        int dotIndex = input.lastIndexOf(".");
+        if (dotIndex != -1) {
+            String extension = input.substring(dotIndex + 1).toLowerCase();
+            Set<String> extensions = loaderFactoriesByExtension.keySet();
+            if (extensions.contains(extension)) {
+                ImageLoaderFactory factory = loaderFactoriesByExtension.get(extension);
+                InputStream stream = ImageTools.createInputStream(input);
+                if (stream != null) {
+                    loader = factory.createImageLoader(stream);
+                    if (listener != null) {
+                        loader.addListener(listener);
+                    }
+                }
+            }
+        }
+
+        return loader;
+    }
 
     private ImageLoader getLoaderBySignature(InputStream stream, ImageLoadListener listener) throws IOException {
         byte[] header = new byte[getMaxSignatureLength()];

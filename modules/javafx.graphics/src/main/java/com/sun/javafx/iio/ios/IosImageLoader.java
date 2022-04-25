@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -216,8 +217,8 @@ public class IosImageLoader extends ImageLoaderImpl {
    /**
     * @inheritDoc
     */
-    public ImageFrame load(int imageIndex, int width, int height, boolean preserveAspectRatio, boolean smooth)
-            throws IOException {
+    public ImageFrame load(int imageIndex, double w, double h, boolean preserveAspectRatio, boolean smooth,
+                           float screenPixelScale, float imagePixelScale) throws IOException {
 
         if (imageIndex >= nImages) {
             dispose();
@@ -225,9 +226,10 @@ public class IosImageLoader extends ImageLoaderImpl {
         }
 
         // Determine output image dimensions.
-        int[] widthHeight = ImageTools.computeDimensions(inWidth, inHeight, width, height, preserveAspectRatio);
-        width = widthHeight[0];
-        height = widthHeight[1];
+        int[] widthHeight = ImageTools.computeDimensions(
+            inWidth, inHeight, (int)(w * imagePixelScale), (int)(h * imagePixelScale), preserveAspectRatio);
+        int width = widthHeight[0];
+        int height = widthHeight[1];
 
         final ImageMetadata md = new ImageMetadata(
                 null, // gamma
@@ -260,6 +262,7 @@ public class IosImageLoader extends ImageLoaderImpl {
                 height,
                 width * nComponents,
                 null,
+                imagePixelScale,
                 md);
     }
 }

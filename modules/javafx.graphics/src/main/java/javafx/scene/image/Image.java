@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -72,6 +73,7 @@ import javafx.beans.property.SimpleIntegerProperty;
  * <li><a href="http://www.w3.org/Graphics/GIF/spec-gif89a.txt">GIF</a></li>
  * <li><a href="http://www.ijg.org">JPEG</a></li>
  * <li><a href="http://www.libpng.org/pub/png/spec/">PNG</a></li>
+ * <li><a href="https://www.w3.org/TR/SVG11/feature#SVG-static">SVG 1.1 (static)</a></li>
  * </ul>
  *
  * <p>

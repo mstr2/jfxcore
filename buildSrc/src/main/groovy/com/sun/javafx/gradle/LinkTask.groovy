@@ -26,11 +26,13 @@
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 
 
 class LinkTask extends DefaultTask {
+    @Optional @Input List<String> linkLibs = new ArrayList<String>();
     @Input List<String> linkParams = new ArrayList<String>();
     @InputDirectory File objectDir;
     @OutputFile File lib;
@@ -52,6 +54,9 @@ class LinkTask extends DefaultTask {
             }
             // Exclude parfait files (.bc)
             args(objectDir.listFiles().findAll{ !it.getAbsolutePath().endsWith(".bc") });
+            if (linkLibs != null && !linkLibs.isEmpty()) {
+                args(linkLibs);
+            }
             if (project.IS_WINDOWS) {
                 args("/out:$lib");
             } else {
