@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +30,9 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.event.EventTarget;
 import javafx.event.EventType;
+import javafx.scene.command.EventBinding;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.InputMethodEvent;
@@ -683,7 +686,12 @@ public final class EventHandlerProperties {
 
         @Override
         protected void invalidated() {
-            eventDispatcher.setEventHandler(eventType, get());
+            EventHandler<? super T> handler = get();
+            eventDispatcher.setEventHandler(eventType, handler);
+
+            if (handler instanceof EventBinding<?> binding && bean instanceof EventTarget target) {
+                EventBindingHelper.initialize(binding, target);
+            }
         }
     }
 

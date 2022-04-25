@@ -19,27 +19,25 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.sun.javafx.scene.command;
+package com.sun.javafx.scene;
 
-import javafx.scene.Node;
-import javafx.scene.command.CommandBinding;
+import javafx.event.EventTarget;
+import javafx.scene.command.EventBinding;
 
-public final class CommandBindingHelper {
+public class EventBindingHelper {
 
     private static Accessor accessor;
 
-    private CommandBindingHelper() {}
-
     public static void setAccessor(Accessor accessor) {
-        CommandBindingHelper.accessor = accessor;
+        EventBindingHelper.accessor = accessor;
     }
 
-    public static void setNode(CommandBinding<?> binding, Node node) {
-        accessor.setNode(binding, node);
+    public static void initialize(EventBinding<?> binding, EventTarget target) {
+        accessor.initialize(binding, target);
     }
 
     public interface Accessor {
-        void setNode(CommandBinding<?> binding, Node node);
+        void initialize(EventBinding<?> binding, EventTarget target);
     }
 
 }

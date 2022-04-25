@@ -105,8 +105,6 @@ module javafx.graphics {
         javafx.media,
         javafx.swing,
         javafx.web;
-    exports com.sun.javafx.scene.command to
-        javafx.controls;
     exports com.sun.javafx.scene.input to
         javafx.controls,
         javafx.swing,
