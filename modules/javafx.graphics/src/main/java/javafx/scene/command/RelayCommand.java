@@ -21,19 +21,21 @@
 
 package javafx.scene.command;
 
-import javafx.beans.value.ObservableValue;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.util.Incubating;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
- * A command implementation that invokes a user-specified {@link Runnable}.
+ * A command implementation that invokes a user-specified operation.
  *
  * @since JFXcore 18
  */
 @Incubating
-public class RelayCommand extends CommandBase {
+public class RelayCommand<T> extends Command {
 
-    private final Consumer<?> execute;
+    private final Consumer<T> execute;
     private final Consumer<Throwable> exceptionHandler;
 
     /**
@@ -42,11 +44,8 @@ public class RelayCommand extends CommandBase {
      * @param execute a parameterless operation
      */
     public RelayCommand(Runnable execute) {
-        if (execute == null) {
-            throw new IllegalArgumentException("execute cannot be null");
-        }
-
-        this.execute = parameter -> execute.run();
+        Objects.requireNonNull(execute, "execute cannot be null");
+        this.execute = unused -> execute.run();
         this.exceptionHandler = null;
     }
 
@@ -54,130 +53,61 @@ public class RelayCommand extends CommandBase {
      * Creates a new {@link RelayCommand} instance that executes a parameterless operation.
      *
      * @param execute a parameterless operation
-     * @param exceptionHandler handler for exceptions thrown by the operation; if none is provided, exceptions will be thrown on the calling thread
+     * @param exceptionHandler handler for exceptions thrown by the operation
      */
     public RelayCommand(Runnable execute, Consumer<Throwable> exceptionHandler) {
-        if (execute == null) {
-            throw new IllegalArgumentException("execute cannot be null");
-        }
-
-        this.execute = parameter -> execute.run();
-        this.exceptionHandler = exceptionHandler;
+        Objects.requireNonNull(execute, "execute cannot be null");
+        this.execute = unused -> execute.run();
+        this.exceptionHandler = Objects.requireNonNull(exceptionHandler, "exceptionHandler cannot be null");
     }
 
     /**
-     * Creates a new {@link RelayCommand} instance that executes a parameterless operation that
-     * is dependent on the specified condition.
+     * Creates a new {@link RelayCommand} instance that executes a parameterized operation.
      *
-     * @param execute a parameterless operation
-     * @param condition a value that determines whether the command is executable
+     * @param execute a parameterized operation
      */
-    public RelayCommand(Runnable execute, ObservableValue<Boolean> condition) {
-        super(condition);
-
-        if (execute == null) {
-            throw new IllegalArgumentException("execute cannot be null");
-        }
-
-        this.execute = parameter -> execute.run();
+    public RelayCommand(Consumer<T> execute) {
+        this.execute = Objects.requireNonNull(execute, "execute cannot be null");
         this.exceptionHandler = null;
     }
 
     /**
-     * Creates a new {@link RelayCommand} instance that executes a parameterless operation that
-     * is dependent on the specified condition.
+     * Creates a new {@link RelayCommand} instance that executes a parameterized operation.
      *
-     * @param execute a parameterless operation
-     * @param condition a value that determines whether the command is executable
-     * @param exceptionHandler handler for exceptions thrown by the operation; if none is provided, exceptions will be thrown on the calling thread
+     * @param execute a parameterized operation
+     * @param exceptionHandler handler for exceptions thrown by the operation
      */
-    public RelayCommand(Runnable execute, ObservableValue<Boolean> condition, Consumer<Throwable> exceptionHandler) {
-        super(condition);
-
-        if (execute == null) {
-            throw new IllegalArgumentException("execute cannot be null");
-        }
-
-        this.execute = parameter -> execute.run();
-        this.exceptionHandler = exceptionHandler;
+    public RelayCommand(Consumer<T> execute, Consumer<Throwable> exceptionHandler) {
+        this.execute = Objects.requireNonNull(execute, "execute cannot be null");
+        this.exceptionHandler = Objects.requireNonNull(exceptionHandler, "exceptionHandler cannot be null");
     }
 
-    /**
-     * Creates a new {@link RelayCommand} instance that executes a parameterless operation.
-     *
-     * @param execute a parameterless operation
-     */
-    public <T> RelayCommand(Consumer<T> execute) {
-        if (execute == null) {
-            throw new IllegalArgumentException("execute cannot be null");
-        }
+    private final BooleanProperty executable = new SimpleBooleanProperty(this, "executable", true);
 
-        this.execute = execute;
-        this.exceptionHandler = null;
-    }
-
-    /**
-     * Creates a new {@link RelayCommand} instance that executes a parameterless operation.
-     *
-     * @param execute a parameterless operation
-     * @param exceptionHandler handler for exceptions thrown by the operation; if none is provided, exceptions will be thrown on the calling thread
-     */
-    public <T> RelayCommand(Consumer<T> execute, Consumer<Throwable> exceptionHandler) {
-        if (execute == null) {
-            throw new IllegalArgumentException("execute cannot be null");
-        }
-
-        this.execute = execute;
-        this.exceptionHandler = exceptionHandler;
-    }
-
-    /**
-     * Creates a new {@link RelayCommand} instance that executes a parameterless operation that
-     * is dependent on the specified condition.
-     *
-     * @param execute a parameterless operation
-     * @param condition a value that determines whether the command is executable
-     */
-    public <T> RelayCommand(Consumer<T> execute, ObservableValue<Boolean> condition) {
-        super(condition);
-
-        if (execute == null) {
-            throw new IllegalArgumentException("execute cannot be null");
-        }
-
-        this.execute = execute;
-        this.exceptionHandler = null;
-    }
-
-    /**
-     * Creates a new {@link RelayCommand} instance that executes a parameterless operation that
-     * is dependent on the specified condition.
-     *
-     * @param execute a parameterless operation
-     * @param condition a value that determines whether the command is executable
-     * @param exceptionHandler handler for exceptions thrown by the operation; if none is provided, exceptions will be thrown on the calling thread
-     */
-    public <T> RelayCommand(Consumer<T> execute, ObservableValue<Boolean> condition, Consumer<Throwable> exceptionHandler) {
-        super(condition);
-
-        if (execute == null) {
-            throw new IllegalArgumentException("execute cannot be null");
-        }
-
-        this.execute = execute;
-        this.exceptionHandler = exceptionHandler;
+    @Override
+    public final BooleanProperty executableProperty() {
+        return executable;
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public void execute(Object parameter) {
-        try {
-            startExecution();
-            ((Consumer)execute).accept(parameter);
-            endExecution();
-        } catch (Throwable ex) {
-            endExecution();
+    public final boolean isExecutable() {
+        return executable.get();
+    }
 
+    public final void setExecutable(boolean executable) {
+        this.executable.set(executable);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void execute(Object parameter) {
+        if (!isExecutable()) {
+            throw new IllegalStateException("Command is not executable.");
+        }
+
+        try {
+            execute.accept((T)parameter);
+        } catch (Throwable ex) {
             if (exceptionHandler != null) {
                 exceptionHandler.accept(ex);
             } else {

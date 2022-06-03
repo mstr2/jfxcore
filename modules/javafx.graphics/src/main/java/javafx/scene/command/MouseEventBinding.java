@@ -21,6 +21,7 @@
 
 package javafx.scene.command;
 
+import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.input.MouseButton;
@@ -28,15 +29,58 @@ import javafx.scene.input.MouseEvent;
 import javafx.util.Incubating;
 
 /**
- * {@code Bindings} associate scene graph events with commands.
+ * Binds a {@link Command} to {@link MouseEvent}.
+ * <p>
+ * By default, {@code MouseEventBinding} handles all mouse events.
+ * It can also be configured to filter mouse events with the following filter properties:
+ * <ul>
+ *     <li>{@link #buttonProperty() button}
+ *     <li>{@link #clickCountProperty() clickCount}
+ *     <li>{@link #shiftDownProperty() shiftDown}
+ *     <li>{@link #controlDownProperty() controlDown}
+ *     <li>{@link #altDownProperty() altDown}
+ *     <li>{@link #metaDownProperty() metaDown}
+ *     <li>{@link #primaryButtonDownProperty() primaryButtonDown}
+ *     <li>{@link #secondaryButtonDownProperty() secondaryButtonDown}
+ *     <li>{@link #middleButtonDownProperty() middleButtonDown}
+ *     <li>{@link #backButtonDownProperty() backButtonDown}
+ *     <li>{@link #forwardButtonDownProperty() forwardButtonDown}
+ * </ul>
+ * If a value other than {@code null} is specified for any of these filter properties,
+ * {@code MouseEventBinding} will only handle events that match the specified value.
  *
  * @since JFXcore 18
  */
 @Incubating
-public class MouseEventBinding extends EventBinding<MouseEvent> {
+public class MouseEventBinding extends InputEventBinding<MouseEvent> {
 
+    /**
+     * Initializes a new {@code MouseEventBinding} instance.
+     */
     public MouseEventBinding() {}
 
+    /**
+     * Initializes a new {@code MouseEventBinding} instance.
+     *
+     * @param command the command that is bound to the {@code MouseEvent}
+     */
+    public MouseEventBinding(@NamedArg("command") Command command) {
+        super(command);
+    }
+
+    /**
+     * Initializes a new {@code MouseEventBinding} instance.
+     *
+     * @param command the command that is bound to the {@code MouseEvent}
+     * @param parameter the parameter that is passed to the command
+     */
+    public MouseEventBinding(@NamedArg("command") Command command, @NamedArg("parameter") Object parameter) {
+        super(command, parameter);
+    }
+
+    /**
+     * Specifies a filter for the {@link MouseEvent#getButton() button} value.
+     */
     private ObjectProperty<MouseButton> button;
 
     public final ObjectProperty<MouseButton> buttonProperty() {
@@ -52,6 +96,9 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
         buttonProperty().set(button);
     }
 
+    /**
+     * Specifies a filter for the {@link MouseEvent#getClickCount() clickCount} value.
+     */
     private ObjectProperty<Integer> clickCount;
 
     public final ObjectProperty<Integer> clickCountProperty() {
@@ -67,6 +114,9 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
         clickCountProperty().set(clickCount);
     }
 
+    /**
+     * Specifies a filter for the {@link MouseEvent#isShiftDown() shiftDown} value.
+     */
     private ObjectProperty<Boolean> shiftDown;
 
     public final ObjectProperty<Boolean> shiftDownProperty() {
@@ -82,6 +132,9 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
         shiftDownProperty().set(shiftDown);
     }
 
+    /**
+     * Specifies a filter for the {@link MouseEvent#isControlDown() controlDown} value.
+     */
     private ObjectProperty<Boolean> controlDown;
 
     public final ObjectProperty<Boolean> controlDownProperty() {
@@ -97,6 +150,9 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
         controlDownProperty().set(controlDown);
     }
 
+    /**
+     * Specifies a filter for the {@link MouseEvent#isAltDown() altDown} value.
+     */
     private ObjectProperty<Boolean> altDown;
 
     public final ObjectProperty<Boolean> altDownProperty() {
@@ -112,6 +168,9 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
         altDownProperty().set(altDown);
     }
 
+    /**
+     * Specifies a filter for the {@link MouseEvent#isMetaDown() metaDown} value.
+     */
     private ObjectProperty<Boolean> metaDown;
 
     public final ObjectProperty<Boolean> metaDownProperty() {
@@ -127,6 +186,9 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
         metaDownProperty().set(metaDown);
     }
 
+    /**
+     * Specifies a filter for the {@link MouseEvent#isPrimaryButtonDown() primaryButtonDown} value.
+     */
     private ObjectProperty<Boolean> primaryButtonDown;
 
     public final ObjectProperty<Boolean> primaryButtonDownProperty() {
@@ -142,6 +204,9 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
         primaryButtonDownProperty().set(primaryButtonDown);
     }
 
+    /**
+     * Specifies a filter for the {@link MouseEvent#isMiddleButtonDown() middleButtonDown} value.
+     */
     private ObjectProperty<Boolean> middleButtonDown;
 
     public final ObjectProperty<Boolean> middleButtonDownProperty() {
@@ -157,6 +222,9 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
         middleButtonDownProperty().set(middleButtonDown);
     }
 
+    /**
+     * Specifies a filter for the {@link MouseEvent#isSecondaryButtonDown() secondaryButtonDown} value.
+     */
     private ObjectProperty<Boolean> secondaryButtonDown;
 
     public final ObjectProperty<Boolean> secondaryButtonDownProperty() {
@@ -171,7 +239,10 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
     public final void setSecondaryButtonDown(Boolean secondaryButtonDown) {
         secondaryButtonDownProperty().set(secondaryButtonDown);
     }
-    
+
+    /**
+     * Specifies a filter for the {@link MouseEvent#isBackButtonDown() backButtonDown} value.
+     */
     private ObjectProperty<Boolean> backButtonDown;
 
     public final ObjectProperty<Boolean> backButtonDownProperty() {
@@ -187,6 +258,9 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
         backButtonDownProperty().set(backButtonDown);
     }
 
+    /**
+     * Specifies a filter for the {@link MouseEvent#isForwardButtonDown() forwardButtonDown} value.
+     */
     private ObjectProperty<Boolean> forwardButtonDown;
 
     public final ObjectProperty<Boolean> forwardButtonDownProperty() {
@@ -204,7 +278,9 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
 
     @Override
     protected boolean handleEvent(MouseEvent event) {
-        return matches(button, event.getButton())
+        return super.handleEvent(event)
+            && matches(button, event.getButton())
+            && matches(clickCount, event.getClickCount())
             && matches(shiftDown, event.isShiftDown())
             && matches(controlDown, event.isControlDown())
             && matches(altDown, event.isAltDown())
@@ -214,10 +290,6 @@ public class MouseEventBinding extends EventBinding<MouseEvent> {
             && matches(secondaryButtonDown, event.isSecondaryButtonDown())
             && matches(backButtonDown, event.isBackButtonDown())
             && matches(forwardButtonDown, event.isForwardButtonDown());
-    }
-
-    private <T> boolean matches(ObjectProperty<T> property, T value) {
-        return property == null || property.get() == value;
     }
 
 }

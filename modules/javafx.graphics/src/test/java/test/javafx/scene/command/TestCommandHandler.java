@@ -19,42 +19,35 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package javafx.scene.command;
+package test.javafx.scene.command;
 
-import javafx.beans.NamedArg;
-import javafx.event.ActionEvent;
-import javafx.util.Incubating;
+import javafx.scene.Node;
+import javafx.scene.command.Command;
+import javafx.scene.command.CommandHandler;
+import java.util.List;
 
-/**
- * Binds a {@link Command} to {@link ActionEvent}.
- *
- * @since JFXcore 18
- */
-@Incubating
-public class ActionEventBinding extends EventBinding<ActionEvent> {
+public class TestCommandHandler implements CommandHandler {
 
-    /**
-     * Initializes a new {@code ActionEventBinding} instance.
-     */
-    public ActionEventBinding() {}
+    final List<String> trace;
+    final String name;
 
-    /**
-     * Initializes a new {@code ActionEventBinding} instance.
-     *
-     * @param command the command that is bound to the {@code ActionEvent}
-     */
-    public ActionEventBinding(@NamedArg("command") Command command) {
-        super(command);
+    public TestCommandHandler(List<String> trace, String name) {
+        this.trace = trace;
+        this.name = name;
     }
 
-    /**
-     * Initializes a new {@code ActionEventBinding} instance.
-     *
-     * @param command the command that is bound to the {@code ActionEvent}
-     * @param parameter the parameter that is passed to the command
-     */
-    public ActionEventBinding(@NamedArg("command") Command command, @NamedArg("parameter") Object parameter) {
-        super(command, parameter);
+    @Override
+    public void onAttached(Node node, Command command) {
+        if (trace != null) {
+            trace.add("+" + name);
+        }
+    }
+
+    @Override
+    public void onDetached(Node node, Command command) {
+        if (trace != null) {
+            trace.add("-" + name);
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +32,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import com.sun.javafx.scene.control.ControlAcceleratorSupport;
 import javafx.application.Application;
@@ -45,6 +47,7 @@ import javafx.event.EventHandler;
 import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
+import javafx.scene.command.CommandHandler;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.layout.Region;
 import com.sun.javafx.application.PlatformImpl;
@@ -58,6 +61,7 @@ import javafx.css.converter.StringConverter;
 import com.sun.javafx.scene.control.Logging;
 import javafx.css.Styleable;
 import javafx.css.StyleableProperty;
+import javafx.util.Incubating;
 import com.sun.javafx.logging.PlatformLogger;
 import com.sun.javafx.logging.PlatformLogger.Level;
 
@@ -413,6 +417,87 @@ public abstract class Control extends Region implements Skinnable {
     public final void setContextMenu(ContextMenu value) { contextMenu.setValue(value); }
     public final ContextMenu getContextMenu() { return contextMenu == null ? null : contextMenu.getValue(); }
 
+
+    // --- command handler
+    /**
+     * The {@link CommandHandler} that is set for this {@code Control}.
+     * <p>
+     * While the lower-level {@link #addCommandHandler(CommandHandler)} and {@link #removeCommandHandler(CommandHandler)}
+     * APIs allow an arbitrary number of {@code CommandHandlers} to be added to a node, this property represents
+     * a single, bindable {@code CommandHandler} on a {@code Control}.
+     * <p>
+     * Setting this property to a {@code CommandHandler} instance that was already added to this node via
+     * {@link #addCommandHandler(CommandHandler)} does not add the {@code CommandHandler} instance twice;
+     * instead, it replaces the instance that was previously set.
+     * <p>
+     * Calling {@link #removeCommandHandler(CommandHandler)} for the {@code CommandHandler} instance contained
+     * in this property has no effect. In particular, the {@code CommandHandler} instance will not be removed
+     * unless this property is set to a different {@code CommandHandler} instance (or {@code null}).
+     *
+     * @since JFXcore 18
+     * @defaultValue null
+     */
+    private ObjectProperty<CommandHandler> commandHandler;
+
+    @Incubating
+    public final ObjectProperty<CommandHandler> commandHandlerProperty() {
+        if (commandHandler == null) {
+            commandHandler = new ObjectPropertyBase<>() {
+                CommandHandler value;
+
+                @Override
+                public Object getBean() {
+                    return Control.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "commandHandler";
+                }
+
+                @Override
+                protected void invalidated() {
+                    if (value != null) {
+                        Control.super.removeCommandHandler(value);
+                    }
+
+                    value = get();
+
+                    if (value != null) {
+                        Control.super.removeCommandHandler(value);
+                        Control.super.addCommandHandler(value);
+                    }
+                }
+            };
+        }
+        return commandHandler;
+    }
+
+    @Incubating
+    public final CommandHandler getCommandHandler() {
+        return commandHandler == null ? null : commandHandler.get();
+    }
+
+    @Incubating
+    public final void setCommandHandler(CommandHandler handler) {
+        if (commandHandler != null || handler != null) {
+            commandHandlerProperty().set(handler);
+        }
+    }
+
+    @Incubating
+    @Override
+    public final void addCommandHandler(CommandHandler handler) {
+        super.addCommandHandler(handler);
+    }
+
+    @Incubating
+    @Override
+    public final void removeCommandHandler(CommandHandler handler) {
+        if (commandHandler == null || !Objects.equals(handler, commandHandler.get())) {
+            super.removeCommandHandler(handler);
+        }
+    }
 
 
     /* *************************************************************************

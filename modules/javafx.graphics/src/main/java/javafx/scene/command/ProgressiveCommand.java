@@ -21,40 +21,39 @@
 
 package javafx.scene.command;
 
-import javafx.beans.NamedArg;
-import javafx.event.ActionEvent;
+import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.util.Incubating;
 
 /**
- * Binds a {@link Command} to {@link ActionEvent}.
+ * Represents an asynchronous operation that reports its progress towards completion.
+ * <p>
+ * See the {@link javafx.scene.command Commanding} documentation for additional information.
  *
+ * @see TaskCommand
+ * @see ServiceCommand
  * @since JFXcore 18
  */
 @Incubating
-public class ActionEventBinding extends EventBinding<ActionEvent> {
+public abstract class ProgressiveCommand extends AsyncCommand {
 
     /**
-     * Initializes a new {@code ActionEventBinding} instance.
-     */
-    public ActionEventBinding() {}
-
-    /**
-     * Initializes a new {@code ActionEventBinding} instance.
+     * Gets a property that indicates the execution progress of the operation,
+     * ranging from 0 (inclusive) to 1 (inclusive). If the progress cannot be
+     * determined, the value is -1.
      *
-     * @param command the command that is bound to the {@code ActionEvent}
+     * @return the {@code progress} property
+     * @defaultValue -1
      */
-    public ActionEventBinding(@NamedArg("command") Command command) {
-        super(command);
-    }
+    public abstract ReadOnlyDoubleProperty progressProperty();
 
     /**
-     * Initializes a new {@code ActionEventBinding} instance.
+     * Gets the execution progress of the command.
      *
-     * @param command the command that is bound to the {@code ActionEvent}
-     * @param parameter the parameter that is passed to the command
+     * @return the execution progress, ranging from 0 (inclusive) to 1 (inclusive),
+     *         or -1 if the progress cannot be determined
      */
-    public ActionEventBinding(@NamedArg("command") Command command, @NamedArg("parameter") Object parameter) {
-        super(command, parameter);
+    public double getProgress() {
+        return progressProperty().get();
     }
 
 }

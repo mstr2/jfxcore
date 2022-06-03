@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -76,6 +77,9 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
 import javafx.geometry.Point3D;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.command.Command;
+import javafx.scene.command.CommandHandler;
+import javafx.scene.command.EventBinding;
 import javafx.scene.effect.BlendMode;
 import javafx.scene.effect.Effect;
 import javafx.scene.image.WritableImage;
@@ -150,6 +154,8 @@ import com.sun.javafx.scene.NodeEventDispatcher;
 import com.sun.javafx.scene.NodeHelper;
 import com.sun.javafx.scene.SceneHelper;
 import com.sun.javafx.scene.SceneUtils;
+import com.sun.javafx.scene.command.CommandHandlerList;
+import com.sun.javafx.scene.command.EventBindingList;
 import com.sun.javafx.scene.input.PickResultChooser;
 import com.sun.javafx.scene.transform.TransformHelper;
 import com.sun.javafx.scene.transform.TransformUtils;
@@ -160,6 +166,7 @@ import com.sun.prism.impl.PrismSettings;
 import com.sun.scenario.effect.EffectHelper;
 
 import javafx.scene.shape.Shape3D;
+import javafx.util.Incubating;
 import com.sun.javafx.logging.PlatformLogger;
 import com.sun.javafx.logging.PlatformLogger.Level;
 
@@ -618,6 +625,27 @@ public abstract class Node implements EventTarget, Styleable {
             public Map<StyleableProperty<?>, List<Style>> findStyles(Node node,
                     Map<StyleableProperty<?>, List<Style>> styleMap) {
                 return node.findStyles(styleMap);
+            }
+
+            @Override
+            public <T extends Event> void setEventHandler(
+                    Node node, EventType<T> eventType, EventHandler<? super T> eventHandler) {
+                node.setEventHandler(eventType, eventHandler);
+            }
+
+            @Override
+            public List<CommandHandler> getCommandHandlers(Node node) {
+                return node.getCommandHandlers();
+            }
+
+            @Override
+            public List<EventBinding<?>> getEventBindings(Node node) {
+                return node.eventBindings;
+            }
+
+            @Override
+            public void updateDisabled(Node node) {
+                node.updateDisabled();
             }
         });
     }
@@ -1870,7 +1898,10 @@ public abstract class Node implements EventTarget, Styleable {
     /**
      * Indicates whether or not this {@code Node} is disabled.  A {@code Node}
      * will become disabled if {@link #disableProperty disable} is set to {@code true} on either
-     * itself or one of its ancestors in the scene graph.
+     * itself or one of its ancestors in the scene graph, if a {@link Command} that is bound to
+     * any of this node's events is not executable, or if a {@code Command} that is bound to any
+     * of this node's events is currently executing and {@link EventBinding#disabledWhenExecutingProperty}
+     * is set to {@code true}.
      * <p>
      * A disabled {@code Node} should render itself differently to indicate its
      * disabled state to the user.
@@ -1925,8 +1956,12 @@ public abstract class Node implements EventTarget, Styleable {
         return disabled;
     }
 
+    private boolean isDisabledByEventBindings() {
+        return eventBindings != null && eventBindings.isDisabled();
+    }
+
     private void updateDisabled() {
-        boolean isDisabled = isDisable();
+        boolean isDisabled = isDisable() || isDisabledByEventBindings();
         if (!isDisabled) {
             isDisabled = getParent() != null ? getParent().isDisabled() :
                     getSubScene() != null && getSubScene().isDisabled();
@@ -5149,7 +5184,7 @@ public abstract class Node implements EventTarget, Styleable {
     final void pickNode(PickRay pickRay, PickResultChooser result) {
 
         // In some conditions we can omit picking this node or subgraph
-        if (!isVisible() || isDisable() || isMouseTransparent()) {
+        if (!isVisible() || isDisable() || isMouseTransparent() || isDisabledByEventBindings()) {
             return;
         }
 
@@ -6391,10 +6426,7 @@ public abstract class Node implements EventTarget, Styleable {
 
     private EventHandlerProperties getEventHandlerProperties() {
         if (eventHandlerProperties == null) {
-            eventHandlerProperties =
-                    new EventHandlerProperties(
-                        getInternalEventDispatcher().getEventHandlerManager(),
-                        this);
+            eventHandlerProperties = new EventHandlerProperties(this);
         }
 
         return eventHandlerProperties;
@@ -8594,6 +8626,7 @@ public abstract class Node implements EventTarget, Styleable {
     }
 
     private NodeEventDispatcher internalEventDispatcher;
+    private EventBindingList eventBindings;
 
     // PENDING_DOC_REVIEW
     /**
@@ -8684,8 +8717,21 @@ public abstract class Node implements EventTarget, Styleable {
     protected final <T extends Event> void setEventHandler(
             final EventType<T> eventType,
             final EventHandler<? super T> eventHandler) {
-        getInternalEventDispatcher().getEventHandlerManager()
-                                    .setEventHandler(eventType, eventHandler);
+        var eventHandlerManager = getInternalEventDispatcher().getEventHandlerManager();
+
+        if (eventBindings != null && eventHandlerManager.getEventHandler(eventType) instanceof EventBinding<?> b) {
+            eventBindings.removeEventBinding(b);
+        }
+
+        eventHandlerManager.setEventHandler(eventType, eventHandler);
+
+        if (eventHandler instanceof EventBinding<?> b) {
+            if (eventBindings == null) {
+                eventBindings = new EventBindingList(this);
+            }
+
+            eventBindings.addEventBinding(b);
+        }
     }
 
     private NodeEventDispatcher getInternalEventDispatcher() {
@@ -8795,6 +8841,42 @@ public abstract class Node implements EventTarget, Styleable {
         }
 
         Event.fireEvent(this, event);
+    }
+
+    /* *************************************************************************
+     *                                                                         *
+     *                            Command Handlers                             *
+     *                                                                         *
+     **************************************************************************/
+
+    private CommandHandlerList commandHandlers;
+
+    private List<CommandHandler> getCommandHandlers() {
+        return commandHandlers != null ?
+               commandHandlers : (commandHandlers = new CommandHandlerList(this));
+    }
+
+    /**
+     *
+     * Adds a {@code CommandHandler} to this node.
+     *
+     * @param handler the {@code CommandHandler}
+     * @since JFXcore 18
+     */
+    @Incubating
+    protected void addCommandHandler(CommandHandler handler) {
+        getCommandHandlers().add(handler);
+    }
+
+    /**
+     * Removes a {@code CommandHandler} from this node.
+     *
+     * @param handler the {@code CommandHandler}
+     * @since JFXcore 18
+     */
+    @Incubating
+    protected void removeCommandHandler(CommandHandler handler) {
+        getCommandHandlers().remove(handler);
     }
 
     /* *************************************************************************

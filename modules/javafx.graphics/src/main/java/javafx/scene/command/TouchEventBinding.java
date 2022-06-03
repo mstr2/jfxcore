@@ -24,93 +24,73 @@ package javafx.scene.command;
 import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
+import javafx.scene.input.TouchEvent;
 import javafx.util.Incubating;
 
 /**
- * Binds a {@link Command} to {@link KeyEvent}.
+ * Binds a {@link Command} to {@link TouchEvent}.
  * <p>
- * By default, {@code KeyEventBinding} handles all key events.
- * It can also be configured to filter key events with the following filter properties:
+ * By default, {@code TouchEventBinding} handles all touch events.
+ * It can also be configured to filter touch events with the following filter properties:
  * <ul>
- *     <li>{@link #codeProperty() code}
- *     <li>{@link #characterProperty() character}
+ *     <li>{@link #touchCountProperty() touchCount}
  *     <li>{@link #shiftDownProperty() shiftDown}
  *     <li>{@link #controlDownProperty() controlDown}
  *     <li>{@link #altDownProperty() altDown}
  *     <li>{@link #metaDownProperty() metaDown}
  * </ul>
  * If a value other than {@code null} is specified for any of these filter properties,
- * {@code KeyEventBinding} will only handle events that match the specified value.
+ * {@code TouchEventBinding} will only handle events that match the specified value.
  *
  * @since JFXcore 18
  */
 @Incubating
-public class KeyEventBinding extends InputEventBinding<KeyEvent> {
+public class TouchEventBinding extends InputEventBinding<TouchEvent> {
 
     /**
-     * Initializes a new {@code KeyEventBinding} instance.
+     * Initializes a new {@code TouchEventBinding} instance.
      */
-    public KeyEventBinding() {}
+    public TouchEventBinding() {}
 
     /**
-     * Initializes a new {@code KeyEventBinding} instance.
+     * Initializes a new {@code TouchEventBinding} instance.
      *
-     * @param command the command that is bound to the {@code KeyEvent}
+     * @param command the command that is bound to the {@code TouchEvent}
      */
-    public KeyEventBinding(@NamedArg("command") Command command) {
+    public TouchEventBinding(@NamedArg("command") Command command) {
         super(command);
     }
 
     /**
-     * Initializes a new {@code KeyEventBinding} instance.
+     * Initializes a new {@code TouchEventBinding} instance.
      *
-     * @param command the command that is bound to the {@code KeyEvent}
+     * @param command the command that is bound to the {@code TouchEvent}
      * @param parameter the parameter that is passed to the command
      */
-    public KeyEventBinding(@NamedArg("command") Command command, @NamedArg("parameter") Object parameter) {
+    public TouchEventBinding(@NamedArg("command") Command command, @NamedArg("parameter") Object parameter) {
         super(command, parameter);
     }
 
     /**
-     * Specifies a filter for the {@link KeyEvent#getCode() code} value.
+     * Specifies a filter for the {@link TouchEvent#getTouchCount() touchCount} value.
      */
-    private ObjectProperty<KeyCode> code;
+    private ObjectProperty<Integer> touchCount;
 
-    public final ObjectProperty<KeyCode> codeProperty() {
-        return code != null ? code :
-            (code = new SimpleObjectProperty<>(this, "code"));
+    public final ObjectProperty<Integer> touchCountProperty() {
+        return touchCount != null ? touchCount :
+            (touchCount = new SimpleObjectProperty<>(this, "touchCount"));
     }
 
-    public final KeyCode getCode() {
-        return codeProperty().get();
+    public final Integer getTouchCount() {
+        return touchCount != null ? touchCount.get() : null;
     }
 
-    public final void setCode(KeyCode keyCode) {
-        codeProperty().set(keyCode);
+    public final void setTouchCount(Integer touchCount) {
+        touchCountProperty().set(touchCount);
     }
 
     /**
-     * Specifies a filter for the {@link KeyEvent#getCharacter() character} value.
-     */
-    private ObjectProperty<String> character;
-
-    public final ObjectProperty<String> characterProperty() {
-        return character != null ? character :
-            (character = new SimpleObjectProperty<>(this, "character"));
-    }
-
-    public final String getCharacter() {
-        return characterProperty().get();
-    }
-
-    public final void setCharacter(String character) {
-        characterProperty().set(character);
-    }
-
-    /**
-     * Specifies a filter for the {@link KeyEvent#isShiftDown() shiftDown} value.
+     * Specifies a filter for the {@link TouchEvent#isShiftDown() shiftDown} value.
      */
     private ObjectProperty<Boolean> shiftDown;
 
@@ -128,7 +108,7 @@ public class KeyEventBinding extends InputEventBinding<KeyEvent> {
     }
 
     /**
-     * Specifies a filter for the {@link KeyEvent#isControlDown() controlDown} value.
+     * Specifies a filter for the {@link TouchEvent#isControlDown() controlDown} value.
      */
     private ObjectProperty<Boolean> controlDown;
 
@@ -146,7 +126,7 @@ public class KeyEventBinding extends InputEventBinding<KeyEvent> {
     }
 
     /**
-     * Specifies a filter for the {@link KeyEvent#isAltDown() altDown} value.
+     * Specifies a filter for the {@link TouchEvent#isAltDown() altDown} value.
      */
     private ObjectProperty<Boolean> altDown;
 
@@ -164,7 +144,7 @@ public class KeyEventBinding extends InputEventBinding<KeyEvent> {
     }
 
     /**
-     * Specifies a filter for the {@link KeyEvent#isMetaDown() metaDown} value.
+     * Specifies a filter for the {@link TouchEvent#isMetaDown() metaDown} value.
      */
     private ObjectProperty<Boolean> metaDown;
 
@@ -182,10 +162,9 @@ public class KeyEventBinding extends InputEventBinding<KeyEvent> {
     }
 
     @Override
-    protected boolean handleEvent(KeyEvent event) {
+    protected boolean handleEvent(TouchEvent event) {
         return super.handleEvent(event)
-            && matches(code, event.getCode())
-            && matches(character, event.getCharacter())
+            && matches(touchCount, event.getTouchCount())
             && matches(shiftDown, event.isShiftDown())
             && matches(controlDown, event.isControlDown())
             && matches(altDown, event.isAltDown())

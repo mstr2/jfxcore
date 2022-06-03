@@ -19,25 +19,19 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.sun.javafx.scene;
+package test.javafx.scene.command;
 
-import javafx.event.EventTarget;
-import javafx.scene.command.EventBinding;
+class TestCountingCommand extends TestCommand {
 
-public class EventBindingHelper {
+    int count;
 
-    private static Accessor accessor;
-
-    public static void setAccessor(Accessor accessor) {
-        EventBindingHelper.accessor = accessor;
+    public TestCountingCommand() {
+        super(null, null, false);
     }
 
-    public static void initialize(EventBinding<?> binding, EventTarget target) {
-        accessor.initialize(binding, target);
-    }
-
-    public interface Accessor {
-        void initialize(EventBinding<?> binding, EventTarget target);
+    @Override
+    public void execute(Object parameter) {
+        ++count;
     }
 
 }

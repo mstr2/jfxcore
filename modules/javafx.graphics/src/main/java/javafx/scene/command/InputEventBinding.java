@@ -21,39 +21,44 @@
 
 package javafx.scene.command;
 
-import javafx.beans.NamedArg;
-import javafx.event.ActionEvent;
+import javafx.scene.input.InputEvent;
 import javafx.util.Incubating;
 
 /**
- * Binds a {@link Command} to {@link ActionEvent}.
+ * Binds a {@link Command} to {@link InputEvent}.
  *
+ * @see EventBinding
+ * @see KeyEventBinding
+ * @see MouseEventBinding
+ * @see TouchEventBinding
+ *
+ * @param <E> the input event type
  * @since JFXcore 18
  */
 @Incubating
-public class ActionEventBinding extends EventBinding<ActionEvent> {
+public abstract class InputEventBinding<E extends InputEvent> extends EventBinding<E> {
 
     /**
-     * Initializes a new {@code ActionEventBinding} instance.
+     * Initializes a new {@code InputEventBinding} instance.
      */
-    public ActionEventBinding() {}
+    protected InputEventBinding() {}
 
     /**
-     * Initializes a new {@code ActionEventBinding} instance.
+     * Initializes a new {@code InputEventBinding} instance.
      *
-     * @param command the command that is bound to the {@code ActionEvent}
+     * @param command the command that is bound to the {@code InputEvent}
      */
-    public ActionEventBinding(@NamedArg("command") Command command) {
+    protected InputEventBinding(Command command) {
         super(command);
     }
 
     /**
-     * Initializes a new {@code ActionEventBinding} instance.
+     * Initializes a new {@code InputEventBinding} instance.
      *
-     * @param command the command that is bound to the {@code ActionEvent}
+     * @param command the command that is bound to the {@code InputEvent}
      * @param parameter the parameter that is passed to the command
      */
-    public ActionEventBinding(@NamedArg("command") Command command, @NamedArg("parameter") Object parameter) {
+    protected InputEventBinding(Command command, Object parameter) {
         super(command, parameter);
     }
 

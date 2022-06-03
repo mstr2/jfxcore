@@ -19,42 +19,16 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package javafx.scene.command;
+package test.javafx.scene.command;
 
-import javafx.beans.NamedArg;
-import javafx.event.ActionEvent;
-import javafx.util.Incubating;
+import javafx.event.Event;
+import javafx.scene.command.Command;
+import javafx.scene.command.EventBinding;
 
-/**
- * Binds a {@link Command} to {@link ActionEvent}.
- *
- * @since JFXcore 18
- */
-@Incubating
-public class ActionEventBinding extends EventBinding<ActionEvent> {
+public class TestEventBinding<T extends Event> extends EventBinding<T> {
 
-    /**
-     * Initializes a new {@code ActionEventBinding} instance.
-     */
-    public ActionEventBinding() {}
-
-    /**
-     * Initializes a new {@code ActionEventBinding} instance.
-     *
-     * @param command the command that is bound to the {@code ActionEvent}
-     */
-    public ActionEventBinding(@NamedArg("command") Command command) {
+    public TestEventBinding(Command command) {
         super(command);
-    }
-
-    /**
-     * Initializes a new {@code ActionEventBinding} instance.
-     *
-     * @param command the command that is bound to the {@code ActionEvent}
-     * @param parameter the parameter that is passed to the command
-     */
-    public ActionEventBinding(@NamedArg("command") Command command, @NamedArg("parameter") Object parameter) {
-        super(command, parameter);
     }
 
 }

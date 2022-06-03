@@ -30,16 +30,14 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.Event;
 import javafx.event.EventHandler;
-import javafx.event.EventTarget;
 import javafx.event.EventType;
-import javafx.scene.command.EventBinding;
+import javafx.scene.Node;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.InputMethodEvent;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 
-import com.sun.javafx.event.EventHandlerManager;
 import javafx.scene.input.MouseDragEvent;
 import javafx.scene.input.RotateEvent;
 import javafx.scene.input.ScrollEvent;
@@ -48,13 +46,9 @@ import javafx.scene.input.TouchEvent;
 import javafx.scene.input.ZoomEvent;
 
 public final class EventHandlerProperties {
-    private final EventHandlerManager eventDispatcher;
-    private final Object bean;
+    private final Node bean;
 
-    public EventHandlerProperties(
-            final EventHandlerManager eventDispatcher,
-            final Object bean) {
-        this.eventDispatcher = eventDispatcher;
+    public EventHandlerProperties(Node bean) {
         this.bean = bean;
     }
 
@@ -687,11 +681,7 @@ public final class EventHandlerProperties {
         @Override
         protected void invalidated() {
             EventHandler<? super T> handler = get();
-            eventDispatcher.setEventHandler(eventType, handler);
-
-            if (handler instanceof EventBinding<?> binding && bean instanceof EventTarget target) {
-                EventBindingHelper.initialize(binding, target);
-            }
+            NodeHelper.setEventHandler(bean, eventType, handler);
         }
     }
 

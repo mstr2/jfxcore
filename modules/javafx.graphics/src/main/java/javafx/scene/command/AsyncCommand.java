@@ -21,40 +21,45 @@
 
 package javafx.scene.command;
 
-import javafx.beans.NamedArg;
-import javafx.event.ActionEvent;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.util.Incubating;
 
 /**
- * Binds a {@link Command} to {@link ActionEvent}.
+ * Represents an asynchronous operation.
+ * <p>
+ * See the {@link javafx.scene.command Commanding} documentation for additional information.
  *
+ * @see TaskCommand
+ * @see ServiceCommand
  * @since JFXcore 18
  */
 @Incubating
-public class ActionEventBinding extends EventBinding<ActionEvent> {
+public abstract class AsyncCommand extends Command {
 
     /**
-     * Initializes a new {@code ActionEventBinding} instance.
-     */
-    public ActionEventBinding() {}
-
-    /**
-     * Initializes a new {@code ActionEventBinding} instance.
+     * Gets a property that indicates whether the command is currently executing.
      *
-     * @param command the command that is bound to the {@code ActionEvent}
+     * @return the {@code executing} property
      */
-    public ActionEventBinding(@NamedArg("command") Command command) {
-        super(command);
+    public abstract ReadOnlyBooleanProperty executingProperty();
+
+    /**
+     * Indicates whether the command is currently executing.
+     *
+     * @return {@code true} if the command is currently executing, {@code false} otherwise
+     */
+    public boolean isExecuting() {
+        return executingProperty().get();
     }
 
     /**
-     * Initializes a new {@code ActionEventBinding} instance.
-     *
-     * @param command the command that is bound to the {@code ActionEvent}
-     * @param parameter the parameter that is passed to the command
+     * Requests the cancellation of the currently executing command.
+     * If the command is not currently executing, calling this method has no effect.
+     * <p>
+     * This is an optional operation: command implementations are not required to support
+     * cancellation, and if they choose to support cancellation, no guarantee is made as to
+     * when or how the running command will terminate.
      */
-    public ActionEventBinding(@NamedArg("command") Command command, @NamedArg("parameter") Object parameter) {
-        super(command, parameter);
-    }
+    public void cancel() {}
 
 }
