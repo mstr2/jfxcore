@@ -57,8 +57,8 @@
  *
  * <a id="CreatingCommands"></a>
  * <h2>2. Creating and using commands</h2>
- * A command can be created by implementing the {@link javafx.scene.command.Command} class.
- * For ease of use, JavaFX comes with several predefined command implementations.
+ * A command can be created by extending the {@link javafx.scene.command.Command} class.
+ * For ease of use, JFXcore comes with several predefined command implementations.
  * In this example, {@link javafx.scene.command.RelayCommand} is used to create a simple command that prints
  * some text when invoked:
  * <pre>{@code
@@ -80,7 +80,7 @@
  * to event handler properties like {@link javafx.scene.Node#onKeyPressedProperty() onKeyPressed} or
  * {@link javafx.scene.control.Button#onActionProperty() onAction}.
  * <p>
- * JavaFX comes with {@code EventBinding} implementations for the most commonly used event types:
+ * JFXcore comes with {@code EventBinding} implementations for the most commonly used event types:
  * <table border="1">
  *     <caption></caption>
  *     <tr><th>Event type</th><th>Event binding type</th></tr>
@@ -111,10 +111,10 @@
  *
  * <a id="AsyncCommand"></a>
  * <h2>3. Asynchronous commands</h2>
- * Commands that encapsulate asynchronous operations can be created by implementing the
+ * Commands that encapsulate asynchronous operations can be created by extending the
  * {@link javafx.scene.command.AsyncCommand} class.
  * <p>
- * JavaFX comes with two implementations of {@code AsyncCommand}:
+ * JFXcore comes with two implementations of {@code AsyncCommand}:
  * <ul>
  *     <li>{@link javafx.scene.command.TaskCommand}, which creates and executes a {@link javafx.concurrent.Task}
  *         when the command is invoked
@@ -237,11 +237,13 @@
  *         protected void onAttached(Node node) {
  *             if (node instanceof Labeled labeled) {
  *                 labeled.textProperty().bind(text);
- *
- *                 labeled.graphicProperty().bind(Bindings.createObjectBinding(() -> {
- *                     if (iconUrl.get() == null) return null;
- *                     return new ImageView(iconUrl.get());
- *                 }));
+ *                 labeled.graphicProperty().bind(
+ *                     Bindings.createObjectBinding(
+ *                         () -> {
+ *                             if (iconUrl.get() == null) return null;
+ *                             return new ImageView(iconUrl.get());
+ *                         },
+ *                         iconUrl));
  *             }
  *         }
  *
