@@ -75,6 +75,8 @@ public class TaskCommand<T> extends ProgressiveCommand implements Message, Title
     /**
      * Creates a new {@code TaskCommand} instance that delegates to a {@link Task},
      * which is executed using the default {@link Service} executor.
+     *
+     * @param execute a supplier that returns a new {@code Task}
      */
     public TaskCommand(Supplier<Task<?>> execute) {
         Objects.requireNonNull(execute, "execute cannot be null");
@@ -86,6 +88,9 @@ public class TaskCommand<T> extends ProgressiveCommand implements Message, Title
     /**
      * Creates a new {@code TaskCommand} instance that delegates to a {@link Task},
      * which is executed using the specified executor.
+     *
+     * @param execute a supplier that returns a new {@code Task}
+     * @param executor the {@code Executor} that is used to execute the {@code Task}
      */
     public TaskCommand(Supplier<Task<?>> execute, Executor executor) {
         Objects.requireNonNull(execute, "execute cannot be null");
@@ -97,6 +102,9 @@ public class TaskCommand<T> extends ProgressiveCommand implements Message, Title
     /**
      * Creates a new {@code TaskCommand} instance that delegates to a {@link Task},
      * which is executed using the default {@link Service} executor.
+     *
+     * @param execute a supplier that returns a new {@code Task}
+     * @param exceptionHandler handler for exceptions thrown by the operation
      */
     public TaskCommand(Supplier<Task<?>> execute, Consumer<Throwable> exceptionHandler) {
         Objects.requireNonNull(execute, "execute cannot be null");
@@ -108,6 +116,10 @@ public class TaskCommand<T> extends ProgressiveCommand implements Message, Title
     /**
      * Creates a new {@code TaskCommand} instance that delegates to a {@link Task},
      * which is executed using the specified executor.
+     *
+     * @param execute a supplier that returns a new {@code Task}
+     * @param exceptionHandler handler for exceptions thrown by the operation
+     * @param executor the {@code Executor} that is used to execute the {@code Task}
      */
     public TaskCommand(Supplier<Task<?>> execute, Consumer<Throwable> exceptionHandler, Executor executor) {
         Objects.requireNonNull(execute, "execute cannot be null");
@@ -119,6 +131,8 @@ public class TaskCommand<T> extends ProgressiveCommand implements Message, Title
     /**
      * Creates a new {@code TaskCommand} instance that delegates to a {@link Task},
      * which is executed using the default {@link Service} executor.
+     *
+     * @param execute a function that accepts the command parameter and returns a new {@code Task}
      */
     public TaskCommand(Function<T, Task<?>> execute) {
         this.execute = Objects.requireNonNull(execute, "execute cannot be null");
@@ -129,6 +143,9 @@ public class TaskCommand<T> extends ProgressiveCommand implements Message, Title
     /**
      * Creates a new {@code TaskCommand} instance that delegates to a {@link Task},
      * which is executed using the specified executor.
+     *
+     * @param execute a function that accepts the command parameter and returns a new {@code Task}
+     * @param executor the {@code Executor} that is used to execute the {@code Task}
      */
     public TaskCommand(Function<T, Task<?>> execute, Executor executor) {
         this.execute = Objects.requireNonNull(execute, "execute cannot be null");
@@ -139,6 +156,9 @@ public class TaskCommand<T> extends ProgressiveCommand implements Message, Title
     /**
      * Creates a new {@code TaskCommand} instance that delegates to a {@link Task},
      * which is executed using the default {@link Service} executor.
+     *
+     * @param execute a function that accepts the command parameter and returns a new {@code Task}
+     * @param exceptionHandler handler for exceptions thrown by the operation
      */
     public TaskCommand(Function<T, Task<?>> execute, Consumer<Throwable> exceptionHandler) {
         this.execute = Objects.requireNonNull(execute, "execute cannot be null");
@@ -149,6 +169,10 @@ public class TaskCommand<T> extends ProgressiveCommand implements Message, Title
     /**
      * Creates a new {@code TaskCommand} instance that delegates to a {@link Task},
      * which is executed using the specified executor.
+     *
+     * @param execute a function that accepts the command parameter and returns a new {@code Task}
+     * @param exceptionHandler handler for exceptions thrown by the operation
+     * @param executor the {@code Executor} that is used to execute the {@code Task}
      */
     public TaskCommand(Function<T, Task<?>> execute, Consumer<Throwable> exceptionHandler, Executor executor) {
         this.execute = Objects.requireNonNull(execute, "execute cannot be null");
@@ -156,11 +180,6 @@ public class TaskCommand<T> extends ProgressiveCommand implements Message, Title
         this.exceptionHandler = Objects.requireNonNull(exceptionHandler, "exceptionHandler cannot be null");
     }
 
-    /**
-     * Indicates whether the command is currently executing.
-     *
-     * @defaultValue true
-     */
     private final BooleanProperty executable = new SimpleBooleanProperty(this, "executable", true);
 
     @Override
@@ -177,11 +196,6 @@ public class TaskCommand<T> extends ProgressiveCommand implements Message, Title
         this.executable.set(executable);
     }
 
-    /**
-     * Indicates whether the command is currently executing.
-     *
-     * @defaultValue false
-     */
     private final ReadOnlyBooleanWrapper executing = new ReadOnlyBooleanWrapper(this, "executing");
 
     @Override

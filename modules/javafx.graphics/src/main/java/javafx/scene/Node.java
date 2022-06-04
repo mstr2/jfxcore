@@ -8857,7 +8857,7 @@ public abstract class Node implements EventTarget, Styleable {
     }
 
     /**
-     * Adds a {@code CommandHandler} to this node.
+     * Adds a {@link CommandHandler} to this node.
      *
      * @param handler the {@code CommandHandler}
      * @since JFXcore 18
@@ -8868,7 +8868,7 @@ public abstract class Node implements EventTarget, Styleable {
     }
 
     /**
-     * Removes a {@code CommandHandler} from this node.
+     * Removes a {@link CommandHandler} from this node.
      *
      * @param handler the {@code CommandHandler}
      * @since JFXcore 18

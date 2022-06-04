@@ -53,6 +53,8 @@ public class ServiceCommand extends ProgressiveCommand implements Message, Title
 
     /**
      * Creates a new {@code ServiceCommand} instance that delegates to a {@link Service}.
+     *
+     * @param service the {@code Service} instance
      */
     public ServiceCommand(Service<?> service) {
         this(service, null, 0);
@@ -60,6 +62,9 @@ public class ServiceCommand extends ProgressiveCommand implements Message, Title
 
     /**
      * Creates a new {@code ServiceCommand} instance that delegates to a {@link Service}.
+     *
+     * @param service the {@code Service} instance
+     * @param exceptionHandler handler for exceptions thrown by the operation
      */
     public ServiceCommand(Service<?> service, Consumer<Throwable> exceptionHandler) {
         this(service, Objects.requireNonNull(exceptionHandler, "exceptionHandler cannot be null"), 0);
@@ -87,11 +92,6 @@ public class ServiceCommand extends ProgressiveCommand implements Message, Title
         }
     }
 
-    /**
-     * Indicates whether the command is currently executable.
-     *
-     * @defaultValue true
-     */
     private final BooleanProperty executable = new SimpleBooleanProperty(this, "executable", true);
 
     @Override
@@ -108,11 +108,6 @@ public class ServiceCommand extends ProgressiveCommand implements Message, Title
         this.executable.set(executable);
     }
 
-    /**
-     * Indicates whether the command is currently executing.
-     *
-     * @defaultValue false
-     */
     private final ReadOnlyBooleanWrapper executing = new ReadOnlyBooleanWrapper(this, "executing");
 
     @Override
@@ -125,12 +120,7 @@ public class ServiceCommand extends ProgressiveCommand implements Message, Title
         return executing.get();
     }
 
-    /**
-     * Indicates the progress of the executing command, ranging from 0 (inclusive) to 1 (inclusive).
-     *
-     * @defaultValue 0
-     */
-    private final ReadOnlyDoubleWrapper progress = new ReadOnlyDoubleWrapper(this, "progress");
+    private final ReadOnlyDoubleWrapper progress = new ReadOnlyDoubleWrapper(this, "progress", -1);
 
     @Override
     public final ReadOnlyDoubleProperty progressProperty() {
@@ -142,11 +132,6 @@ public class ServiceCommand extends ProgressiveCommand implements Message, Title
         return progress.get();
     }
 
-    /**
-     * Represents the current message of the executing command.
-     *
-     * @defaultValue null
-     */
     private final ReadOnlyStringWrapper message = new ReadOnlyStringWrapper(this, "message");
 
     @Override
@@ -159,11 +144,6 @@ public class ServiceCommand extends ProgressiveCommand implements Message, Title
         return message.get();
     }
 
-    /**
-     * Represents the title of the executing command.
-     *
-     * @defaultValue null
-     */
     private final ReadOnlyStringWrapper title = new ReadOnlyStringWrapper(this, "title");
 
     @Override
