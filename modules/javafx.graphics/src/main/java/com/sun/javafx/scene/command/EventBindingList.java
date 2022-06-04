@@ -105,17 +105,17 @@ public final class EventBindingList extends ArrayList<EventBinding<?>> implement
 
     private void updateCommand(Command removedCommand, Command addedCommand) {
         if (removedCommand != null) {
-            changeCommandAttachment(removedCommand, false);
-            changeCommandHandlerAttachment(removedCommand, false);
+            invokeCommand(removedCommand, false);
+            invokeHandler(removedCommand, false);
         }
 
         if (addedCommand != null) {
-            changeCommandAttachment(addedCommand, true);
-            changeCommandHandlerAttachment(addedCommand, true);
+            invokeCommand(addedCommand, true);
+            invokeHandler(addedCommand, true);
         }
     }
 
-    private void changeCommandAttachment(Command command, boolean attach) {
+    private void invokeCommand(Command command, boolean attach) {
         try {
             if (attach) {
                 CommandHelper.attach(command, node);
@@ -128,7 +128,7 @@ public final class EventBindingList extends ArrayList<EventBinding<?>> implement
         }
     }
 
-    private void changeCommandHandlerAttachment(Command command, boolean attach) {
+    private void invokeHandler(Command command, boolean attach) {
         List<CommandHandler> commandHandlers = NodeHelper.getCommandHandlers(node);
         if (commandHandlers == null || commandHandlers.isEmpty()) {
             return;

@@ -49,21 +49,7 @@ public final class CommandHandlerList extends ArrayList<CommandHandler> {
         }
 
         super.add(handler);
-
-        List<EventBinding<?>> eventBindings = NodeHelper.getEventBindings(node);
-        if (eventBindings != null) {
-            for (EventBinding<?> binding : eventBindings) {
-                Command command = binding.getCommand();
-                if (command != null) {
-                    try {
-                        handler.onAttached(node, command);
-                    } catch (Throwable ex) {
-                        Thread thread = Thread.currentThread();
-                        thread.getUncaughtExceptionHandler().uncaughtException(thread, ex);
-                    }
-                }
-            }
-        }
+        invokeHandler(handler, true);
 
         return true;
     }
@@ -71,21 +57,25 @@ public final class CommandHandlerList extends ArrayList<CommandHandler> {
     @Override
     public boolean remove(Object o) {
         if (super.remove(o)) {
-            onDetached((CommandHandler)o);
+            invokeHandler((CommandHandler)o, false);
             return true;
         }
 
         return false;
     }
 
-    private void onDetached(CommandHandler handler) {
+    private void invokeHandler(CommandHandler handler, boolean attach) {
         List<EventBinding<?>> eventBindings = NodeHelper.getEventBindings(node);
         if (eventBindings != null) {
             for (EventBinding<?> binding : eventBindings) {
                 Command command = binding.getCommand();
                 if (command != null) {
                     try {
-                        handler.onDetached(node, command);
+                        if (attach) {
+                            handler.onAttached(node, command);
+                        } else {
+                            handler.onDetached(node, command);
+                        }
                     } catch (Throwable ex) {
                         Thread thread = Thread.currentThread();
                         thread.getUncaughtExceptionHandler().uncaughtException(thread, ex);
