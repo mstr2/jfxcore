@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,9 +42,14 @@ import javafx.css.CssMetaData;
 import javafx.css.Style;
 import javafx.css.Styleable;
 import javafx.css.StyleableProperty;
+import javafx.event.Event;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.SubScene;
+import javafx.scene.command.CommandHandler;
+import javafx.scene.command.EventBinding;
 import javafx.scene.shape.Shape;
 import javafx.scene.shape.Shape3D;
 import javafx.scene.text.Font;
@@ -307,6 +313,22 @@ public abstract class NodeHelper {
         return nodeAccessor.findStyles(node, styleMap);
     }
 
+    public static <T extends Event> void setEventHandler(Node node, EventType<T> eventType, EventHandler<? super T> eventHandler) {
+        nodeAccessor.setEventHandler(node, eventType, eventHandler);
+    }
+
+    public static List<CommandHandler> getCommandHandlers(Node node) {
+        return nodeAccessor.getCommandHandlers(node);
+    }
+
+    public static List<EventBinding<?>> getEventBindings(Node node) {
+        return nodeAccessor.getEventBindings(node);
+    }
+
+    public static void updateDisabled(Node node) {
+        nodeAccessor.updateDisabled(node);
+    }
+
     public static void setNodeAccessor(final NodeAccessor newAccessor) {
         if (nodeAccessor != null) {
             throw new IllegalStateException();
@@ -366,6 +388,10 @@ public abstract class NodeHelper {
         List<Style> getMatchingStyles(CssMetaData cssMetaData, Styleable styleable);
         Map<StyleableProperty<?>,List<Style>> findStyles(Node node,
                 Map<StyleableProperty<?>,List<Style>> styleMap);
+        <T extends Event> void setEventHandler(Node node, EventType<T> eventType, EventHandler<? super T> eventHandler);
+        List<CommandHandler> getCommandHandlers(Node node);
+        List<EventBinding<?>> getEventBindings(Node node);
+        void updateDisabled(Node node);
     }
 
 }

@@ -55,6 +55,7 @@ module javafx.graphics {
     exports javafx.print;
     exports javafx.scene;
     exports javafx.scene.canvas;
+    exports javafx.scene.command;
     exports javafx.scene.effect;
     exports javafx.scene.image;
     exports javafx.scene.input;

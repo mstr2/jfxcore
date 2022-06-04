@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,13 +31,13 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.scene.Node;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.InputMethodEvent;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 
-import com.sun.javafx.event.EventHandlerManager;
 import javafx.scene.input.MouseDragEvent;
 import javafx.scene.input.RotateEvent;
 import javafx.scene.input.ScrollEvent;
@@ -45,13 +46,9 @@ import javafx.scene.input.TouchEvent;
 import javafx.scene.input.ZoomEvent;
 
 public final class EventHandlerProperties {
-    private final EventHandlerManager eventDispatcher;
-    private final Object bean;
+    private final Node bean;
 
-    public EventHandlerProperties(
-            final EventHandlerManager eventDispatcher,
-            final Object bean) {
-        this.eventDispatcher = eventDispatcher;
+    public EventHandlerProperties(Node bean) {
         this.bean = bean;
     }
 
@@ -683,7 +680,8 @@ public final class EventHandlerProperties {
 
         @Override
         protected void invalidated() {
-            eventDispatcher.setEventHandler(eventType, get());
+            EventHandler<? super T> handler = get();
+            NodeHelper.setEventHandler(bean, eventType, handler);
         }
     }
 
