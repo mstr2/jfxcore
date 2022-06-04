@@ -25,14 +25,8 @@ import javafx.scene.Node;
 import javafx.util.Incubating;
 
 /**
- * {@code CommandHandler} provides an extension mechanism that allows a {@link Node} to be affected by a
- * {@link Command} that is bound to one of its events. A {@code CommandHandler} implementation encapsulates the
- * logic that is applied to the {@code Node}, giving applications a convenient place to define command behaviors.
- * <p>
- * At its core, a {@code CommandHandler} implementation consists of two methods, {@link #onAttached onAttached}
- * and {@link #onDetached onDetached}, which are invoked when a command is attached to, or detached from, events
- * of a {@code Node}. When a command is bound to multiple events of a {@code Node}, {@code onAttached} and
- * {@code onDetached} are only invoked once.
+ * {@code CommandHandler} provides an extension mechanism that defines a piece of behavior or configuration
+ * logic that is executed when a {@link Command} is attached to, or detached from, a {@link Node}.
  * <p>
  * In this example, a {@code CommandHandler} is used to automatically set a {@code Button}'s text to
  * the name of its attached command:
@@ -42,7 +36,7 @@ import javafx.util.Incubating;
  *     public class MyCommandHandler implements CommandHandler {
  *         @Override
  *         public void onAttached(Node node, Command command) {
- *             if (node instanceof Button b && command instanceof TaskCommand c) {
+ *             if (node instanceof Button b && command instanceof TaskCommand<?> c) {
  *                 b.textProperty().bind(c.titleProperty());
  *             }
  *         }
@@ -57,10 +51,10 @@ import javafx.util.Incubating;
  *
  *     // Wire it up.
  *     var command = new TaskCommand("Custom Command");
- *     var policy = new MyCommandPolicy();
+ *     var handler = new MyCommandHandler();
  *     var button = new Button();
  *     button.setOnAction(new ActionEventBinding(command));
- *     button.setCommandPolicy(policy);
+ *     button.setCommandHandler(handler);
  * }</pre>
  *
  * Note that the {@link Command} class defines overridable {@link Command#onAttached onAttached} and
@@ -75,17 +69,26 @@ import javafx.util.Incubating;
 public interface CommandHandler {
 
     /**
-     * Occurs when a {@link Command} was bound to an event of a {@link Node}.
+     * Occurs when the command is attached to a {@link Node} by binding it to one of the {@code Node}'s events.
+     * <p>
+     * When the command is bound to multiple events of a single {@code Node}, this method is only invoked once.
+     * Note that this method will be invoked once for each {@code Node} to which this command is attached.
      *
-     * @param node the node
+     * @param node the node to which the {@code command} is attached
      * @param command the command
      */
     void onAttached(Node node, Command command);
 
     /**
-     * Occurs when a {@link Command} was unbound from an event of a {@link Node}.
+     * Occurs when the command is detached from a {@link Node}.
+     * <p>
+     * This happens when the command is removed from its associated {@link EventBinding}, or if the
+     * {@code EventBinding} is removed from the {@code Node}.
+     * When the command is bound to multiple events of a single {@code Node}, the command is only detached
+     * after the last binding is removed. Note that this method will be invoked once for each {@code Node}
+     * from which this command is detached.
      *
-     * @param node the node
+     * @param node the node to which the {@code command} was attached
      * @param command the command
      */
     void onDetached(Node node, Command command);

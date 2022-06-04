@@ -635,7 +635,7 @@ public abstract class Node implements EventTarget, Styleable {
 
             @Override
             public List<CommandHandler> getCommandHandlers(Node node) {
-                return node.getCommandHandlers();
+                return node.commandHandlers;
             }
 
             @Override
@@ -8857,7 +8857,6 @@ public abstract class Node implements EventTarget, Styleable {
     }
 
     /**
-     *
      * Adds a {@code CommandHandler} to this node.
      *
      * @param handler the {@code CommandHandler}

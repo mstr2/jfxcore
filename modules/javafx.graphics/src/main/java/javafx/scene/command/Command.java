@@ -79,33 +79,36 @@ public abstract class Command {
     public abstract void execute(Object parameter);
 
     /**
-     * Occurs when the command is bound to an event of a {@link Node}.
+     * Occurs when the command is attached to a {@link Node} by binding it to one of the {@code Node}'s events.
      * <p>
      * When the command is bound to multiple events of a single {@code Node}, this method is only invoked once.
+     * Note that this method will be invoked once for each {@code Node} to which this command is attached.
      * <p>
-     * Derived classes can override this method to implement custom logic.
-     * For example, a command implementation could set a control's {@link javafx.scene.control.Labeled#textProperty()}
-     * to a user-defined value. Implementing the {@code onAttached} and {@code onDetached} methods is an alternative
-     * to using a {@link CommandHandler}. The major difference is that {@code CommandHandler} only applies to specific
-     * nodes on which the {@code CommandHandler} is set, while overriding {@code onAttached} and {@code onDetached}
-     * applies to all nodes to which this command is bound.
+     * Derived classes can override this method to implement logic that the command uses to configure the
+     * controls to which it is attached. For example, a command implementation could set a control's
+     * {@link javafx.scene.control.Labeled#textProperty()} to a user-defined value.
+     * Implementing the {@code onAttached} and {@code onDetached} methods is an alternative to using a
+     * {@link CommandHandler}. The major difference is that {@code CommandHandler} only applies to specific
+     * nodes on which the {@code CommandHandler} is set, while overriding {@code onAttached} and
+     * {@code onDetached} applies to all nodes to which this command is attached.
      *
-     * @param node the node to which this command is bound
+     * @param node the node to which this command is attached
      */
     protected void onAttached(Node node) {}
 
     /**
-     * Occurs when the command is unbound from an event of a {@link Node}.
+     * Occurs when the command is detached from a {@link Node}.
      * <p>
      * This happens when the command is removed from its associated {@link EventBinding}, or if the
      * {@code EventBinding} is removed from the {@code Node}.
-     * When the command is bound to multiple events of a single {@code Node}, this method is only invoked
-     * after the last binding is removed.
+     * When the command is bound to multiple events of a single {@code Node}, the command is only detached
+     * after the last binding is removed. Note that this method will be invoked once for each {@code Node}
+     * from which this command is detached.
      * <p>
      * Derived classes can override this method to roll back changes that were established
      * by the {@link #onAttached onAttached} method.
      *
-     * @param node the node to which this command is bound
+     * @param node the node to which this command was attached
      */
     protected void onDetached(Node node) {}
 
