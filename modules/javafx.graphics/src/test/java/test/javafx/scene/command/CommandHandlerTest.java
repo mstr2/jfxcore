@@ -22,6 +22,9 @@
 package test.javafx.scene.command;
 
 import org.junit.jupiter.api.Test;
+import test.javafx.scene.command.mocks.TestCommand;
+import test.javafx.scene.command.mocks.TestCommandHandler;
+import test.javafx.scene.command.mocks.TestEventBinding;
 import javafx.scene.command.CommandHandler;
 import javafx.scene.layout.Pane;
 import java.util.ArrayList;

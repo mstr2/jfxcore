@@ -24,6 +24,7 @@ package test.javafx.scene.command;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import test.javafx.scene.command.mocks.TestCountingCommand;
 import javafx.event.Event;
 import javafx.event.EventTarget;
 import javafx.event.EventType;

@@ -23,6 +23,8 @@ package test.javafx.scene.command;
 
 import com.sun.javafx.scene.command.EventBindingHelper;
 import org.junit.jupiter.api.Test;
+import test.javafx.scene.command.mocks.TestCommand;
+import test.javafx.scene.command.mocks.TestEventBinding;
 import javafx.scene.command.KeyEventBinding;
 import javafx.scene.shape.Rectangle;
 
@@ -40,10 +42,10 @@ public class EventBindingTest {
     public void testBindingWithExecutableCommandIsEnabled() {
         var eventBinding = new TestEventBinding<>(null);
         var command = new TestCommand(null, null, false);
-        command.executable.set(true);
+        command.executableProperty().set(true);
         eventBinding.setCommand(command);
         assertFalse(EventBindingHelper.getDisabled(eventBinding).get());
-        command.executable.set(false);
+        command.executableProperty().set(false);
         assertTrue(EventBindingHelper.getDisabled(eventBinding).get());
     }
 
@@ -51,8 +53,8 @@ public class EventBindingTest {
     public void testBindingIsDisabledWhenCommandIsExecuting() {
         var eventBinding = new TestEventBinding<>(null);
         var command = new TestCommand(null, null, false);
-        command.executable.set(true);
-        command.executing.set(true);
+        command.executableProperty().set(true);
+        command.executingProperty().set(true);
         eventBinding.setCommand(command);
         assertTrue(EventBindingHelper.getDisabled(eventBinding).get());
         eventBinding.setDisabledWhenExecuting(false);
@@ -64,8 +66,8 @@ public class EventBindingTest {
         var eventBinding = new TestEventBinding<>(null);
         var command1 = new TestCommand(null, null ,false);
         var command2 = new TestCommand(null, null, false);
-        command1.executable.set(true);
-        command2.executable.set(false);
+        command1.executableProperty().set(true);
+        command2.executableProperty().set(false);
         eventBinding.setCommand(command1);
         assertFalse(EventBindingHelper.getDisabled(eventBinding).get());
         eventBinding.setCommand(command2);

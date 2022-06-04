@@ -23,9 +23,9 @@ package test.javafx.scene.control;
 
 import com.sun.javafx.scene.NodeHelper;
 import org.junit.jupiter.api.Test;
-import test.javafx.scene.command.TestCommand;
-import test.javafx.scene.command.TestCommandHandler;
-import test.javafx.scene.command.TestEventBinding;
+import test.javafx.scene.command.mocks.TestCommand;
+import test.javafx.scene.command.mocks.TestCommandHandler;
+import test.javafx.scene.command.mocks.TestEventBinding;
 import javafx.scene.control.Button;
 import java.util.ArrayList;
 import java.util.List;

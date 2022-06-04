@@ -19,10 +19,9 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package test.javafx.scene.command;
+package test.javafx.scene.command.mocks;
 
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.Node;
 import javafx.scene.command.AsyncCommand;
@@ -30,19 +29,19 @@ import java.util.List;
 
 public class TestCommand extends AsyncCommand {
 
-    final boolean failOnAttachDetach;
-    final List<String> trace;
-    final String name;
-    final BooleanProperty executable = new SimpleBooleanProperty(this, "executable", true);
-    final BooleanProperty executing = new SimpleBooleanProperty(this, "executing");
+    private final boolean failOnAttachDetach;
+    private final List<String> trace;
+    private final String name;
+    private final BooleanProperty executable = new SimpleBooleanProperty(this, "executable", true);
+    private final BooleanProperty executing = new SimpleBooleanProperty(this, "executing");
 
     @Override
-    public ReadOnlyBooleanProperty executableProperty() {
+    public BooleanProperty executableProperty() {
         return executable;
     }
 
     @Override
-    public ReadOnlyBooleanProperty executingProperty() {
+    public BooleanProperty executingProperty() {
         return executing;
     }
 

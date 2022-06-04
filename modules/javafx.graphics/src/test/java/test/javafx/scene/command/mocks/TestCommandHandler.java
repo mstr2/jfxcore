@@ -19,16 +19,35 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package test.javafx.scene.command;
+package test.javafx.scene.command.mocks;
 
-import javafx.event.Event;
+import javafx.scene.Node;
 import javafx.scene.command.Command;
-import javafx.scene.command.EventBinding;
+import javafx.scene.command.CommandHandler;
+import java.util.List;
 
-public class TestEventBinding<T extends Event> extends EventBinding<T> {
+public class TestCommandHandler implements CommandHandler {
 
-    public TestEventBinding(Command command) {
-        super(command);
+    final List<String> trace;
+    final String name;
+
+    public TestCommandHandler(List<String> trace, String name) {
+        this.trace = trace;
+        this.name = name;
+    }
+
+    @Override
+    public void onAttached(Node node, Command command) {
+        if (trace != null) {
+            trace.add("+" + name);
+        }
+    }
+
+    @Override
+    public void onDetached(Node node, Command command) {
+        if (trace != null) {
+            trace.add("-" + name);
+        }
     }
 
 }

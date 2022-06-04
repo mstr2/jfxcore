@@ -19,11 +19,11 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package test.javafx.scene.command;
+package test.javafx.scene.command.mocks;
 
-class TestCountingCommand extends TestCommand {
+public class TestCountingCommand extends TestCommand {
 
-    int count;
+    public int count;
 
     public TestCountingCommand() {
         super(null, null, false);
