@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +32,7 @@ import java.util.Optional;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.scene.input.KeyCode;
+import javafx.util.Incubating;
 
 /**
  * Application platform support class.
@@ -410,4 +412,16 @@ public final class Platform {
         }
         return accessibilityActiveProperty.getReadOnlyProperty();
     }
+
+    /**
+     * Gets the {@link PlatformTheme} for the current platform.
+     *
+     * @return the {@code PlatformTheme}
+     * @since JFXcore 18
+     */
+    @Incubating
+    public static PlatformTheme getPlatformTheme() {
+        return PlatformImpl.getPlatformTheme();
+    }
+
 }

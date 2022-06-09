@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,9 +33,12 @@ import java.util.List;
 import java.util.Map;
 
 import javafx.application.Preloader.PreloaderNotification;
+import javafx.collections.ObservableList;
 import javafx.css.Stylesheet;
+import javafx.css.StylesheetListBase;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.util.Incubating;
 
 import com.sun.javafx.application.LauncherImpl;
 import com.sun.javafx.application.ParametersImpl;
@@ -488,35 +492,67 @@ public abstract class Application {
 
     }
 
-    private static String userAgentStylesheet = null;
-
     /**
      * Get the user agent stylesheet used by the whole application. This is
-     * used to provide default styling for all ui controls and other nodes.
+     * used to provide default styling for all UI controls and other nodes.
      * A value of null means the platform default stylesheet is being used.
-     * <p>
-     * NOTE: This method must be called on the JavaFX Application Thread.
-     * </p>
      *
      * @return The URL to the stylesheet as a String.
      * @since JavaFX 8.0
      */
     public static String getUserAgentStylesheet() {
-        return userAgentStylesheet;
+        List<String> stylesheets = PlatformImpl.getPlatformUserAgentStylesheets();
+        return stylesheets != null ? stylesheets.get(0) : null;
     }
 
     /**
-     * Set the user agent stylesheet used by the whole application. This is used
-     * to provide default styling for all ui controls and other nodes. Each
-     * release of JavaFX may have a new default value for this so if you need
+     * Set the user agent stylesheet used by the whole application.
+     * <p>
+     * Calling this method is equivalent to calling {@code setUserAgentStylesheets}
+     * with a single-item list:
+     * <pre>{@code
+     *     setUserAgentStylesheets(List.of(ur));
+     * }</pre>
+     * See {@link #setUserAgentStylesheets(List)} for additional documentation.
+     *
+     * @param url The URL to the stylesheet as a String.
+     * @since JavaFX 8.0
+     */
+    public static void setUserAgentStylesheet(String url) {
+        PlatformImpl.setPlatformUserAgentStylesheets(url != null ? List.of(url) : null);
+    }
+
+    /**
+     * Get the user agent stylesheets used by the whole application. This is
+     * used to provide default styling for all UI controls and other nodes.
+     * A value of null means the platform default stylesheet is being used.
+     *
+     * @return The URLs to the stylesheets as a list of strings.
+     * @since JFXcore 18
+     */
+    @Incubating
+    public static List<String> getUserAgentStylesheets() {
+        return PlatformImpl.getPlatformUserAgentStylesheets();
+    }
+
+    /**
+     * Set the user agent stylesheets used by the whole application. This is used
+     * to provide default styling for all UI controls and other nodes. Each
+     * release of JavaFX may have new default stylesheets, so if you need
      * to guarantee consistency you will need to call this method and choose
      * what default you would like for your application. A value of null will
-     * restore the platform default stylesheet. This property can also be set
+     * restore the platform default stylesheets. This property can also be set
      * on the command line with {@code -Djavafx.userAgentStylesheetUrl=[URL]}
      * Setting it on the command line overrides anything set using this method
      * in code.
      * <p>
-     * The URL is a hierarchical URI of the form [scheme:][//authority][path]. If the URL
+     * If an {@link ObservableList} ist passed to this method, JavaFX will observe the
+     * list for changes and automatically apply changed stylesheets.
+     * {@link StylesheetListBase} is an easy-to-use {@code ObservableList} implementation
+     * that can be used to create a dynamically changeable stylesheet list that retains
+     * the order of stylesheets.
+     * <p>
+     * The URLs are hierarchical URIs of the form [scheme:][//authority][path]. If the URL
      * does not have a [scheme:] component, the URL is considered to be the [path] component only.
      * Any leading '/' character of the [path] is ignored and the [path] is treated as a path relative to
      * the root of the application's classpath.
@@ -527,18 +563,13 @@ public abstract class Application {
      * the payload will be interpreted as a CSS file.
      * If the MIME type is "application/octet-stream", the payload will be interpreted as a binary
      * CSS file (see {@link Stylesheet#convertToBinary(File, File)}).
-     * <p>
-     * NOTE: This method must be called on the JavaFX Application Thread.
      *
-     * @param url The URL to the stylesheet as a String.
-     * @since JavaFX 8.0
+     * @param urls The URLs to the stylesheets as a list of strings.
+     * @since JFXcore 18
      */
-    public static void setUserAgentStylesheet(String url) {
-        userAgentStylesheet = url;
-        if (url == null) {
-            PlatformImpl.setDefaultPlatformUserAgentStylesheet();
-        } else {
-            PlatformImpl.setPlatformUserAgentStylesheet(url);
-        }
+    @Incubating
+    public static void setUserAgentStylesheets(List<String> urls) {
+        PlatformImpl.setPlatformUserAgentStylesheets(urls);
     }
+
 }

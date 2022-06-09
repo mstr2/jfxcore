@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +31,8 @@
 #include "GlassScreen.h"
 #include "GlassWindow.h"
 #include "Timer.h"
+#include "ThemeSupport.h"
+#include "RoActivationSupport.h"
 
 #include "com_sun_glass_ui_win_WinApplication.h"
 #include "com_sun_glass_ui_win_WinSystemClipboard.h"
@@ -104,6 +107,7 @@ GlassApplication::GlassApplication(jobject jrefThis) : BaseWnd()
     m_clipboard = NULL;
     m_hNextClipboardView = NULL;
     m_mainThreadId = ::GetCurrentThreadId();
+    m_themeProperties = NULL;
 
     Create(NULL, 0, 0, 400, 300, TEXT(""), 0, 0, NULL);
 }
@@ -123,18 +127,68 @@ LPCTSTR GlassApplication::GetWindowClassNameSuffix()
     return szGlassToolkitWindow;
 }
 
-jstring GlassApplication::GetThemeName(JNIEnv* env)
+/**
+ * Collect all theme properties and return them as a java/util/Map.
+ */
+jobject GlassApplication::GetThemeProperties(JNIEnv* env)
 {
-    HIGHCONTRAST contrastInfo;
-    contrastInfo.cbSize = sizeof(HIGHCONTRAST);
-    ::SystemParametersInfo(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRAST), &contrastInfo, 0);
-    if (contrastInfo.dwFlags & HCF_HIGHCONTRASTON) {
-        jsize length = (jsize) wcslen(contrastInfo.lpszDefaultScheme);
-        jstring jstr = env->NewString((jchar*) contrastInfo.lpszDefaultScheme, length);
-        if (CheckAndClearException(env)) return NULL;
-        return jstr;
+    jclass mapClass = (jclass)env->FindClass("java/util/HashMap");
+    if (CheckAndClearException(env)) return NULL;
+
+    jmethodID constructor = env->GetMethodID(mapClass, "<init>", "()V");
+    jobject properties = env->NewObject(mapClass, constructor);
+    if (CheckAndClearException(env)) { env->DeleteLocalRef(mapClass); return NULL; }
+
+    ThemeSupport themeSupport(env);
+    themeSupport.queryHighContrastScheme(properties);
+    themeSupport.querySystemColors(properties);
+    themeSupport.queryWindows10ThemeColors(properties);
+
+    env->DeleteLocalRef(mapClass);
+    return properties;
+}
+
+/**
+ * Collect all theme properties and notify the JavaFX application if any of the properties has changed.
+ * The change notification includes all properties, not only the changed properties.
+ */
+bool GlassApplication::UpdateThemeProperties()
+{
+    JNIEnv* env = GetEnv();
+    jobject newProperties = GetThemeProperties(env);
+    if (newProperties == NULL) {
+        return false;
     }
-    return NULL;
+
+    jclass objectClass = (jclass)env->FindClass("java/lang/Object");
+    if (CheckAndClearException(env)) return false;
+
+    jmethodID equalsMethod = env->GetMethodID(objectClass, "equals", "(Ljava/lang/Object;)Z");
+    jboolean isEqual = env->CallBooleanMethod(newProperties, equalsMethod, m_themeProperties);
+
+    if (!CheckAndClearException(env) && !isEqual) {
+        if (m_themeProperties != NULL) {
+            env->DeleteGlobalRef(m_themeProperties);
+        }
+
+        m_themeProperties = env->NewGlobalRef(newProperties);
+
+        jclass collectionsClass = (jclass)env->FindClass("java/util/Collections");
+        if (CheckAndClearException(env)) { env->DeleteLocalRef(objectClass); return false; }
+
+        jmethodID method = env->GetStaticMethodID(collectionsClass, "unmodifiableMap", "(Ljava/util/Map;)Ljava/util/Map;");
+        newProperties = env->CallStaticObjectMethod(collectionsClass, method, newProperties);
+        if (!CheckAndClearException(env)) {
+            env->CallVoidMethod(m_grefThis, javaIDs.Application.notifyThemeChangedMID, newProperties);
+        }
+
+        env->DeleteLocalRef(collectionsClass);
+        env->DeleteLocalRef(objectClass);
+        return true;
+    }
+
+    env->DeleteLocalRef(objectClass);
+    return false;
 }
 
 LRESULT GlassApplication::WindowProc(UINT msg, WPARAM wParam, LPARAM lParam)
@@ -181,6 +235,9 @@ LRESULT GlassApplication::WindowProc(UINT msg, WPARAM wParam, LPARAM lParam)
             }
             break;
         case WM_SETTINGCHANGE:
+            if ((UINT)wParam == SPI_GETHIGHCONTRAST) {
+                return UpdateThemeProperties() ? 0 : 1;
+            }
             if ((UINT)wParam != SPI_SETWORKAREA) {
                 break;
             }
@@ -188,13 +245,10 @@ LRESULT GlassApplication::WindowProc(UINT msg, WPARAM wParam, LPARAM lParam)
         case WM_DISPLAYCHANGE:
             GlassScreen::HandleDisplayChange();
             break;
-        case WM_THEMECHANGED: {
-            JNIEnv* env = GetEnv();
-            jstring themeName = GlassApplication::GetThemeName(env);
-            jboolean result = env->CallBooleanMethod(m_grefThis, javaIDs.Application.notifyThemeChangedMID, themeName);
-            if (CheckAndClearException(env)) return 1;
-            return !result;
-        }
+        case WM_THEMECHANGED:
+        case WM_SYSCOLORCHANGE:
+        case WM_DWMCOLORIZATIONCOLORCHANGED:
+            return UpdateThemeProperties() ? 0 : 1;
     }
     return ::DefWindowProc(GetHWND(), msg, wParam, lParam);
 }
@@ -313,6 +367,9 @@ BOOL WINAPI DllMain(HANDLE hinstDLL, DWORD dwReason, LPVOID lpvReserved)
 {
     if (dwReason == DLL_PROCESS_ATTACH) {
         GlassApplication::SetHInstance((HINSTANCE)hinstDLL);
+        tryInitializeRoActivationSupport();
+    } else if (dwReason == DLL_PROCESS_DETACH) {
+        uninitializeRoActivationSupport();
     }
     return TRUE;
 }
@@ -339,7 +396,7 @@ JNIEXPORT void JNICALL Java_com_sun_glass_ui_win_WinApplication_initIDs
     if (CheckAndClearException(env)) return;
 
     javaIDs.Application.notifyThemeChangedMID =
-        env->GetMethodID(cls, "notifyThemeChanged", "(Ljava/lang/String;)Z");
+        env->GetMethodID(cls, "notifyThemeChanged", "(Ljava/util/Map;)V");
     ASSERT(javaIDs.Application.notifyThemeChangedMID);
     if (CheckAndClearException(env)) return;
 
@@ -453,13 +510,13 @@ JNIEXPORT jobject JNICALL Java_com_sun_glass_ui_win_WinApplication__1enterNested
 
 /*
  * Class:     com_sun_glass_ui_win_WinApplication
- * Method:    _getHighContrastTheme
- * Signature: ()Ljava/lang/String;
+ * Method:    _getThemeProperties
+ * Signature: ()Ljava/util/Map;
  */
-JNIEXPORT jstring JNICALL Java_com_sun_glass_ui_win_WinApplication__1getHighContrastTheme
+JNIEXPORT jobject JNICALL Java_com_sun_glass_ui_win_WinApplication__1getThemeProperties
   (JNIEnv * env, jobject self)
 {
-    return GlassApplication::GetThemeName(env);
+    return GlassApplication::GetThemeProperties(env);
 }
 
 /*

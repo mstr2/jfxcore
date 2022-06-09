@@ -1243,6 +1243,9 @@ JNIEXPORT jlong JNICALL Java_com_sun_glass_ui_win_WinWindow__1createWindow
                             MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
                 }
             }
+
+            BOOL value = TRUE;
+            ::DwmSetWindowAttribute(hWnd, /*DWMWA_USE_IMMERSIVE_DARK_MODE*/ 20, &value, sizeof(value));
         }
 
         return (jlong)hWnd;
