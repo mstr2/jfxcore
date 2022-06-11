@@ -122,7 +122,7 @@ final class WinApplication extends Application implements InvokeLaterDispatcher.
             invokeLaterDispatcher = null;
         }
 
-        PlatformImpl.updatePlatformTheme(_getThemeProperties());
+        PlatformImpl.updatePreferences(_getPreferences());
     }
 
     private static boolean verbose;
@@ -335,7 +335,7 @@ final class WinApplication extends Application implements InvokeLaterDispatcher.
         }
     }
 
-    private native Map<String, String> _getThemeProperties();
+    private native Map<String, String> _getPreferences();
 
     @Override
     protected boolean _supportsInputMethods() {

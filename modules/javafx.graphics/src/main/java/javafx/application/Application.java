@@ -33,9 +33,11 @@ import java.util.List;
 import java.util.Map;
 
 import javafx.application.Preloader.PreloaderNotification;
-import javafx.collections.ObservableList;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.css.Stylesheet;
-import javafx.css.StylesheetListBase;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Incubating;
@@ -493,66 +495,16 @@ public abstract class Application {
     }
 
     /**
-     * Get the user agent stylesheet used by the whole application. This is
-     * used to provide default styling for all UI controls and other nodes.
-     * A value of null means the platform default stylesheet is being used.
-     *
-     * @return The URL to the stylesheet as a String.
-     * @since JavaFX 8.0
-     */
-    public static String getUserAgentStylesheet() {
-        List<String> stylesheets = PlatformImpl.getPlatformUserAgentStylesheets();
-        return stylesheets != null ? stylesheets.get(0) : null;
-    }
-
-    /**
-     * Set the user agent stylesheet used by the whole application.
+     * Specifies the user-agent stylesheet of the application.
      * <p>
-     * Calling this method is equivalent to calling {@code setUserAgentStylesheets}
-     * with a single-item list:
-     * <pre>{@code
-     *     setUserAgentStylesheets(List.of(ur));
-     * }</pre>
-     * See {@link #setUserAgentStylesheets(List)} for additional documentation.
-     *
-     * @param url The URL to the stylesheet as a String.
-     * @since JavaFX 8.0
-     */
-    public static void setUserAgentStylesheet(String url) {
-        PlatformImpl.setPlatformUserAgentStylesheets(url != null ? List.of(url) : null);
-    }
-
-    /**
-     * Get the user agent stylesheets used by the whole application. This is
-     * used to provide default styling for all UI controls and other nodes.
-     * A value of null means the platform default stylesheet is being used.
-     *
-     * @return The URLs to the stylesheets as a list of strings.
-     * @since JFXcore 18
-     */
-    @Incubating
-    public static List<String> getUserAgentStylesheets() {
-        return PlatformImpl.getPlatformUserAgentStylesheets();
-    }
-
-    /**
-     * Set the user agent stylesheets used by the whole application. This is used
-     * to provide default styling for all UI controls and other nodes. Each
-     * release of JavaFX may have new default stylesheets, so if you need
-     * to guarantee consistency you will need to call this method and choose
-     * what default you would like for your application. A value of null will
-     * restore the platform default stylesheets. This property can also be set
-     * on the command line with {@code -Djavafx.userAgentStylesheetUrl=[URL]}
-     * Setting it on the command line overrides anything set using this method
-     * in code.
+     * A user-agent stylesheet is a global stylesheet that is implicitly used by all JavaFX
+     * nodes in the scene graph. It can be used to provide default styling for UI controls
+     * and other nodes. A user-agent stylesheets has the lowest precedence in the CSS cascade.
      * <p>
-     * If an {@link ObservableList} ist passed to this method, JavaFX will observe the
-     * list for changes and automatically apply changed stylesheets.
-     * {@link StylesheetListBase} is an easy-to-use {@code ObservableList} implementation
-     * that can be used to create a dynamically changeable stylesheet list that retains
-     * the order of stylesheets.
+     * This property can also be set on the command line with {@code -Djavafx.userAgentStylesheetUrl=[URL]}.
+     * Setting it on the command line overrides the value of this property.
      * <p>
-     * The URLs are hierarchical URIs of the form [scheme:][//authority][path]. If the URL
+     * The URL is a hierarchical URI of the form [scheme:][//authority][path]. If the URL
      * does not have a [scheme:] component, the URL is considered to be the [path] component only.
      * Any leading '/' character of the [path] is ignored and the [path] is treated as a path relative to
      * the root of the application's classpath.
@@ -564,12 +516,60 @@ public abstract class Application {
      * If the MIME type is "application/octet-stream", the payload will be interpreted as a binary
      * CSS file (see {@link Stylesheet#convertToBinary(File, File)}).
      *
-     * @param urls The URLs to the stylesheets as a list of strings.
      * @since JFXcore 18
      */
+    private static StringProperty userAgentStylesheet;
+
     @Incubating
-    public static void setUserAgentStylesheets(List<String> urls) {
-        PlatformImpl.setPlatformUserAgentStylesheets(urls);
+    public static StringProperty userAgentStylesheetProperty() {
+        if (userAgentStylesheet == null) {
+            userAgentStylesheet = new SimpleStringProperty(Application.class, "userAgentStylesheet");
+            userAgentStylesheet.bindBidirectional(PlatformImpl.platformUserAgentStylesheetProperty());
+        }
+        return userAgentStylesheet;
+    }
+
+    @Incubating
+    public static String getUserAgentStylesheet() {
+        return userAgentStylesheetProperty().get();
+    }
+
+    @Incubating
+    public static void setUserAgentStylesheet(String url) {
+        userAgentStylesheetProperty().set(url);
+    }
+
+    /**
+     * Specifies the {@link Theme} for the application.
+     * <p>
+     * Themes are collections of stylesheets that specify the appearance of UI controls
+     * and other nodes in the application. Like user-agent stylesheets, theme stylesheets
+     * are implicitly used by all JavaFX nodes in the scene graph.
+     * <p>
+     * Theme stylesheets have a higher precedence in the CSS cascade than a stylesheet referenced
+     * by the {@link #userAgentStylesheetProperty() userAgentStylesheet} property.
+     *
+     * @since JFXcore 18
+     */
+    private static ObjectProperty<Theme> theme;
+
+    @Incubating
+    public static ObjectProperty<Theme> themeProperty() {
+        if (theme == null) {
+            theme = new SimpleObjectProperty<>(Application.class, "theme");
+            theme.bindBidirectional(PlatformImpl.platformThemeProperty());
+        }
+        return theme;
+    }
+
+    @Incubating
+    public static Theme getTheme() {
+        return themeProperty().get();
+    }
+
+    @Incubating
+    public static void setTheme(Theme theme) {
+        themeProperty().set(theme);
     }
 
 }

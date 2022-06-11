@@ -91,7 +91,7 @@ void ThemeSupport::querySystemColors(jobject properties) const
     putColorValue(properties, "Windows.SysColor.COLOR_WINDOWTEXT", GetSysColor(COLOR_WINDOWTEXT));
 }
 
-void ThemeSupport::queryWindows10ThemeColors(jobject properties) const
+void ThemeSupport::queryUIColors(jobject properties) const
 {
     if (!isRoActivationSupported()) {
         return;

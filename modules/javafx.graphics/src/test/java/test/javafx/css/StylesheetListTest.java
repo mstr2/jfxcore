@@ -21,22 +21,22 @@
 
 package test.javafx.css;
 
+import com.sun.javafx.css.StylesheetList;
 import org.junit.jupiter.api.Test;
 import test.javafx.collections.MockListObserver;
-import javafx.css.StylesheetItem;
-import javafx.css.StylesheetListBase;
+import javafx.beans.value.WritableValue;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class StylesheetListBaseTest {
+public class StylesheetListTest {
 
     @Test
     public void testEmptyList() {
-        var list = new StylesheetListBase() {
-            final StylesheetItem p1 = addStylesheet(null);
-            final StylesheetItem p2 = addStylesheet(null);
-            final StylesheetItem p3 = addStylesheet(null);
+        var list = new StylesheetList() {
+            final WritableValue<String> p1 = addStylesheet(null);
+            final WritableValue<String> p2 = addStylesheet(null);
+            final WritableValue<String> p3 = addStylesheet(null);
         };
 
         assertEquals(0, list.size());
@@ -44,72 +44,72 @@ public class StylesheetListBaseTest {
 
     @Test
     public void testToggleItem() {
-        var list = new StylesheetListBase() {
-            final StylesheetItem p1 = addStylesheet(null);
-            final StylesheetItem p2 = addStylesheet(null);
-            final StylesheetItem p3 = addStylesheet(null);
+        var list = new StylesheetList() {
+            final WritableValue<String> p1 = addStylesheet(null);
+            final WritableValue<String> p2 = addStylesheet(null);
+            final WritableValue<String> p3 = addStylesheet(null);
         };
 
-        list.p1.set("foo");
+        list.p1.setValue("foo");
         assertEquals(List.of("foo"), list);
 
-        list.p3.set("bar");
+        list.p3.setValue("bar");
         assertEquals(List.of("foo", "bar"), list);
 
-        list.p1.set(null);
+        list.p1.setValue(null);
         assertEquals(List.of("bar"), list);
     }
 
     @Test
     public void testChangeItem() {
-        var list = new StylesheetListBase() {
-            final StylesheetItem p1 = addStylesheet(null);
-            final StylesheetItem p2 = addStylesheet(null);
-            final StylesheetItem p3 = addStylesheet(null);
+        var list = new StylesheetList() {
+            final WritableValue<String> p1 = addStylesheet(null);
+            final WritableValue<String> p2 = addStylesheet(null);
+            final WritableValue<String> p3 = addStylesheet(null);
         };
 
-        list.p1.set("foo");
+        list.p1.setValue("foo");
         assertEquals(List.of("foo"), list);
 
-        list.p3.set("bar");
+        list.p3.setValue("bar");
         assertEquals(List.of("foo", "bar"), list);
 
-        list.p3.set("baz");
+        list.p3.setValue("baz");
         assertEquals(List.of("foo", "baz"), list);
     }
 
     @Test
     public void testChangeEvent() {
-        var list = new StylesheetListBase() {
-            final StylesheetItem p1 = addStylesheet(null);
-            final StylesheetItem p2 = addStylesheet(null);
-            final StylesheetItem p3 = addStylesheet(null);
+        var list = new StylesheetList() {
+            final WritableValue<String> p1 = addStylesheet(null);
+            final WritableValue<String> p2 = addStylesheet(null);
+            final WritableValue<String> p3 = addStylesheet(null);
         };
 
         var observer = new MockListObserver<String>();
         list.addListener(observer);
 
-        list.p1.set("foo");
+        list.p1.setValue("foo");
         observer.check1AddRemove(list, List.of(), 0, 1);
         observer.clear();
 
-        list.p3.set("bar");
+        list.p3.setValue("bar");
         observer.check1AddRemove(list, List.of(), 1, 2);
         observer.clear();
 
-        list.p2.set("baz");
+        list.p2.setValue("baz");
         observer.check1AddRemove(list, List.of(), 1, 2);
         observer.clear();
 
-        list.p2.set("qux");
+        list.p2.setValue("qux");
         observer.check1AddRemove(list, List.of("baz"), 1, 2);
         observer.clear();
 
-        list.p2.set(null);
+        list.p2.setValue(null);
         observer.check1AddRemove(list, List.of("qux"), 1, 1);
         observer.clear();
 
-        list.p3.set(null);
+        list.p3.setValue(null);
         observer.check1AddRemove(list, List.of("bar"), 1, 1);
         observer.clear();
     }

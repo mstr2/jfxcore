@@ -366,8 +366,8 @@ public final class QuantumToolkit extends Toolkit {
                 }
 
                 @Override
-                public void handleThemeChanged(Map<String, String> properties) {
-                    PlatformImpl.updatePlatformTheme(properties);
+                public void handlePreferencesChanged(Map<String, String> preferences) {
+                    PlatformImpl.updatePreferences(preferences);
                 }
             });
         }

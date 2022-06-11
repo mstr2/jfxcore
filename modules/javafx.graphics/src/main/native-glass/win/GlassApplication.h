@@ -82,8 +82,8 @@ public:
     static void ExecActionLater(Action *action);
     void RegisterClipboardViewer(jobject clipboard);
     void UnregisterClipboardViewer();
-    static jobject GetThemeProperties(JNIEnv* env);
-    bool UpdateThemeProperties();
+    static jobject GetPreferences(JNIEnv* env);
+    bool UpdatePreferences();
 
     inline static DWORD GetMainThreadId()
     {
@@ -127,7 +127,7 @@ private:
     HWND    m_hNextClipboardView;
     DWORD m_mainThreadId;
     static jobject sm_glassClassLoader;
-    jobject m_themeProperties;
+    jobject m_preferences;
 
     // These are static because the GlassApplication instance may be
     // destroyed while the nested loop is spinning

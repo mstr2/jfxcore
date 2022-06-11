@@ -85,7 +85,7 @@ public abstract class Application {
         // currently used only on Mac OS X
         public void handleQuitAction(Application app, long time) {
         }
-        public void handleThemeChanged(Map<String, String> properties) {
+        public void handlePreferencesChanged(Map<String, String> properties) {
         }
     }
 
@@ -259,10 +259,10 @@ public abstract class Application {
         }
     }
 
-    protected void notifyThemeChanged(Map<String, String> properties) {
+    protected void notifyPreferencesChanged(Map<String, String> preferences) {
         EventHandler handler = getEventHandler();
         if (handler != null) {
-            handler.handleThemeChanged(properties);
+            handler.handlePreferencesChanged(preferences);
         }
     }
 

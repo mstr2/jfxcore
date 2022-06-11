@@ -1,3 +1,6 @@
+<!doctype html>
+
+<!--
 /*
  * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -18,33 +21,15 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+-->
 
-#pragma once
-
-#include <jni.h>
-
-namespace ABI { namespace Windows { namespace UI { struct Color; } } }
-
-class ThemeSupport final
-{
-public:
-    ThemeSupport(JNIEnv*);
-    ~ThemeSupport();
-    ThemeSupport(ThemeSupport const&) = delete;
-    ThemeSupport& operator=(ThemeSupport const&) = delete;
-
-    void querySystemColors(jobject properties) const;
-    void queryHighContrastScheme(jobject properties) const;
-    void queryUIColors(jobject properties) const;
-
-private:
-    JNIEnv* env_;
-    jclass mapClass_;
-    jmethodID putMethod_;
-
-    jobject newJavaColorString(int r, int g, int b, int a) const;
-    void putValue(jobject properties, const char* key, const char* value) const;
-    void putValue(jobject properties, const char* key, const wchar_t* value) const;
-    void putColorValue(jobject properties, const char* colorName, int colorValue) const;
-    void putColorValue(jobject properties, const char* colorName, ABI::Windows::UI::Color colorValue) const;
-};
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>javafx.application.theme</title>
+</head>
+<body>
+<p>Provides the default JavaFX themes</p>
+<p>This package contains the two default JavaFX themes, Caspian and Modena.</p>
+</body>
+</html>

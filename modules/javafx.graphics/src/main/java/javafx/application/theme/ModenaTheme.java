@@ -22,33 +22,24 @@
 package javafx.application.theme;
 
 import com.sun.javafx.PlatformUtil;
-import com.sun.javafx.application.PlatformImpl;
 import com.sun.javafx.application.HighContrastScheme;
+import com.sun.javafx.application.PlatformImpl;
 import javafx.application.ConditionalFeature;
-import javafx.beans.InvalidationListener;
-import javafx.beans.WeakInvalidationListener;
-import javafx.beans.property.ReadOnlyStringProperty;
-import javafx.css.StylesheetItem;
-import javafx.css.StylesheetListBase;
+import javafx.beans.value.WritableValue;
+import javafx.util.Incubating;
 import java.util.ResourceBundle;
 
-public class ModenaTheme extends StylesheetListBase {
+/**
+ * {@code Modena} is a built-in JavaFX theme.
+ *
+ * @since JFXcore 18
+ */
+@Incubating
+public class ModenaTheme extends ThemeBase {
 
-    private final InvalidationListener highContrastSchemeChanged =
-            observable -> updateHighContrastStylesheet();
-
-    private final ReadOnlyStringProperty highContrastScheme =
-            PlatformImpl.getPlatformTheme().getProperty("Windows.SPI.HighContrastColorScheme");
-
-    private final ReadOnlyStringProperty highContrastOn =
-            PlatformImpl.getPlatformTheme().getProperty("Windows.SPI.HighContrastOn");
-
-    private final StylesheetItem highContrastStylesheet;
+    private final WritableValue<String> highContrastStylesheet;
 
     public ModenaTheme() {
-        highContrastScheme.addListener(new WeakInvalidationListener(highContrastSchemeChanged));
-        highContrastOn.addListener(new WeakInvalidationListener(highContrastSchemeChanged));
-
         addStylesheet("com/sun/javafx/scene/control/skin/modena/modena.css");
 
         if (PlatformImpl.isSupported(ConditionalFeature.INPUT_TOUCH)) {
@@ -80,38 +71,36 @@ public class ModenaTheme extends StylesheetListBase {
         }
 
         highContrastStylesheet = addStylesheet(null);
-        updateHighContrastStylesheet();
+
+        highContrastThemeNameProperty().addListener(
+            ((observable, oldValue, newValue) -> onHighContrastThemeChanged(newValue)));
+
+        onHighContrastThemeChanged(getHighContrastThemeName());
     }
 
-    private void updateHighContrastStylesheet() {
-        boolean enabled = Boolean.parseBoolean(highContrastOn.get());
-        if (enabled) {
-            String highContrastStylesheet = null;
-            String userTheme = System.getProperty("com.sun.javafx.highContrastTheme");
+    private void onHighContrastThemeChanged(String themeName) {
+        if (themeName != null) {
+            String stylesheet = switch (themeName.toUpperCase()) {
+                case "BLACKONWHITE" -> "com/sun/javafx/scene/control/skin/modena/blackOnWhite.css";
+                case "WHITEONBLACK" -> "com/sun/javafx/scene/control/skin/modena/whiteOnBlack.css";
+                case "YELLOWONBLACK" -> "com/sun/javafx/scene/control/skin/modena/yellowOnBlack.css";
+                default -> null;
+            };
 
-            if (userTheme != null) {
-                highContrastStylesheet = switch (userTheme.toUpperCase()) {
-                    case "BLACKONWHITE" -> "com/sun/javafx/scene/control/skin/modena/blackOnWhite.css";
-                    case "WHITEONBLACK" -> "com/sun/javafx/scene/control/skin/modena/whiteOnBlack.css";
-                    case "YELLOWONBLACK" -> "com/sun/javafx/scene/control/skin/modena/yellowOnBlack.css";
-                    default -> null;
-                };
-            }
-
-            if (highContrastStylesheet == null) {
+            if (stylesheet == null) {
                 ResourceBundle bundle = ResourceBundle.getBundle("com/sun/glass/ui/win/themes");
-                String enumValue = HighContrastScheme.fromThemeName(bundle::getString, highContrastScheme.get());
+                String enumValue = HighContrastScheme.fromThemeName(bundle::getString, themeName);
 
-                highContrastStylesheet = enumValue != null ? switch (HighContrastScheme.valueOf(enumValue)) {
+                stylesheet = enumValue != null ? switch (HighContrastScheme.valueOf(enumValue)) {
                     case HIGH_CONTRAST_WHITE -> "com/sun/javafx/scene/control/skin/modena/blackOnWhite.css";
                     case HIGH_CONTRAST_BLACK -> "com/sun/javafx/scene/control/skin/modena/whiteOnBlack.css";
                     case HIGH_CONTRAST_1, HIGH_CONTRAST_2 -> "com/sun/javafx/scene/control/skin/modena/yellowOnBlack.css";
                 } : null;
             }
 
-            this.highContrastStylesheet.set(highContrastStylesheet);
+            highContrastStylesheet.setValue(stylesheet);
         } else {
-            this.highContrastStylesheet.set(null);
+            highContrastStylesheet.setValue(null);
         }
     }
 

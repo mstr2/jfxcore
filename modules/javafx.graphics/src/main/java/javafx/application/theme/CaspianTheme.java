@@ -24,29 +24,20 @@ package javafx.application.theme;
 import com.sun.javafx.PlatformUtil;
 import com.sun.javafx.application.PlatformImpl;
 import javafx.application.ConditionalFeature;
-import javafx.beans.InvalidationListener;
-import javafx.beans.WeakInvalidationListener;
-import javafx.beans.property.ReadOnlyStringProperty;
-import javafx.css.StylesheetItem;
-import javafx.css.StylesheetListBase;
+import javafx.beans.value.WritableValue;
+import javafx.util.Incubating;
 
-public class CaspianTheme extends StylesheetListBase {
+/**
+ * {@code Caspian} is a built-in JavaFX theme.
+ *
+ * @since JFXcore 18
+ */
+@Incubating
+public class CaspianTheme extends ThemeBase {
 
-    private final InvalidationListener highContrastSchemeChanged =
-            observable -> updateHighContrastStylesheet();
-
-    private final ReadOnlyStringProperty highContrastScheme =
-            PlatformImpl.getPlatformTheme().getProperty("Windows.SPI.HighContrastColorScheme");
-
-    private final ReadOnlyStringProperty highContrastOn =
-            PlatformImpl.getPlatformTheme().getProperty("Windows.SPI.HighContrastOn");
-
-    private final StylesheetItem highContrastStylesheet;
+    private final WritableValue<String> highContrastStylesheet;
 
     public CaspianTheme() {
-        highContrastScheme.addListener(new WeakInvalidationListener(highContrastSchemeChanged));
-        highContrastOn.addListener(new WeakInvalidationListener(highContrastSchemeChanged));
-
         addStylesheet("com/sun/javafx/scene/control/skin/caspian/caspian.css");
 
         if (PlatformImpl.isSupported(ConditionalFeature.INPUT_TOUCH)) {
@@ -78,19 +69,19 @@ public class CaspianTheme extends StylesheetListBase {
         }
 
         highContrastStylesheet = addStylesheet(null);
-        updateHighContrastStylesheet();
+
+        highContrastThemeNameProperty().addListener(
+            ((observable, oldValue, newValue) -> onHighContrastThemeChanged(newValue)));
+
+        onHighContrastThemeChanged(getHighContrastThemeName());
     }
 
-    private void updateHighContrastStylesheet() {
-        boolean enabled = Boolean.parseBoolean(highContrastOn.get())
-                || (System.getProperty("com.sun.javafx.highContrastTheme") != null);
-
-        if (enabled) {
+    private void onHighContrastThemeChanged(String themeName) {
+        if (themeName != null) {
             // caspian has only one high contrast theme, use it regardless of the user or platform theme.
-            String highContrastStylesheet = "com/sun/javafx/scene/control/skin/caspian/highcontrast.css";
-            this.highContrastStylesheet.set(highContrastStylesheet);
+            highContrastStylesheet.setValue("com/sun/javafx/scene/control/skin/caspian/highcontrast.css");
         } else {
-            this.highContrastStylesheet.set(null);
+            highContrastStylesheet.setValue(null);
         }
     }
 

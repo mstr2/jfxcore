@@ -27,8 +27,7 @@ package com.sun.javafx.application;
 
 import static com.sun.javafx.FXPermissions.CREATE_TRANSPARENT_WINDOW_PERMISSION;
 import com.sun.javafx.PlatformUtil;
-import javafx.application.theme.CaspianTheme;
-import javafx.application.theme.ModenaTheme;
+import com.sun.javafx.collections.UnmodifiableObservableMap;
 import com.sun.javafx.css.StyleManager;
 import com.sun.javafx.tk.TKListener;
 import com.sun.javafx.tk.TKStage;
@@ -37,29 +36,41 @@ import com.sun.javafx.util.Logging;
 import com.sun.javafx.util.ModuleHelper;
 
 import java.lang.module.ModuleDescriptor;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import javafx.application.Application;
 import javafx.application.ConditionalFeature;
-import javafx.application.PlatformTheme;
+import javafx.application.Theme;
+import javafx.application.theme.CaspianTheme;
+import javafx.application.theme.ModenaTheme;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
 import javafx.util.FXPermission;
 
 public class PlatformImpl {
@@ -685,8 +696,12 @@ public class PlatformImpl {
     /**
      * Set the platform user agent stylesheet to the default.
      */
-    public static void setDefaultPlatformUserAgentStylesheet() {
-        setPlatformUserAgentStylesheets(List.of(Application.STYLESHEET_MODENA));
+    public static void ensureDefaultTheme() {
+        if (isFxApplicationThread()) {
+            platformTheme.set(new ModenaTheme());
+        } else {
+            runLater(() -> platformTheme.set(new ModenaTheme()));
+        }
     }
 
     private static boolean isModena = false;
@@ -716,96 +731,84 @@ public class PlatformImpl {
         return isCaspian;
     }
 
-    public static void ensurePlatformUserAgentStylesheet() {
-        if (platformUserAgentStylesheets == null) {
-            setDefaultPlatformUserAgentStylesheet();
+    private static final StringProperty platformUserAgentStylesheet = new SimpleStringProperty() {
+        @Override
+        protected void invalidated() {
+            if (Application.STYLESHEET_CASPIAN.equals(get())) {
+                platformTheme.set(new CaspianTheme());
+            } else if (Application.STYLESHEET_MODENA.equals(get())) {
+                platformTheme.set(new ModenaTheme());
+            } else {
+                onPlatformThemeChanged(get(), platformTheme.get());
+            }
         }
+    };
+
+    public static StringProperty platformUserAgentStylesheetProperty() {
+        return platformUserAgentStylesheet;
     }
 
-    private static List<String> platformUserAgentStylesheets;
-
-    public static List<String> getPlatformUserAgentStylesheets() {
-        return platformUserAgentStylesheets;
-    }
-
-    /**
-     * Set the platform user agent stylesheets to the given list of URLs.
-     * This method has special handling for platform theme name constants.
-     */
-    public static void setPlatformUserAgentStylesheets(final List<String> stylesheetUrls) {
-        platformUserAgentStylesheets = stylesheetUrls;
-
-        if (stylesheetUrls == null) {
-            setDefaultPlatformUserAgentStylesheet();
-        } else if (isFxApplicationThread()) {
-            _setPlatformUserAgentStylesheets(stylesheetUrls);
-        } else {
-            runLater(() -> _setPlatformUserAgentStylesheets(stylesheetUrls));
+    private static final ObjectProperty<Theme> platformTheme = new SimpleObjectProperty<>() {
+        @Override
+        protected void invalidated() {
+            if (isCaspian && Application.STYLESHEET_CASPIAN.equals(platformUserAgentStylesheet.get())) {
+                platformUserAgentStylesheet.set(null);
+            } else if (isModena && Application.STYLESHEET_MODENA.equals(platformUserAgentStylesheet.get())) {
+                platformUserAgentStylesheet.set(null);
+            } else {
+                onPlatformThemeChanged(platformUserAgentStylesheet.get(), get());
+            }
         }
-    }
+    };
 
-    private static final PlatformThemeImpl platformTheme = new PlatformThemeImpl();
-
-    public static void updatePlatformTheme(Map<String, String> properties) {
-        platformTheme.update(properties);
-    }
-
-    public static PlatformTheme getPlatformTheme() {
+    public static ObjectProperty<Theme> platformThemeProperty() {
         return platformTheme;
     }
 
-    private static List<String> userAgentStylesheets;
-    private static final ListChangeListener<String> userAgentStylesheetsChanged =
-        change -> StyleManager.getInstance().setUserAgentStylesheets(userAgentStylesheets);
-
-    private static void _setPlatformUserAgentStylesheets(List<String> urls) {
-        if (userAgentStylesheets == urls || isBuiltinTheme(urls)) {
-            return;
-        }
-
-        if (userAgentStylesheets instanceof ObservableList<String> list) {
-            list.removeListener(userAgentStylesheetsChanged);
-        }
-
-        isModena = isCaspian = false;
-
+    private static void onPlatformThemeChanged(String userAgentStylesheet, Theme theme) {
         String overrideStylesheetUrl = System.getProperty("javafx.userAgentStylesheetUrl");
         if (overrideStylesheetUrl != null) {
-            urls = List.of(overrideStylesheetUrl);
+            userAgentStylesheet = overrideStylesheetUrl.trim();
+        } else if (userAgentStylesheet != null) {
+            userAgentStylesheet = userAgentStylesheet.trim();
         }
 
-        if (urls != null && urls.size() == 1) {
-            urls = switch (urls.get(0)) {
-                case Application.STYLESHEET_CASPIAN -> {
-                    isCaspian = true;
-                    yield new CaspianTheme();
-                }
+        isCaspian = theme instanceof CaspianTheme;
+        isModena = theme instanceof ModenaTheme;
 
-                case Application.STYLESHEET_MODENA -> {
-                    isModena = true;
-                    yield new ModenaTheme();
-                }
-
-                default -> urls;
-            };
-        }
-
-        userAgentStylesheets = urls;
-
-        if (userAgentStylesheets instanceof ObservableList<String> list) {
-            list.addListener(userAgentStylesheetsChanged);
-        }
-
-        StyleManager.getInstance().setUserAgentStylesheets(userAgentStylesheets);
+        updateStyleManager(userAgentStylesheet, theme.getStylesheets());
     }
 
-    private static boolean isBuiltinTheme(List<String> urls) {
-        return urls != null
-            && urls.size() == 1
-            && (userAgentStylesheets instanceof CaspianTheme
-                    && Application.STYLESHEET_CASPIAN.equalsIgnoreCase(urls.get(0))
-                || userAgentStylesheets instanceof ModenaTheme
-                    && Application.STYLESHEET_MODENA.equalsIgnoreCase(urls.get(0)));
+    private static List<String> themeStylesheets;
+
+    private static final ListChangeListener<String> themeStylesheetsChanged =
+        change -> updateStyleManager(platformUserAgentStylesheet.get(), themeStylesheets);
+
+    private static void updateStyleManager(String userAgentStylesheet, List<String> stylesheets) {
+        if (themeStylesheets instanceof ObservableList<String> list) {
+            list.removeListener(themeStylesheetsChanged);
+        }
+
+        themeStylesheets = stylesheets;
+
+        if (themeStylesheets instanceof ObservableList<String> list) {
+            list.addListener(themeStylesheetsChanged);
+        }
+
+        boolean hasUserAgentStylesheet = userAgentStylesheet != null && !userAgentStylesheet.isEmpty();
+
+        if (hasUserAgentStylesheet && themeStylesheets != null) {
+            List<String> list = new ArrayList<>(themeStylesheets.size() + 1);
+            list.add(userAgentStylesheet);
+            list.addAll(themeStylesheets);
+            StyleManager.getInstance().setUserAgentStylesheets(list);
+        } else if (themeStylesheets != null) {
+            StyleManager.getInstance().setUserAgentStylesheets(themeStylesheets);
+        } else if (hasUserAgentStylesheet) {
+            StyleManager.getInstance().setUserAgentStylesheets(List.of(userAgentStylesheet));
+        } else {
+            StyleManager.getInstance().setUserAgentStylesheets(List.of());
+        }
     }
 
     private static boolean isSupportedImpl(ConditionalFeature feature) {
@@ -902,4 +905,67 @@ public class PlatformImpl {
                 return Toolkit.getToolkit().isSupported(feature);
         }
     }
+
+    public static class UnmodifiablePreferencesMap extends UnmodifiableObservableMap<String, String> {
+        private final List<WeakReference<Consumer<Map<String, String>>>> batchChangedListeners = new ArrayList<>(2);
+
+        public UnmodifiablePreferencesMap(ObservableMap<String, String> map) {
+            super(map);
+        }
+
+        public synchronized void addBatchChangedListener(Consumer<Map<String, String>> listener) {
+            var it = batchChangedListeners.iterator();
+            while (it.hasNext()) {
+                Consumer<Map<String, String>> ref = it.next().get();
+                if (ref == null) {
+                    it.remove();
+                }
+            }
+
+            batchChangedListeners.add(new WeakReference<>(listener));
+        }
+    }
+
+    private static final ObservableMap<String, String> preferences = FXCollections.observableHashMap();
+    private static final UnmodifiablePreferencesMap unmodifiablePreferences = new UnmodifiablePreferencesMap(preferences);
+
+    public static void updatePreferences(Map<String, String> newPreferences) {
+        Map<String, String> removed = new HashMap<>(preferences);
+        removed.keySet().removeAll(newPreferences.keySet());
+
+        Map<String, String> changed = new HashMap<>();
+        for (Map.Entry<String, String> entry : newPreferences.entrySet()) {
+            String existingValue = preferences.get(entry.getKey());
+            if (!Objects.equals(existingValue, entry.getValue())) {
+                changed.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        boolean hasChanged = !removed.isEmpty() || !changed.isEmpty();
+        preferences.keySet().removeAll(removed.keySet());
+        preferences.putAll(changed);
+
+        for (Map.Entry<String, String> entry : removed.entrySet()) {
+            changed.put(entry.getKey(), null);
+        }
+
+        if (hasChanged) {
+            synchronized (unmodifiablePreferences) {
+                var it = unmodifiablePreferences.batchChangedListeners.iterator();
+                while (it.hasNext()) {
+                    Consumer<Map<String, String>> ref = it.next().get();
+                    if (ref != null) {
+                        ref.accept(changed);
+                    } else {
+                        it.remove();
+                    }
+                }
+            }
+        }
+    }
+
+    public static UnmodifiablePreferencesMap getPreferences() {
+        return unmodifiablePreferences;
+    }
+
 }
