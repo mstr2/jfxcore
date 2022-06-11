@@ -39,7 +39,6 @@ namespace
         return res;
     }
 
-    typedef HRESULT WINAPI FnRtlGetVersion(PRTL_OSVERSIONINFOW lpVersionInformation);
     typedef HRESULT WINAPI FnRoInitialize(RO_INIT_TYPE initType);
     typedef void WINAPI FnRoUninitialize();
     typedef HRESULT WINAPI FnRoActivateInstance(HSTRING activatableClassId, IInspectable** instance);
