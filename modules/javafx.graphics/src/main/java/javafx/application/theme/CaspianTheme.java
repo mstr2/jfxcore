@@ -26,6 +26,7 @@ import com.sun.javafx.application.PlatformImpl;
 import javafx.application.ConditionalFeature;
 import javafx.beans.value.WritableValue;
 import javafx.util.Incubating;
+import java.util.Map;
 
 /**
  * {@code Caspian} is a built-in JavaFX theme.
@@ -72,15 +73,29 @@ public class CaspianTheme extends ThemeBase {
         }
 
         highContrastStylesheet = addStylesheet(null);
-
-        highContrastThemeNameProperty().addListener(
-            ((observable, oldValue, newValue) -> onHighContrastThemeChanged(newValue)));
-
-        onHighContrastThemeChanged(getHighContrastThemeName());
+        updateHighContrastTheme();
     }
 
-    private void onHighContrastThemeChanged(String themeName) {
-        if (themeName != null) {
+    @Override
+    protected void onPreferencesChanged(Map<String, String> preferences) {
+        updateHighContrastTheme();
+    }
+
+    private void updateHighContrastTheme() {
+        boolean enabled = false;
+        String overrideThemeName = System.getProperty("com.sun.javafx.highContrastTheme");
+        if (overrideThemeName != null) {
+            enabled = true;
+        }
+
+        if (!enabled) {
+            Map<String, String> preferences = PlatformImpl.getPreferences();
+            if (Boolean.parseBoolean(preferences.get("Windows.SPI.HighContrastOn"))) {
+                enabled = preferences.get("Windows.SPI.HighContrastColorScheme") != null;
+            }
+        }
+
+        if (enabled) {
             // caspian has only one high contrast theme, use it regardless of the user or platform theme.
             highContrastStylesheet.setValue("com/sun/javafx/scene/control/skin/caspian/highcontrast.css");
         } else {

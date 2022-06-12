@@ -27,6 +27,7 @@ import com.sun.javafx.application.PlatformImpl;
 import javafx.application.ConditionalFeature;
 import javafx.beans.value.WritableValue;
 import javafx.util.Incubating;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
@@ -74,14 +75,28 @@ public class ModenaTheme extends ThemeBase {
         }
 
         highContrastStylesheet = addStylesheet(null);
-
-        highContrastThemeNameProperty().addListener(
-            ((observable, oldValue, newValue) -> onHighContrastThemeChanged(newValue)));
-
-        onHighContrastThemeChanged(getHighContrastThemeName());
+        updateHighContrastTheme();
     }
 
-    private void onHighContrastThemeChanged(String themeName) {
+    @Override
+    protected void onPreferencesChanged(Map<String, String> preferences) {
+        updateHighContrastTheme();
+    }
+
+    private void updateHighContrastTheme() {
+        String themeName = null;
+        String overrideThemeName = System.getProperty("com.sun.javafx.highContrastTheme");
+        if (overrideThemeName != null) {
+            themeName = overrideThemeName;
+        }
+
+        if (themeName == null) {
+            Map<String, String> preferences = PlatformImpl.getPreferences();
+            if (Boolean.parseBoolean(preferences.get("Windows.SPI.HighContrastOn"))) {
+                themeName = preferences.get("Windows.SPI.HighContrastColorScheme");
+            }
+        }
+
         if (themeName != null) {
             String stylesheet = switch (themeName.toUpperCase()) {
                 case "BLACKONWHITE" -> "com/sun/javafx/scene/control/skin/modena/blackOnWhite.css";

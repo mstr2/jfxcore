@@ -31,7 +31,6 @@ import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanPropertyBase;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectPropertyBase;
-import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringPropertyBase;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.WritableValue;
@@ -269,65 +268,6 @@ public abstract class ThemeBase implements Theme {
     }
 
     /**
-     * The high-contrast theme is a special accessibility theme that is available on some platforms.
-     * The name of this theme is platform-dependent, and may also depend on the platform locale.
-     */
-    private final StringPropertyImpl highContrastThemeName = new StringPropertyImpl() {
-        String currentValue;
-        String newValue;
-
-        @Override
-        public Object getBean() {
-            return ThemeBase.this;
-        }
-
-        @Override
-        public String getName() {
-            return "highContrastThemeName";
-        }
-
-        @Override
-        public String get() {
-            return currentValue;
-        }
-
-        @Override
-        public void fireValueChangedEvent() {
-            if (!Objects.equals(currentValue, newValue)) {
-                currentValue = newValue;
-                super.fireValueChangedEvent();
-            }
-        }
-
-        @Override
-        void update() {
-            newValue = getHighContrastThemeName();
-        }
-
-        private String getHighContrastThemeName() {
-            String overrideThemeName = System.getProperty("com.sun.javafx.highContrastTheme");
-            if (overrideThemeName != null) {
-                return overrideThemeName;
-            }
-
-            Map<String, String> preferences = PlatformImpl.getPreferences();
-            if (Boolean.parseBoolean(preferences.get("Windows.SPI.HighContrastOn"))) {
-                return preferences.get("Windows.SPI.HighContrastColorScheme");
-            }
-
-            return null;
-        }
-    };
-
-    public final ReadOnlyStringProperty highContrastThemeNameProperty() {
-        return highContrastThemeName;
-    }
-
-    public final String getHighContrastThemeName() {
-        return highContrastThemeName.get();
-    }
-
-    /**
      * Adds a new stylesheet URL to the list of stylesheets.
      * <p>
      * The returned {@link WritableValue} can be used to change the value of the URL.
@@ -361,11 +301,9 @@ public abstract class ThemeBase implements Theme {
     }
 
     private void updateProperties() {
-        highContrastThemeName.update();
         accentColor.update();
         darkMode.update();
 
-        highContrastThemeName.fireValueChangedEvent();
         accentColor.fireValueChangedEvent();
         darkMode.fireValueChangedEvent();
     }
