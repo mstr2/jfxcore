@@ -310,9 +310,9 @@ public abstract class ThemeBase implements Theme {
                 return overrideThemeName;
             }
 
-            Map<String, String> properties = PlatformImpl.getPreferences();
-            if (Boolean.parseBoolean(properties.get("Windows.SPI.HighContrastOn"))) {
-                return properties.get("Windows.SPI.HighContrastColorScheme");
+            Map<String, String> preferences = PlatformImpl.getPreferences();
+            if (Boolean.parseBoolean(preferences.get("Windows.SPI.HighContrastOn"))) {
+                return preferences.get("Windows.SPI.HighContrastColorScheme");
             }
 
             return null;
@@ -347,16 +347,16 @@ public abstract class ThemeBase implements Theme {
 
     private final StylesheetList stylesheetList = new StylesheetList();
 
-    private final Consumer<Map<String, String>> propertiesChanged = changedProperties -> {
+    private final Consumer<Map<String, String>> preferencesChanged = changedPreferences -> {
         updateProperties();
-        onPropertiesChanged(changedProperties);
+        onPreferencesChanged(changedPreferences);
     };
 
     /**
      * Creates a new instance of the {@code ThemeBase} class.
      */
     protected ThemeBase() {
-        PlatformImpl.getPreferences().addBatchChangedListener(propertiesChanged);
+        PlatformImpl.getPreferences().addBatchChangedListener(preferencesChanged);
         updateProperties();
     }
 
@@ -378,9 +378,9 @@ public abstract class ThemeBase implements Theme {
      * <p>
      * Use {@link Platform#getPreferences()} to get a list of all platform preferences.
      *
-     * @param preferences the platform properties that have changed
+     * @param preferences the platform preferences that have changed
      */
-    protected void onPropertiesChanged(Map<String, String> preferences) {}
+    protected void onPreferencesChanged(Map<String, String> preferences) {}
 
     private static abstract class BooleanPropertyImpl extends ReadOnlyBooleanPropertyBase {
         abstract void update();
