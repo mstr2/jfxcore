@@ -698,9 +698,11 @@ public class PlatformImpl {
      */
     public static void ensureDefaultTheme() {
         if (isFxApplicationThread()) {
-            platformTheme.set(new ModenaTheme());
+            if (platformTheme.get() == null) {
+                platformTheme.set(new ModenaTheme());
+            }
         } else {
-            runLater(() -> platformTheme.set(new ModenaTheme()));
+            runLater(PlatformImpl::ensureDefaultTheme);
         }
     }
 
