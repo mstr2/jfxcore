@@ -776,7 +776,7 @@ public class PlatformImpl {
         isCaspian = theme instanceof CaspianTheme;
         isModena = theme instanceof ModenaTheme;
 
-        updateStyleManager(userAgentStylesheet, theme.getStylesheets());
+        updateStyleManager(userAgentStylesheet, theme != null ? theme.getStylesheets() : null);
     }
 
     private static List<String> themeStylesheets;
