@@ -37,6 +37,9 @@ public class CaspianTheme extends ThemeBase {
 
     private final WritableValue<String> highContrastStylesheet;
 
+    /**
+     * Creates a new instance of the {@code CaspianTheme} class.
+     */
     public CaspianTheme() {
         addStylesheet("com/sun/javafx/scene/control/skin/caspian/caspian.css");
 

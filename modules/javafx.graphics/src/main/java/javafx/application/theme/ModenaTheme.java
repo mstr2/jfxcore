@@ -39,6 +39,9 @@ public class ModenaTheme extends ThemeBase {
 
     private final WritableValue<String> highContrastStylesheet;
 
+    /**
+     * Creates a new instance of the {@code ModenaTheme} class.
+     */
     public ModenaTheme() {
         addStylesheet("com/sun/javafx/scene/control/skin/modena/modena.css");
 

@@ -199,7 +199,7 @@ public abstract class Application {
      * corresponding to {@link javafx.application.theme.ModenaTheme}.
      * Modena is the default theme for JavaFX 8.x.
      * This constant is provided for backwards compatibility only,
-     * please use the {@code CaspianTheme} class instead.
+     * please use the {@code ModenaTheme} class instead.
      *
      * @since JavaFX 8.0
      */
@@ -523,6 +523,8 @@ public abstract class Application {
      * the payload will be interpreted as a CSS file.
      * If the MIME type is "application/octet-stream", the payload will be interpreted as a binary
      * CSS file (see {@link Stylesheet#convertToBinary(File, File)}).
+     * <p>
+     * Note: this property must only be modified on the JavaFX application thread.
      *
      * @since JFXcore 18
      */
@@ -556,6 +558,8 @@ public abstract class Application {
      * <p>
      * Theme stylesheets have a higher precedence in the CSS cascade than a stylesheet referenced
      * by the {@link #userAgentStylesheetProperty() userAgentStylesheet} property.
+     * <p>
+     * Note: this property must only be modified on the JavaFX application thread.
      *
      * @since JFXcore 18
      */

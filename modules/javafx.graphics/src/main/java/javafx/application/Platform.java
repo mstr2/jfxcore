@@ -479,6 +479,7 @@ public final class Platform {
      * </ol>
      * {@code hex-color-string} is a value that can be parsed by {@link Color#valueOf(String)}
      *
+     * @return an {@link ObservableMap} of platform preferences
      * @since JFXcore 18
      */
     @Incubating

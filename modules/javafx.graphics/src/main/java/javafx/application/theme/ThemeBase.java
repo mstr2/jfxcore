@@ -352,6 +352,9 @@ public abstract class ThemeBase implements Theme {
         onPropertiesChanged(changedProperties);
     };
 
+    /**
+     * Creates a new instance of the {@code ThemeBase} class.
+     */
     protected ThemeBase() {
         PlatformImpl.getPreferences().addBatchChangedListener(propertiesChanged);
         updateProperties();
