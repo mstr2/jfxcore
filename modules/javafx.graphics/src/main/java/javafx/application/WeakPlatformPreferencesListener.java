@@ -86,8 +86,7 @@ public final class WeakPlatformPreferencesListener implements PlatformPreference
             listener.onPreferencesChanged(preferences, changed);
         } else {
             // The weakly reference listener has been garbage collected,
-            // so this WeakListener will now unhook itself from the
-            // source bean
+            // so this WeakListener will now unhook itself
             preferences.removeListener(this);
         }
     }

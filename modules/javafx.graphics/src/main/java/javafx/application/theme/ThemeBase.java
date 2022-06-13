@@ -33,7 +33,6 @@ import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanPropertyBase;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectPropertyBase;
-import javafx.beans.property.ReadOnlyStringPropertyBase;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.WritableValue;
 import javafx.collections.ObservableList;
@@ -334,9 +333,7 @@ public abstract class ThemeBase implements Theme {
     /**
      * Occurs when platform preferences have changed.
      * <p>
-     * The supplied {@code preferences} map only includes platform preferences that have changed.
-     * If a platform preference was removed, its key maps to {@code null}.
-     * <p>
+     * The supplied {@code changed} map only includes platform preferences that have changed.
      * Use {@link Platform#getPreferences()} to get a list of all platform preferences.
      *
      * @param changed the platform preferences that have changed
@@ -353,15 +350,6 @@ public abstract class ThemeBase implements Theme {
     }
 
     private static abstract class ObjectPropertyImpl<T> extends ReadOnlyObjectPropertyBase<T> {
-        abstract void update();
-
-        @Override
-        public void fireValueChangedEvent() {
-            super.fireValueChangedEvent();
-        }
-    }
-
-    private static abstract class StringPropertyImpl extends ReadOnlyStringPropertyBase {
         abstract void update();
 
         @Override
