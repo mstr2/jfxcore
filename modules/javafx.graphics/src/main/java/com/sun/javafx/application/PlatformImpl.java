@@ -696,7 +696,7 @@ public class PlatformImpl {
     }
 
     /**
-     * Set the platform user agent stylesheet to the default.
+     * Ensures that the default theme is loaded if no theme is set at this point.
      */
     public static void ensureDefaultTheme() {
         if (isFxApplicationThread()) {
@@ -760,7 +760,15 @@ public class PlatformImpl {
             } else if (isModena && Application.STYLESHEET_MODENA.equals(platformUserAgentStylesheet.get())) {
                 platformUserAgentStylesheet.set(null);
             } else {
-                onPlatformThemeChanged(platformUserAgentStylesheet.get(), get());
+                String userAgentStylesheet = platformUserAgentStylesheet.get();
+                if (userAgentStylesheet != null) {
+                    userAgentStylesheet = switch (userAgentStylesheet) {
+                        case Application.STYLESHEET_CASPIAN, Application.STYLESHEET_MODENA -> null;
+                        default -> userAgentStylesheet;
+                    };
+                }
+
+                onPlatformThemeChanged(userAgentStylesheet, get());
             }
         }
     };
