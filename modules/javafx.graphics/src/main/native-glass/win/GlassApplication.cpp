@@ -513,17 +513,6 @@ JNIEXPORT jobject JNICALL Java_com_sun_glass_ui_win_WinApplication__1enterNested
 
 /*
  * Class:     com_sun_glass_ui_win_WinApplication
- * Method:    _getPreferences
- * Signature: ()Ljava/util/Map;
- */
-JNIEXPORT jobject JNICALL Java_com_sun_glass_ui_win_WinApplication__1getPreferences
-  (JNIEnv * env, jobject self)
-{
-    return GlassApplication::GetPreferences(env);
-}
-
-/*
- * Class:     com_sun_glass_ui_win_WinApplication
  * Method:    _leaveNestedEventLoopImpl
  * Signature: (Ljava/lang/Object;)V
  */
@@ -593,6 +582,17 @@ JNIEXPORT jobjectArray JNICALL Java_com_sun_glass_ui_win_WinApplication_staticSc
     (JNIEnv * env, jobject japplication)
 {
     return GlassScreen::CreateJavaScreens(env);
+}
+
+/*
+ * Class:     com_sun_glass_ui_win_WinPlatformFactory
+ * Method:    getPreferences
+ * Signature: ()Ljava/util/Map;
+ */
+JNIEXPORT jobject JNICALL Java_com_sun_glass_ui_win_WinPlatformFactory_getPreferences
+    (JNIEnv * env, jobject self)
+{
+    return GlassApplication::GetPreferences(env);
 }
 
 } // extern "C"

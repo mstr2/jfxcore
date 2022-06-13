@@ -113,7 +113,7 @@ import java.util.Map;
 public interface PlatformPreferences extends Map<String, Object> {
 
     /**
-     * Returns the {@link String} to which the specified key is mapped.
+     * Returns the {@link String} instance to which the specified key is mapped.
      *
      * @param key the key
      * @return the {@code String} instance to which the {@code key} is mapped, or
@@ -122,13 +122,35 @@ public interface PlatformPreferences extends Map<String, Object> {
     String getString(String key);
 
     /**
-     * Returns the {@link Boolean} to which the specified key is mapped.
+     * Returns the {@link String} instance to which the specified key is mapped,
+     * or a fallback value if the key is not mapped to a {@code String} instance.
+     *
+     * @param key the key
+     * @return the {@code String} instance to which the {@code key} is mapped, or
+     *         {@code fallbackValue} if the key is not mapped to a {@code String}
+     *         instance
+     */
+    String getString(String key, String fallbackValue);
+
+    /**
+     * Returns the {@link Boolean} instance to which the specified key is mapped.
      *
      * @param key the key
      * @return the {@code Boolean} instance to which the {@code key} is mapped, or
      *         {@code null} if the key is not mapped to a {@code Boolean} instance
      */
     Boolean getBoolean(String key);
+
+    /**
+     * Returns the {@code boolean} value to which the specified key is mapped,
+     * or a fallback value if the key is not mapped to a {@code boolean} value.
+     *
+     * @param key the key
+     * @return the {@code boolean} value to which the {@code key} is mapped, or
+     *         {@code fallbackValue} if the key is not mapped to a {@code boolean}
+     *         value
+     */
+    boolean getBoolean(String key, boolean fallbackValue);
 
     /**
      * Returns the {@link Color} instance to which the specified key is mapped.
@@ -138,6 +160,17 @@ public interface PlatformPreferences extends Map<String, Object> {
      *         {@code null} if the key is not mapped to a {@code Color} instance
      */
     Color getColor(String key);
+
+    /**
+     * Returns the {@link Color} instance to which the specified key is mapped,
+     * or a fallback value if the key is not mapped to a {@code Color} instance.
+     *
+     * @param key the key
+     * @return the {@code Color} instance to which the {@code key} is mapped, or
+     *         {@code fallbackValue} if the key is not mapped to a {@code Color}
+     *         instance
+     */
+    Color getColor(String key, Color fallbackValue);
 
     /**
      * Adds the specified listener to this {@code PlatformPreferences} instance.

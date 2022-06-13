@@ -26,6 +26,8 @@
 package com.sun.javafx.application;
 
 import static com.sun.javafx.FXPermissions.CREATE_TRANSPARENT_WINDOW_PERMISSION;
+
+import com.sun.glass.ui.PlatformFactory;
 import com.sun.javafx.PlatformUtil;
 import com.sun.javafx.css.StyleManager;
 import com.sun.javafx.tk.TKListener;
@@ -909,7 +911,7 @@ public class PlatformImpl {
     }
 
     public static class PlatformPreferencesImpl extends AbstractMap<String, Object> implements PlatformPreferences {
-        private final Map<String, Object> values = new HashMap<>();
+        private final Map<String, Object> values = new HashMap<>(PlatformFactory.getPlatformFactory().getPreferences());
         private final Set<Entry<String, Object>> unmodifiableEntrySet = Collections.unmodifiableSet(values.entrySet());
         private final List<PlatformPreferencesListener> listeners = new ArrayList<>();
 
@@ -929,6 +931,12 @@ public class PlatformImpl {
         }
 
         @Override
+        public String getString(String key, String fallbackValue) {
+            String value = getString(key);
+            return value != null ? value : fallbackValue;
+        }
+
+        @Override
         public Boolean getBoolean(String key) {
             Object value = values.get(key);
             if (value instanceof Boolean b) {
@@ -939,6 +947,12 @@ public class PlatformImpl {
         }
 
         @Override
+        public boolean getBoolean(String key, boolean fallbackValue) {
+            Boolean value = getBoolean(key);
+            return value != null ? value : fallbackValue;
+        }
+
+        @Override
         public Color getColor(String key) {
             Object value = values.get(key);
             if (value instanceof Color c) {
@@ -946,6 +960,12 @@ public class PlatformImpl {
             }
 
             return null;
+        }
+
+        @Override
+        public Color getColor(String key, Color fallbackValue) {
+            Color value = getColor(key);
+            return value != null ? value : fallbackValue;
         }
 
         @Override

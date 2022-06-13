@@ -28,7 +28,6 @@ package com.sun.glass.ui.win;
 import com.sun.glass.ui.*;
 import com.sun.glass.ui.CommonDialogs.ExtensionFilter;
 import com.sun.glass.ui.CommonDialogs.FileChooserResult;
-import com.sun.javafx.application.PlatformImpl;
 import com.sun.prism.impl.PrismSettings;
 import com.sun.javafx.tk.Toolkit;
 
@@ -37,7 +36,6 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Map;
 
 final class WinApplication extends Application implements InvokeLaterDispatcher.InvokeLaterSubmitter {
     static float   overrideUIScale;
@@ -121,8 +119,6 @@ final class WinApplication extends Application implements InvokeLaterDispatcher.
         } else {
             invokeLaterDispatcher = null;
         }
-
-        PlatformImpl.updatePreferences(_getPreferences());
     }
 
     private static boolean verbose;
@@ -334,8 +330,6 @@ final class WinApplication extends Application implements InvokeLaterDispatcher.
             submitForLaterInvocation(runnable);
         }
     }
-
-    private native Map<String, Object> _getPreferences();
 
     @Override
     protected boolean _supportsInputMethods() {

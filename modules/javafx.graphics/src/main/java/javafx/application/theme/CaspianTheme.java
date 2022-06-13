@@ -91,7 +91,7 @@ public class CaspianTheme extends ThemeBase {
 
         if (!enabled) {
             PlatformPreferences preferences = PlatformImpl.getPlatformPreferences();
-            if (preferences.getBoolean("Windows.SPI.HighContrastOn")) {
+            if (preferences.getBoolean("Windows.SPI.HighContrastOn", false)) {
                 enabled = preferences.getString("Windows.SPI.HighContrastColorScheme") != null;
             }
         }

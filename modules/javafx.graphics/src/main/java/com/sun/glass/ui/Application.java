@@ -115,7 +115,7 @@ public abstract class Application {
     }
 
     // May be called on any thread.
-    protected static synchronized void loadNativeLibrary() {
+    public static synchronized void loadNativeLibrary() {
         // use the "platform default" name of "glass"
         loadNativeLibrary("glass");
     }
