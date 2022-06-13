@@ -366,7 +366,7 @@ public final class QuantumToolkit extends Toolkit {
                 }
 
                 @Override
-                public void handlePreferencesChanged(Map<String, String> preferences) {
+                public void handlePreferencesChanged(Map<String, Object> preferences) {
                     PlatformImpl.updatePreferences(preferences);
                 }
             });

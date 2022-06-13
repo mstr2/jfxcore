@@ -40,11 +40,16 @@ public:
 private:
     JNIEnv* env_;
     jclass mapClass_;
+    jclass colorClass_;
+    jclass booleanClass_;
     jmethodID putMethod_;
+    jmethodID rgbMethod_;
+    jfieldID trueField_;
+    jfieldID falseField_;
 
-    jobject newJavaColorString(int r, int g, int b, int a) const;
-    void putValue(jobject properties, const char* key, const char* value) const;
-    void putValue(jobject properties, const char* key, const wchar_t* value) const;
-    void putColorValue(jobject properties, const char* colorName, int colorValue) const;
-    void putColorValue(jobject properties, const char* colorName, ABI::Windows::UI::Color colorValue) const;
+    void putString(jobject properties, const char* key, const char* value) const;
+    void putString(jobject properties, const char* key, const wchar_t* value) const;
+    void putBoolean(jobject properties, const char* key, const bool value) const;
+    void putColor(jobject properties, const char* colorName, int colorValue) const;
+    void putColor(jobject properties, const char* colorName, ABI::Windows::UI::Color colorValue) const;
 };

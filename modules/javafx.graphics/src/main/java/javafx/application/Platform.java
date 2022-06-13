@@ -31,9 +31,7 @@ import com.sun.javafx.tk.Toolkit;
 import java.util.Optional;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
-import javafx.collections.ObservableMap;
 import javafx.scene.input.KeyCode;
-import javafx.scene.paint.Color;
 import javafx.util.Incubating;
 
 /**
@@ -416,75 +414,14 @@ public final class Platform {
     }
 
     /**
-     * Gets the platform preferences of the current platform.
-     * <p>
-     * Currently, only Windows reports platform preferences:
-     * <ol>
-     *     <li>High contrast color scheme (as reported by SystemParametersInfo):
-     *     <pre>
-     *     Windows.SPI.HighContrastOn                        "true" | "false
-     *     Windows.SPI.HighContrastColorScheme               hex-color-string
-     *     </pre>
-     *     <li>System colors (as reported by GetSysColor):
-     *     <pre>
-     *     Windows.SysColor.COLOR_3DDKSHADOW                 hex-color-string
-     *     Windows.SysColor.COLOR_3DFACE                     hex-color-string
-     *     Windows.SysColor.COLOR_3DHIGHLIGHT                hex-color-string
-     *     Windows.SysColor.COLOR_3DHILIGHT                  hex-color-string
-     *     Windows.SysColor.COLOR_3DLIGHT                    hex-color-string
-     *     Windows.SysColor.COLOR_3DSHADOW                   hex-color-string
-     *     Windows.SysColor.COLOR_ACTIVEBORDER               hex-color-string
-     *     Windows.SysColor.COLOR_ACTIVECAPTION              hex-color-string
-     *     Windows.SysColor.COLOR_APPWORKSPACE               hex-color-string
-     *     Windows.SysColor.COLOR_BACKGROUND                 hex-color-string
-     *     Windows.SysColor.COLOR_BTNFACE                    hex-color-string
-     *     Windows.SysColor.COLOR_BTNHIGHLIGHT               hex-color-string
-     *     Windows.SysColor.COLOR_BTNHILIGHT                 hex-color-string
-     *     Windows.SysColor.COLOR_BTNSHADOW                  hex-color-string
-     *     Windows.SysColor.COLOR_BTNTEXT                    hex-color-string
-     *     Windows.SysColor.COLOR_CAPTIONTEXT                hex-color-string
-     *     Windows.SysColor.COLOR_DESKTOP                    hex-color-string
-     *     Windows.SysColor.COLOR_GRADIENTACTIVECAPTION      hex-color-string
-     *     Windows.SysColor.COLOR_GRADIENTINACTIVECAPTION    hex-color-string
-     *     Windows.SysColor.COLOR_GRAYTEXT                   hex-color-string
-     *     Windows.SysColor.COLOR_HIGHLIGHT                  hex-color-string
-     *     Windows.SysColor.COLOR_HIGHLIGHTTEXT              hex-color-string
-     *     Windows.SysColor.COLOR_HOTLIGHT                   hex-color-string
-     *     Windows.SysColor.COLOR_INACTIVEBORDER             hex-color-string
-     *     Windows.SysColor.COLOR_INACTIVECAPTION            hex-color-string
-     *     Windows.SysColor.COLOR_INACTIVECAPTIONTEXT        hex-color-string
-     *     Windows.SysColor.COLOR_INFOBK                     hex-color-string
-     *     Windows.SysColor.COLOR_INFOTEXT                   hex-color-string
-     *     Windows.SysColor.COLOR_MENU                       hex-color-string
-     *     Windows.SysColor.COLOR_MENUHILIGHT                hex-color-string
-     *     Windows.SysColor.COLOR_MENUBAR                    hex-color-string
-     *     Windows.SysColor.COLOR_MENUTEXT                   hex-color-string
-     *     Windows.SysColor.COLOR_SCROLLBAR                  hex-color-string
-     *     Windows.SysColor.COLOR_WINDOW                     hex-color-string
-     *     Windows.SysColor.COLOR_WINDOWFRAME                hex-color-string
-     *     Windows.SysColor.COLOR_WINDOWTEXT                 hex-color-string
-     *     </pre>
-     *     <li>Theme colors (as reported by UISettings, introduced in Windows 10 build 10240):
-     *     <pre>
-     *     Windows.UIColor.Background                        hex-color-string
-     *     Windows.UIColor.Foreground                        hex-color-string
-     *     Windows.UIColor.AccentDark3                       hex-color-string
-     *     Windows.UIColor.AccentDark2                       hex-color-string
-     *     Windows.UIColor.AccentDark1                       hex-color-string
-     *     Windows.UIColor.Accent                            hex-color-string
-     *     Windows.UIColor.AccentLight1                      hex-color-string
-     *     Windows.UIColor.AccentLight2                      hex-color-string
-     *     Windows.UIColor.AccentLight3                      hex-color-string
-     *     </pre>
-     * </ol>
-     * {@code hex-color-string} is a value that can be parsed by {@link Color#valueOf(String)}
+     * Gets the {@link PlatformPreferences} of the current platform.
      *
-     * @return an {@link ObservableMap} of platform preferences
+     * @return a {@code PlatformPreferences} instance
      * @since JFXcore 18
      */
     @Incubating
-    public static ObservableMap<String, String> getPreferences() {
-        return PlatformImpl.getPreferences();
+    public static PlatformPreferences getPreferences() {
+        return PlatformImpl.getPlatformPreferences();
     }
 
 }

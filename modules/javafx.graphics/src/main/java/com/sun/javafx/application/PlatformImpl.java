@@ -27,7 +27,6 @@ package com.sun.javafx.application;
 
 import static com.sun.javafx.FXPermissions.CREATE_TRANSPARENT_WINDOW_PERMISSION;
 import com.sun.javafx.PlatformUtil;
-import com.sun.javafx.collections.UnmodifiableObservableMap;
 import com.sun.javafx.css.StyleManager;
 import com.sun.javafx.tk.TKListener;
 import com.sun.javafx.tk.TKStage;
@@ -36,13 +35,14 @@ import com.sun.javafx.util.Logging;
 import com.sun.javafx.util.ModuleHelper;
 
 import java.lang.module.ModuleDescriptor;
-import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,11 +53,12 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import javafx.application.Application;
 import javafx.application.ConditionalFeature;
+import javafx.application.PlatformPreferences;
+import javafx.application.PlatformPreferencesListener;
 import javafx.application.Theme;
 import javafx.application.theme.CaspianTheme;
 import javafx.application.theme.ModenaTheme;
@@ -67,10 +68,9 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
+import javafx.scene.paint.Color;
 import javafx.util.FXPermission;
 
 public class PlatformImpl {
@@ -908,66 +908,82 @@ public class PlatformImpl {
         }
     }
 
-    public static class UnmodifiablePreferencesMap extends UnmodifiableObservableMap<String, String> {
-        private final List<WeakReference<Consumer<Map<String, String>>>> batchChangedListeners = new ArrayList<>(2);
+    public static class PlatformPreferencesImpl extends AbstractMap<String, Object> implements PlatformPreferences {
+        private final Map<String, Object> values = new HashMap<>();
+        private final Set<Entry<String, Object>> unmodifiableEntrySet = Collections.unmodifiableSet(values.entrySet());
+        private final List<PlatformPreferencesListener> listeners = new ArrayList<>();
 
-        public UnmodifiablePreferencesMap(ObservableMap<String, String> map) {
-            super(map);
+        @Override
+        public Set<Entry<String, Object>> entrySet() {
+            return unmodifiableEntrySet;
         }
 
-        public synchronized void addBatchChangedListener(Consumer<Map<String, String>> listener) {
-            var it = batchChangedListeners.iterator();
-            while (it.hasNext()) {
-                Consumer<Map<String, String>> ref = it.next().get();
-                if (ref == null) {
-                    it.remove();
-                }
+        @Override
+        public String getString(String key) {
+            Object value = values.get(key);
+            if (value instanceof String s) {
+                return s;
             }
 
-            batchChangedListeners.add(new WeakReference<>(listener));
+            return null;
+        }
+
+        @Override
+        public Boolean getBoolean(String key) {
+            Object value = values.get(key);
+            if (value instanceof Boolean b) {
+                return b;
+            }
+
+            return null;
+        }
+
+        @Override
+        public Color getColor(String key) {
+            Object value = values.get(key);
+            if (value instanceof Color c) {
+                return c;
+            }
+
+            return null;
+        }
+
+        @Override
+        public synchronized void addListener(PlatformPreferencesListener listener) {
+            listeners.add(listener);
+        }
+
+        @Override
+        public synchronized void removeListener(PlatformPreferencesListener listener) {
+            listeners.remove(listener);
+        }
+
+        synchronized void firePreferencesChanged(Map<String, Object> changed) {
+            for (PlatformPreferencesListener listener : listeners) {
+                listener.onPreferencesChanged(this, changed);
+            }
         }
     }
 
-    private static final ObservableMap<String, String> preferences = FXCollections.observableHashMap();
-    private static final UnmodifiablePreferencesMap unmodifiablePreferences = new UnmodifiablePreferencesMap(preferences);
+    private static final PlatformPreferencesImpl platformPreferences = new PlatformPreferencesImpl();
 
-    public static void updatePreferences(Map<String, String> newPreferences) {
-        Map<String, String> removed = new HashMap<>(preferences);
-        removed.keySet().removeAll(newPreferences.keySet());
-
-        Map<String, String> changed = new HashMap<>();
-        for (Map.Entry<String, String> entry : newPreferences.entrySet()) {
-            String existingValue = preferences.get(entry.getKey());
+    public static void updatePreferences(Map<String, Object> newPreferences) {
+        Map<String, Object> changed = new HashMap<>();
+        for (Map.Entry<String, Object> entry : newPreferences.entrySet()) {
+            Object existingValue = platformPreferences.values.get(entry.getKey());
             if (!Objects.equals(existingValue, entry.getValue())) {
                 changed.put(entry.getKey(), entry.getValue());
             }
         }
 
-        boolean hasChanged = !removed.isEmpty() || !changed.isEmpty();
-        preferences.keySet().removeAll(removed.keySet());
-        preferences.putAll(changed);
-
-        for (Map.Entry<String, String> entry : removed.entrySet()) {
-            changed.put(entry.getKey(), null);
-        }
-
-        if (hasChanged) {
-            synchronized (unmodifiablePreferences) {
-                var it = unmodifiablePreferences.batchChangedListeners.iterator();
-                while (it.hasNext()) {
-                    Consumer<Map<String, String>> ref = it.next().get();
-                    if (ref != null) {
-                        ref.accept(changed);
-                    } else {
-                        it.remove();
-                    }
-                }
-            }
+        if (!changed.isEmpty()) {
+            platformPreferences.values.putAll(changed);
+            platformPreferences.firePreferencesChanged(changed);
         }
     }
 
-    public static UnmodifiablePreferencesMap getPreferences() {
-        return unmodifiablePreferences;
+    public static PlatformPreferences getPlatformPreferences() {
+        return platformPreferences;
     }
 
 }

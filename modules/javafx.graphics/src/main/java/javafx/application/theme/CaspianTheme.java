@@ -24,6 +24,7 @@ package javafx.application.theme;
 import com.sun.javafx.PlatformUtil;
 import com.sun.javafx.application.PlatformImpl;
 import javafx.application.ConditionalFeature;
+import javafx.application.PlatformPreferences;
 import javafx.beans.value.WritableValue;
 import javafx.util.Incubating;
 import java.util.Map;
@@ -77,7 +78,7 @@ public class CaspianTheme extends ThemeBase {
     }
 
     @Override
-    protected void onPreferencesChanged(Map<String, String> preferences) {
+    protected void onPreferencesChanged(Map<String, Object> preferences) {
         updateHighContrastTheme();
     }
 
@@ -89,9 +90,9 @@ public class CaspianTheme extends ThemeBase {
         }
 
         if (!enabled) {
-            Map<String, String> preferences = PlatformImpl.getPreferences();
-            if (Boolean.parseBoolean(preferences.get("Windows.SPI.HighContrastOn"))) {
-                enabled = preferences.get("Windows.SPI.HighContrastColorScheme") != null;
+            PlatformPreferences preferences = PlatformImpl.getPlatformPreferences();
+            if (preferences.getBoolean("Windows.SPI.HighContrastOn")) {
+                enabled = preferences.getString("Windows.SPI.HighContrastColorScheme") != null;
             }
         }
 

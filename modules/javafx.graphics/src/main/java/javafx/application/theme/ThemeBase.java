@@ -25,7 +25,9 @@ import com.sun.javafx.application.PlatformImpl;
 import com.sun.javafx.css.StylesheetList;
 import com.sun.javafx.util.Utils;
 import javafx.application.Platform;
+import javafx.application.PlatformPreferencesListener;
 import javafx.application.Theme;
+import javafx.application.WeakPlatformPreferencesListener;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanPropertyBase;
@@ -39,7 +41,6 @@ import javafx.scene.paint.Color;
 import javafx.util.Incubating;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * {@link ThemeBase} is a base implementation for themes that can dynamically react to
@@ -96,6 +97,9 @@ public abstract class ThemeBase implements Theme {
      * Use {@link #darkModeOverrideProperty()} to override the value of this property.
      */
     private final BooleanPropertyImpl darkMode = new BooleanPropertyImpl() {
+        static final String[] KEYS = new String[] { "Windows.UIColor.Foreground" };
+
+        boolean effectiveValue;
         boolean currentValue;
         boolean newValue;
 
@@ -111,13 +115,20 @@ public abstract class ThemeBase implements Theme {
 
         @Override
         public boolean get() {
-            return currentValue;
+            return effectiveValue;
         }
 
         @Override
         public void fireValueChangedEvent() {
-            if (currentValue != newValue) {
-                currentValue = newValue;
+            Boolean overrideValue = darkModeOverride.getValue();
+            if (overrideValue != null) {
+                if (effectiveValue != overrideValue) {
+                    currentValue = newValue;
+                    effectiveValue = overrideValue;
+                    super.fireValueChangedEvent();
+                }
+            } else if (effectiveValue != currentValue || currentValue != newValue) {
+                effectiveValue = currentValue = newValue;
                 super.fireValueChangedEvent();
             }
         }
@@ -133,10 +144,11 @@ public abstract class ThemeBase implements Theme {
                 return override;
             }
 
-            Map<String, String> preferences = PlatformImpl.getPreferences();
-            String foreground = preferences.get("Windows.UIColor.Foreground");
-            if (foreground != null) {
-                return Utils.calculateBrightness(Color.valueOf(foreground)) > 0.5;
+            for (String key : KEYS) {
+                Color foreground = PlatformImpl.getPlatformPreferences().getColor(key);
+                if (foreground != null) {
+                    return Utils.calculateBrightness(foreground) > 0.5;
+                }
             }
 
             return false;
@@ -186,7 +198,9 @@ public abstract class ThemeBase implements Theme {
      */
     private final ObjectPropertyImpl<Color> accentColor = new ObjectPropertyImpl<>() {
         static final Color DEFAULT_ACCENT_COLOR = Color.rgb(21, 126, 251);
+        static final String[] KEYS = new String[] { "Windows.UIColor.Accent" };
 
+        Color effectiveValue = DEFAULT_ACCENT_COLOR;
         Color currentValue = DEFAULT_ACCENT_COLOR;
         Color newValue = DEFAULT_ACCENT_COLOR;
 
@@ -202,13 +216,20 @@ public abstract class ThemeBase implements Theme {
 
         @Override
         public Color get() {
-            return currentValue;
+            return effectiveValue;
         }
 
         @Override
         public void fireValueChangedEvent() {
-            if (!Objects.equals(currentValue, newValue)) {
-                currentValue = newValue;
+            Color overrideValue = accentColorOverride.getValue();
+            if (overrideValue != null) {
+                if (!Objects.equals(effectiveValue, overrideValue)) {
+                    currentValue = newValue;
+                    effectiveValue = overrideValue;
+                    super.fireValueChangedEvent();
+                }
+            } else if (!Objects.equals(effectiveValue, currentValue) || !Objects.equals(currentValue, newValue)) {
+                effectiveValue = currentValue = newValue;
                 super.fireValueChangedEvent();
             }
         }
@@ -224,9 +245,11 @@ public abstract class ThemeBase implements Theme {
                 return override;
             }
 
-            String accentColor = PlatformImpl.getPreferences().get("Windows.UIColor.Accent");
-            if (accentColor != null) {
-                return Color.valueOf(accentColor);
+            for (String key : KEYS) {
+                Color accentColor = PlatformImpl.getPlatformPreferences().getColor(key);
+                if (accentColor != null) {
+                    return accentColor;
+                }
             }
 
             return DEFAULT_ACCENT_COLOR;
@@ -287,16 +310,16 @@ public abstract class ThemeBase implements Theme {
 
     private final StylesheetList stylesheetList = new StylesheetList();
 
-    private final Consumer<Map<String, String>> preferencesChanged = changedPreferences -> {
+    private final PlatformPreferencesListener preferencesChanged = (preferences, changed) -> {
         updateProperties();
-        onPreferencesChanged(changedPreferences);
+        onPreferencesChanged(changed);
     };
 
     /**
      * Creates a new instance of the {@code ThemeBase} class.
      */
     protected ThemeBase() {
-        PlatformImpl.getPreferences().addBatchChangedListener(preferencesChanged);
+        PlatformImpl.getPlatformPreferences().addListener(new WeakPlatformPreferencesListener(preferencesChanged));
         updateProperties();
     }
 
@@ -316,9 +339,9 @@ public abstract class ThemeBase implements Theme {
      * <p>
      * Use {@link Platform#getPreferences()} to get a list of all platform preferences.
      *
-     * @param preferences the platform preferences that have changed
+     * @param changed the platform preferences that have changed
      */
-    protected void onPreferencesChanged(Map<String, String> preferences) {}
+    protected void onPreferencesChanged(Map<String, Object> changed) {}
 
     private static abstract class BooleanPropertyImpl extends ReadOnlyBooleanPropertyBase {
         abstract void update();

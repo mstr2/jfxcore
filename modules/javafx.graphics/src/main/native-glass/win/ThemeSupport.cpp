@@ -28,13 +28,22 @@ using namespace Microsoft::WRL;
 using namespace ABI::Windows::UI;
 using namespace ABI::Windows::UI::ViewManagement;
 
-ThemeSupport::ThemeSupport(JNIEnv* env) : env_(env), mapClass_((jclass)env->FindClass("java/util/Map"))
+ThemeSupport::ThemeSupport(JNIEnv* env) :
+    env_(env),
+    mapClass_((jclass)env->FindClass("java/util/Map")),
+    colorClass_((jclass)env->FindClass("javafx/scene/paint/Color")),
+    booleanClass_((jclass)env->FindClass("java/lang/Boolean"))
 {
     putMethod_ = env->GetMethodID(mapClass_, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+    rgbMethod_ = env->GetStaticMethodID(colorClass_, "rgb", "(IIID)Ljavafx/scene/paint/Color;");
+    trueField_ = env->GetStaticFieldID(booleanClass_, "TRUE", "Ljava/lang/Boolean;");
+    falseField_ = env->GetStaticFieldID(booleanClass_, "FALSE", "Ljava/lang/Boolean;");
 }
 
 ThemeSupport::~ThemeSupport() {
     env_->DeleteLocalRef(mapClass_);
+    env_->DeleteLocalRef(colorClass_);
+    env_->DeleteLocalRef(booleanClass_);
 }
 
 void ThemeSupport::queryHighContrastScheme(jobject properties) const
@@ -43,52 +52,52 @@ void ThemeSupport::queryHighContrastScheme(jobject properties) const
     contrastInfo.cbSize = sizeof(HIGHCONTRAST);
     ::SystemParametersInfo(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRAST), &contrastInfo, 0);
     if (contrastInfo.dwFlags & HCF_HIGHCONTRASTON) {
-        putValue(properties, "Windows.SPI.HighContrastOn", "true");
-        putValue(properties, "Windows.SPI.HighContrastColorScheme", contrastInfo.lpszDefaultScheme);
+        putBoolean(properties, "Windows.SPI.HighContrastOn", true);
+        putString(properties, "Windows.SPI.HighContrastColorScheme", contrastInfo.lpszDefaultScheme);
     } else {
-        putValue(properties, "Windows.SPI.HighContrastOn", "false");
-        putValue(properties, "Windows.SPI.HighContrastColorScheme", "");
+        putBoolean(properties, "Windows.SPI.HighContrastOn", false);
+        putString(properties, "Windows.SPI.HighContrastColorScheme", (const char*)NULL);
     }
 }
 
 void ThemeSupport::querySystemColors(jobject properties) const
 {
-    putColorValue(properties, "Windows.SysColor.COLOR_3DDKSHADOW", GetSysColor(COLOR_3DDKSHADOW));
-    putColorValue(properties, "Windows.SysColor.COLOR_3DFACE", GetSysColor(COLOR_3DFACE));
-    putColorValue(properties, "Windows.SysColor.COLOR_3DHIGHLIGHT", GetSysColor(COLOR_3DHIGHLIGHT));
-    putColorValue(properties, "Windows.SysColor.COLOR_3DHILIGHT", GetSysColor(COLOR_3DHILIGHT));
-    putColorValue(properties, "Windows.SysColor.COLOR_3DLIGHT", GetSysColor(COLOR_3DLIGHT));
-    putColorValue(properties, "Windows.SysColor.COLOR_3DSHADOW", GetSysColor(COLOR_3DSHADOW));
-    putColorValue(properties, "Windows.SysColor.COLOR_ACTIVEBORDER", GetSysColor(COLOR_ACTIVEBORDER));
-    putColorValue(properties, "Windows.SysColor.COLOR_ACTIVECAPTION", GetSysColor(COLOR_ACTIVECAPTION));
-    putColorValue(properties, "Windows.SysColor.COLOR_APPWORKSPACE", GetSysColor(COLOR_APPWORKSPACE));
-    putColorValue(properties, "Windows.SysColor.COLOR_BACKGROUND", GetSysColor(COLOR_BACKGROUND));
-    putColorValue(properties, "Windows.SysColor.COLOR_BTNFACE", GetSysColor(COLOR_BTNFACE));
-    putColorValue(properties, "Windows.SysColor.COLOR_BTNHIGHLIGHT", GetSysColor(COLOR_BTNHIGHLIGHT));
-    putColorValue(properties, "Windows.SysColor.COLOR_BTNHILIGHT", GetSysColor(COLOR_BTNHILIGHT));
-    putColorValue(properties, "Windows.SysColor.COLOR_BTNSHADOW", GetSysColor(COLOR_BTNSHADOW));
-    putColorValue(properties, "Windows.SysColor.COLOR_BTNTEXT", GetSysColor(COLOR_BTNTEXT));
-    putColorValue(properties, "Windows.SysColor.COLOR_CAPTIONTEXT", GetSysColor(COLOR_CAPTIONTEXT));
-    putColorValue(properties, "Windows.SysColor.COLOR_DESKTOP", GetSysColor(COLOR_DESKTOP));
-    putColorValue(properties, "Windows.SysColor.COLOR_GRADIENTACTIVECAPTION", GetSysColor(COLOR_GRADIENTACTIVECAPTION));
-    putColorValue(properties, "Windows.SysColor.COLOR_GRADIENTINACTIVECAPTION", GetSysColor(COLOR_GRADIENTINACTIVECAPTION));
-    putColorValue(properties, "Windows.SysColor.COLOR_GRAYTEXT", GetSysColor(COLOR_GRAYTEXT));
-    putColorValue(properties, "Windows.SysColor.COLOR_HIGHLIGHT", GetSysColor(COLOR_HIGHLIGHT));
-    putColorValue(properties, "Windows.SysColor.COLOR_HIGHLIGHTTEXT", GetSysColor(COLOR_HIGHLIGHTTEXT));
-    putColorValue(properties, "Windows.SysColor.COLOR_HOTLIGHT", GetSysColor(COLOR_HOTLIGHT));
-    putColorValue(properties, "Windows.SysColor.COLOR_INACTIVEBORDER", GetSysColor(COLOR_INACTIVEBORDER));
-    putColorValue(properties, "Windows.SysColor.COLOR_INACTIVECAPTION", GetSysColor(COLOR_INACTIVECAPTION));
-    putColorValue(properties, "Windows.SysColor.COLOR_INACTIVECAPTIONTEXT", GetSysColor(COLOR_INACTIVECAPTIONTEXT));
-    putColorValue(properties, "Windows.SysColor.COLOR_INFOBK", GetSysColor(COLOR_INFOBK));
-    putColorValue(properties, "Windows.SysColor.COLOR_INFOTEXT", GetSysColor(COLOR_INFOTEXT));
-    putColorValue(properties, "Windows.SysColor.COLOR_MENU", GetSysColor(COLOR_MENU));
-    putColorValue(properties, "Windows.SysColor.COLOR_MENUHILIGHT", GetSysColor(COLOR_MENUHILIGHT));
-    putColorValue(properties, "Windows.SysColor.COLOR_MENUBAR", GetSysColor(COLOR_MENUBAR));
-    putColorValue(properties, "Windows.SysColor.COLOR_MENUTEXT", GetSysColor(COLOR_MENUTEXT));
-    putColorValue(properties, "Windows.SysColor.COLOR_SCROLLBAR", GetSysColor(COLOR_SCROLLBAR));
-    putColorValue(properties, "Windows.SysColor.COLOR_WINDOW", GetSysColor(COLOR_WINDOW));
-    putColorValue(properties, "Windows.SysColor.COLOR_WINDOWFRAME", GetSysColor(COLOR_WINDOWFRAME));
-    putColorValue(properties, "Windows.SysColor.COLOR_WINDOWTEXT", GetSysColor(COLOR_WINDOWTEXT));
+    putColor(properties, "Windows.SysColor.COLOR_3DDKSHADOW", GetSysColor(COLOR_3DDKSHADOW));
+    putColor(properties, "Windows.SysColor.COLOR_3DFACE", GetSysColor(COLOR_3DFACE));
+    putColor(properties, "Windows.SysColor.COLOR_3DHIGHLIGHT", GetSysColor(COLOR_3DHIGHLIGHT));
+    putColor(properties, "Windows.SysColor.COLOR_3DHILIGHT", GetSysColor(COLOR_3DHILIGHT));
+    putColor(properties, "Windows.SysColor.COLOR_3DLIGHT", GetSysColor(COLOR_3DLIGHT));
+    putColor(properties, "Windows.SysColor.COLOR_3DSHADOW", GetSysColor(COLOR_3DSHADOW));
+    putColor(properties, "Windows.SysColor.COLOR_ACTIVEBORDER", GetSysColor(COLOR_ACTIVEBORDER));
+    putColor(properties, "Windows.SysColor.COLOR_ACTIVECAPTION", GetSysColor(COLOR_ACTIVECAPTION));
+    putColor(properties, "Windows.SysColor.COLOR_APPWORKSPACE", GetSysColor(COLOR_APPWORKSPACE));
+    putColor(properties, "Windows.SysColor.COLOR_BACKGROUND", GetSysColor(COLOR_BACKGROUND));
+    putColor(properties, "Windows.SysColor.COLOR_BTNFACE", GetSysColor(COLOR_BTNFACE));
+    putColor(properties, "Windows.SysColor.COLOR_BTNHIGHLIGHT", GetSysColor(COLOR_BTNHIGHLIGHT));
+    putColor(properties, "Windows.SysColor.COLOR_BTNHILIGHT", GetSysColor(COLOR_BTNHILIGHT));
+    putColor(properties, "Windows.SysColor.COLOR_BTNSHADOW", GetSysColor(COLOR_BTNSHADOW));
+    putColor(properties, "Windows.SysColor.COLOR_BTNTEXT", GetSysColor(COLOR_BTNTEXT));
+    putColor(properties, "Windows.SysColor.COLOR_CAPTIONTEXT", GetSysColor(COLOR_CAPTIONTEXT));
+    putColor(properties, "Windows.SysColor.COLOR_DESKTOP", GetSysColor(COLOR_DESKTOP));
+    putColor(properties, "Windows.SysColor.COLOR_GRADIENTACTIVECAPTION", GetSysColor(COLOR_GRADIENTACTIVECAPTION));
+    putColor(properties, "Windows.SysColor.COLOR_GRADIENTINACTIVECAPTION", GetSysColor(COLOR_GRADIENTINACTIVECAPTION));
+    putColor(properties, "Windows.SysColor.COLOR_GRAYTEXT", GetSysColor(COLOR_GRAYTEXT));
+    putColor(properties, "Windows.SysColor.COLOR_HIGHLIGHT", GetSysColor(COLOR_HIGHLIGHT));
+    putColor(properties, "Windows.SysColor.COLOR_HIGHLIGHTTEXT", GetSysColor(COLOR_HIGHLIGHTTEXT));
+    putColor(properties, "Windows.SysColor.COLOR_HOTLIGHT", GetSysColor(COLOR_HOTLIGHT));
+    putColor(properties, "Windows.SysColor.COLOR_INACTIVEBORDER", GetSysColor(COLOR_INACTIVEBORDER));
+    putColor(properties, "Windows.SysColor.COLOR_INACTIVECAPTION", GetSysColor(COLOR_INACTIVECAPTION));
+    putColor(properties, "Windows.SysColor.COLOR_INACTIVECAPTIONTEXT", GetSysColor(COLOR_INACTIVECAPTIONTEXT));
+    putColor(properties, "Windows.SysColor.COLOR_INFOBK", GetSysColor(COLOR_INFOBK));
+    putColor(properties, "Windows.SysColor.COLOR_INFOTEXT", GetSysColor(COLOR_INFOTEXT));
+    putColor(properties, "Windows.SysColor.COLOR_MENU", GetSysColor(COLOR_MENU));
+    putColor(properties, "Windows.SysColor.COLOR_MENUHILIGHT", GetSysColor(COLOR_MENUHILIGHT));
+    putColor(properties, "Windows.SysColor.COLOR_MENUBAR", GetSysColor(COLOR_MENUBAR));
+    putColor(properties, "Windows.SysColor.COLOR_MENUTEXT", GetSysColor(COLOR_MENUTEXT));
+    putColor(properties, "Windows.SysColor.COLOR_SCROLLBAR", GetSysColor(COLOR_SCROLLBAR));
+    putColor(properties, "Windows.SysColor.COLOR_WINDOW", GetSysColor(COLOR_WINDOW));
+    putColor(properties, "Windows.SysColor.COLOR_WINDOWFRAME", GetSysColor(COLOR_WINDOWFRAME));
+    putColor(properties, "Windows.SysColor.COLOR_WINDOWTEXT", GetSysColor(COLOR_WINDOWTEXT));
 }
 
 void ThemeSupport::queryUIColors(jobject properties) const
@@ -119,15 +128,15 @@ void ThemeSupport::queryUIColors(jobject properties) const
         settings3->GetColorValue(UIColorType::UIColorType_AccentLight2, &accentLight2);
         settings3->GetColorValue(UIColorType::UIColorType_AccentLight3, &accentLight3);
 
-        putColorValue(properties, "Windows.UIColor.Background", background);
-        putColorValue(properties, "Windows.UIColor.Foreground", foreground);
-        putColorValue(properties, "Windows.UIColor.AccentDark3", accentDark3);
-        putColorValue(properties, "Windows.UIColor.AccentDark2", accentDark2);
-        putColorValue(properties, "Windows.UIColor.AccentDark1", accentDark1);
-        putColorValue(properties, "Windows.UIColor.Accent", accent);
-        putColorValue(properties, "Windows.UIColor.AccentLight1", accentLight1);
-        putColorValue(properties, "Windows.UIColor.AccentLight2", accentLight2);
-        putColorValue(properties, "Windows.UIColor.AccentLight3", accentLight3);
+        putColor(properties, "Windows.UIColor.Background", background);
+        putColor(properties, "Windows.UIColor.Foreground", foreground);
+        putColor(properties, "Windows.UIColor.AccentDark3", accentDark3);
+        putColor(properties, "Windows.UIColor.AccentDark2", accentDark2);
+        putColor(properties, "Windows.UIColor.AccentDark1", accentDark1);
+        putColor(properties, "Windows.UIColor.Accent", accent);
+        putColor(properties, "Windows.UIColor.AccentLight1", accentLight1);
+        putColor(properties, "Windows.UIColor.AccentLight2", accentLight2);
+        putColor(properties, "Windows.UIColor.AccentLight3", accentLight3);
     } catch (RoException const& ex) {
         // If an activation exception occurs, it probably means that we're on a Windows system
         // that doesn't support the UISettings API. This is not a problem, it simply means that
@@ -136,33 +145,40 @@ void ThemeSupport::queryUIColors(jobject properties) const
     }
 }
 
-jobject ThemeSupport::newJavaColorString(int r, int g, int b, int a) const
+void ThemeSupport::putString(jobject properties, const char* key, const char* value) const
 {
-    char value[9];
-    sprintf_s(value, 9, "%02X%02X%02X%02X", r, g, b, a);
-    return env_->NewStringUTF(value);
+    env_->CallObjectMethod(properties, putMethod_,
+        env_->NewStringUTF(key),
+        value != NULL ? env_->NewStringUTF(value) : NULL);
 }
 
-void ThemeSupport::putValue(jobject properties, const char* key, const char* value) const
+void ThemeSupport::putString(jobject properties, const char* key, const wchar_t* value) const
 {
-    env_->CallObjectMethod(properties, putMethod_, env_->NewStringUTF(key), env_->NewStringUTF(value));
+    env_->CallObjectMethod(properties, putMethod_,
+        env_->NewStringUTF(key),
+        value != NULL ? env_->NewString((jchar*)value, wcslen(value)) : NULL);
 }
 
-void ThemeSupport::putValue(jobject properties, const char* key, const wchar_t* value) const
+void ThemeSupport::putBoolean(jobject properties, const char* key, const bool value) const
 {
-    env_->CallObjectMethod(properties, putMethod_, env_->NewStringUTF(key), env_->NewString((jchar*)value, wcslen(value)));
+    env_->CallObjectMethod(properties, putMethod_,
+        env_->NewStringUTF(key),
+        value ? env_->GetStaticObjectField(booleanClass_, trueField_) :
+                env_->GetStaticObjectField(booleanClass_, falseField_));
 }
 
-void ThemeSupport::putColorValue(jobject properties, const char* colorName, int colorValue) const
+void ThemeSupport::putColor(jobject properties, const char* colorName, int colorValue) const
 {
     env_->CallObjectMethod(properties, putMethod_,
         env_->NewStringUTF(colorName),
-        newJavaColorString(GetRValue(colorValue), GetGValue(colorValue), GetBValue(colorValue), 255));
+        env_->CallStaticObjectMethod(
+            colorClass_, rgbMethod_, GetRValue(colorValue), GetGValue(colorValue), GetBValue(colorValue), 1.0));
 }
 
-void ThemeSupport::putColorValue(jobject properties, const char* colorName, Color colorValue) const
+void ThemeSupport::putColor(jobject properties, const char* colorName, Color colorValue) const
 {
     env_->CallObjectMethod(properties, putMethod_,
         env_->NewStringUTF(colorName),
-        newJavaColorString(colorValue.R, colorValue.G, colorValue.B, colorValue.A));
+        env_->CallStaticObjectMethod(
+            colorClass_, rgbMethod_, colorValue.R, colorValue.G, colorValue.B, (double)colorValue.A / 255.0));
 }

@@ -25,6 +25,7 @@ import com.sun.javafx.PlatformUtil;
 import com.sun.javafx.application.HighContrastScheme;
 import com.sun.javafx.application.PlatformImpl;
 import javafx.application.ConditionalFeature;
+import javafx.application.PlatformPreferences;
 import javafx.beans.value.WritableValue;
 import javafx.util.Incubating;
 import java.util.Map;
@@ -79,7 +80,7 @@ public class ModenaTheme extends ThemeBase {
     }
 
     @Override
-    protected void onPreferencesChanged(Map<String, String> preferences) {
+    protected void onPreferencesChanged(Map<String, Object> preferences) {
         updateHighContrastTheme();
     }
 
@@ -91,9 +92,9 @@ public class ModenaTheme extends ThemeBase {
         }
 
         if (themeName == null) {
-            Map<String, String> preferences = PlatformImpl.getPreferences();
-            if (Boolean.parseBoolean(preferences.get("Windows.SPI.HighContrastOn"))) {
-                themeName = preferences.get("Windows.SPI.HighContrastColorScheme");
+            PlatformPreferences preferences = PlatformImpl.getPlatformPreferences();
+            if (preferences.getBoolean("Windows.SPI.HighContrastOn")) {
+                themeName = preferences.getString("Windows.SPI.HighContrastColorScheme");
             }
         }
 

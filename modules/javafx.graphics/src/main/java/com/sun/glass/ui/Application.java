@@ -85,7 +85,7 @@ public abstract class Application {
         // currently used only on Mac OS X
         public void handleQuitAction(Application app, long time) {
         }
-        public void handlePreferencesChanged(Map<String, String> properties) {
+        public void handlePreferencesChanged(Map<String, Object> properties) {
         }
     }
 
@@ -259,7 +259,7 @@ public abstract class Application {
         }
     }
 
-    protected void notifyPreferencesChanged(Map<String, String> preferences) {
+    protected void notifyPreferencesChanged(Map<String, Object> preferences) {
         EventHandler handler = getEventHandler();
         if (handler != null) {
             handler.handlePreferencesChanged(preferences);

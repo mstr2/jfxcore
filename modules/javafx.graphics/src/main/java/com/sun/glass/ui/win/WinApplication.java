@@ -335,7 +335,7 @@ final class WinApplication extends Application implements InvokeLaterDispatcher.
         }
     }
 
-    private native Map<String, String> _getPreferences();
+    private native Map<String, Object> _getPreferences();
 
     @Override
     protected boolean _supportsInputMethods() {
