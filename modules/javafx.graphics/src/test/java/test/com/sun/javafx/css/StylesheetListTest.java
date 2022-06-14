@@ -114,4 +114,31 @@ public class StylesheetListTest {
         observer.clear();
     }
 
+    @Test
+    public void testBatchChange() {
+        var list = new StylesheetList() {
+            final WritableValue<String> p1 = addStylesheet(null);
+            final WritableValue<String> p2 = addStylesheet(null);
+            final WritableValue<String> p3 = addStylesheet("baz");
+        };
+
+        var observer = new MockListObserver<String>();
+        list.addListener(observer);
+
+        list.lock();
+        list.p1.setValue("foo");
+        observer.check0();
+
+        list.p2.setValue("bar");
+        observer.check0();
+
+        list.p3.setValue(null);
+        observer.check0();
+
+        list.unlock();
+        observer.check1();
+        observer.check1AddRemove(list, List.of("baz"), 0, 2);
+
+    }
+
 }

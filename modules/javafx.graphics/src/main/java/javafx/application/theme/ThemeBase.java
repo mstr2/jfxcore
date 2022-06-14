@@ -172,7 +172,12 @@ public abstract class ThemeBase implements Theme {
             new SimpleObjectProperty<>(this, "darkModeOverride", null) {
                 @Override
                 protected void invalidated() {
-                    darkMode.fireValueChangedEvent();
+                    try {
+                        stylesheetList.lock();
+                        darkMode.fireValueChangedEvent();
+                    } finally {
+                        stylesheetList.unlock();
+                    }
                 }
             };
 
@@ -273,7 +278,12 @@ public abstract class ThemeBase implements Theme {
             new SimpleObjectProperty<>(this, "accentColorOverride", null) {
                 @Override
                 protected void invalidated() {
-                    accentColor.fireValueChangedEvent();
+                    try {
+                        stylesheetList.lock();
+                        accentColor.fireValueChangedEvent();
+                    } finally {
+                        stylesheetList.unlock();
+                    }
                 }
             };
 
@@ -310,8 +320,13 @@ public abstract class ThemeBase implements Theme {
     private final StylesheetList stylesheetList = new StylesheetList();
 
     private final PlatformPreferencesListener preferencesChanged = (preferences, changed) -> {
-        updateProperties();
-        onPreferencesChanged(changed);
+        try {
+            stylesheetList.lock();
+            updateProperties();
+            onPreferencesChanged(changed);
+        } finally {
+            stylesheetList.unlock();
+        }
     };
 
     /**

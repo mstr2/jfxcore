@@ -94,6 +94,10 @@ public interface Theme {
      * If the MIME type is "application/octet-stream", the payload will be interpreted as a binary
      * CSS file (see {@link Stylesheet#convertToBinary(File, File)}).
      *
+     * @implNote Implementations of this method should return an {@code ObservableList} that minimizes
+     *           the number of change notifications, as each change notification causes the CSS subsystem
+     *           to re-apply the referenced stylesheets.
+     *
      * @return the list of stylesheet URLs
      */
     ObservableList<String> getStylesheets();

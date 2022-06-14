@@ -31,6 +31,7 @@ public class StylesheetList extends ObservableListBase<String> {
 
     private final List<WritableValue<String>> items;
     private final List<String> values;
+    private int lockCount;
 
     public StylesheetList() {
         items = new ArrayList<>();
@@ -40,6 +41,18 @@ public class StylesheetList extends ObservableListBase<String> {
     public StylesheetList(int initialCapacity) {
         items = new ArrayList<>(initialCapacity);
         values = new ArrayList<>(initialCapacity);
+    }
+
+    public void lock() {
+        if (++lockCount == 1) {
+            beginChange();
+        };
+    }
+
+    public void unlock() {
+        if (--lockCount == 0) {
+            endChange();
+        }
     }
 
     public WritableValue<String> addStylesheet(String value) {
@@ -90,7 +103,9 @@ public class StylesheetList extends ObservableListBase<String> {
                 }
             }
 
-            beginChange();
+            if (lockCount == 0) {
+                beginChange();
+            }
 
             if (currentValue == null && newValue != null) {
                 nextAdd(index, index + 1);
@@ -104,7 +119,10 @@ public class StylesheetList extends ObservableListBase<String> {
             }
 
             currentValue = newValue;
-            endChange();
+
+            if (lockCount == 0) {
+                endChange();
+            }
         }
     }
 
