@@ -19,11 +19,13 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package javafx.application;
+package javafx.scene.control.theme;
 
-import com.sun.javafx.application.PlatformImpl;
-import com.sun.javafx.css.StylesheetList;
+import com.sun.javafx.scene.control.theme.StylesheetList;
 import com.sun.javafx.util.Utils;
+import javafx.application.Platform;
+import javafx.application.PlatformPreferencesListener;
+import javafx.application.WeakPlatformPreferencesListener;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanPropertyBase;
@@ -32,6 +34,7 @@ import javafx.beans.property.ReadOnlyObjectPropertyBase;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.WritableValue;
 import javafx.collections.ObservableList;
+import javafx.css.Theme;
 import javafx.scene.paint.Color;
 import javafx.util.Incubating;
 import java.util.Map;
@@ -148,7 +151,7 @@ public abstract class ThemeBase implements Theme {
             }
 
             for (String key : KEYS) {
-                Color foreground = PlatformImpl.getPlatformPreferences().getColor(key);
+                Color foreground = Platform.getPreferences().getColor(key);
                 if (foreground != null) {
                     return Utils.calculateBrightness(foreground) > 0.5;
                 }
@@ -158,12 +161,10 @@ public abstract class ThemeBase implements Theme {
         }
     };
 
-    @Override
     public final ReadOnlyBooleanProperty darkModeProperty() {
         return darkMode;
     }
 
-    @Override
     public final boolean isDarkMode() {
         return darkMode.get();
     }
@@ -254,7 +255,7 @@ public abstract class ThemeBase implements Theme {
             }
 
             for (String key : KEYS) {
-                Color accentColor = PlatformImpl.getPlatformPreferences().getColor(key);
+                Color accentColor = Platform.getPreferences().getColor(key);
                 if (accentColor != null) {
                     return accentColor;
                 }
@@ -264,12 +265,10 @@ public abstract class ThemeBase implements Theme {
         }
     };
 
-    @Override
     public final ReadOnlyObjectProperty<Color> accentColorProperty() {
         return accentColor;
     }
 
-    @Override
     public final Color getAccentColor() {
         return accentColor.get();
     }
@@ -337,7 +336,7 @@ public abstract class ThemeBase implements Theme {
      * Creates a new instance of the {@code ThemeBase} class.
      */
     protected ThemeBase() {
-        PlatformImpl.getPlatformPreferences().addListener(new WeakPlatformPreferencesListener(preferencesChanged));
+        Platform.getPreferences().addListener(new WeakPlatformPreferencesListener(preferencesChanged));
         updateProperties();
     }
 

@@ -26,7 +26,6 @@ import com.sun.javafx.application.HighContrastScheme;
 import com.sun.javafx.application.PlatformImpl;
 import javafx.application.ConditionalFeature;
 import javafx.application.PlatformPreferences;
-import javafx.application.ThemeBase;
 import javafx.beans.value.WritableValue;
 import javafx.util.Incubating;
 import java.util.Map;

@@ -19,9 +19,9 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package test.com.sun.javafx.css;
+package test.com.sun.javafx.scene.control.theme;
 
-import com.sun.javafx.css.StylesheetList;
+import com.sun.javafx.scene.control.theme.StylesheetList;
 import org.junit.jupiter.api.Test;
 import test.javafx.collections.MockListObserver;
 import javafx.beans.value.WritableValue;

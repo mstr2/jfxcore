@@ -61,7 +61,6 @@ import javafx.application.Application;
 import javafx.application.ConditionalFeature;
 import javafx.application.PlatformPreferences;
 import javafx.application.PlatformPreferencesListener;
-import javafx.application.Theme;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -70,6 +69,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.css.Theme;
 import javafx.scene.paint.Color;
 import javafx.util.FXPermission;
 
@@ -752,7 +752,7 @@ public class PlatformImpl {
             }
 
             return (Theme)themeClass.getConstructor().newInstance();
-        } catch (ReflectiveOperationException ex) {
+        } catch (Throwable ex) {
             Logging.getJavaFXLogger().severe("Cannot instantiate " + className, ex);
             return null;
         }

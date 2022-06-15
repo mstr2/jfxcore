@@ -19,14 +19,10 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package javafx.application;
+package javafx.css;
 
-import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.application.Application;
 import javafx.collections.ObservableList;
-import javafx.css.StyleOrigin;
-import javafx.css.Stylesheet;
-import javafx.scene.paint.Color;
 import javafx.util.Incubating;
 import java.io.File;
 
@@ -38,9 +34,6 @@ import java.io.File;
  * The list of stylesheets that comprise a {@code Theme} can be modified while the application is running,
  * enabling applications to create dynamic themes that respond to changing user preferences.
  * <p>
- * The {@link ThemeBase} class provides a default implementation that uses the operating system's
- * preferences to determine the value of {@link #darkModeProperty()} and {@link #accentColorProperty()}.
- * <p>
  * In the CSS subsystem, theme stylesheets are classified as {@link StyleOrigin#USER_AGENT} stylesheets.
  * Theme stylesheets have a higher precedence in the CSS cascade than a stylesheet referenced by
  * {@link Application#userAgentStylesheetProperty()}.
@@ -49,34 +42,6 @@ import java.io.File;
  */
 @Incubating
 public interface Theme {
-
-    /**
-     * Gets a property that indicates whether dark mode is enabled for this theme.
-     *
-     * @return the {@code darkMode} property
-     */
-    ReadOnlyBooleanProperty darkModeProperty();
-
-    /**
-     * Indicates whether dark mode is enabled for this theme.
-     *
-     * @return {@code true} if dark mode is enabled, {@code false} otherwise
-     */
-    boolean isDarkMode();
-
-    /**
-     * Gets a property that represents the accent color of this theme.
-     *
-     * @return the {@code accentColor} property
-     */
-    ReadOnlyObjectProperty<Color> accentColorProperty();
-
-    /**
-     * Gets the accent color of this theme.
-     *
-     * @return the accent color
-     */
-    Color getAccentColor();
 
     /**
      * Gets the list of stylesheet URLs that comprise this theme.
@@ -93,9 +58,10 @@ public interface Theme {
      * If the MIME type is "application/octet-stream", the payload will be interpreted as a binary
      * CSS file (see {@link Stylesheet#convertToBinary(File, File)}).
      *
-     * @implNote Implementations of this method should return an {@code ObservableList} that minimizes
-     *           the number of change notifications, as each change notification causes the CSS subsystem
-     *           to re-apply the referenced stylesheets.
+     * @implNote Implementations of this method are encouraged to minimize the number of subsequent
+     *           list change notifications that are fired by the returned {@link ObservableList},
+     *           as each change notification causes the CSS subsystem to re-apply the referenced
+     *           stylesheets.
      *
      * @return the list of stylesheet URLs
      */

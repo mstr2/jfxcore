@@ -24,7 +24,7 @@ package test.javafx.scene.control.theme;
 import com.sun.javafx.application.PlatformImpl;
 import org.junit.jupiter.api.Test;
 import javafx.application.Application;
-import javafx.application.Theme;
+import javafx.css.Theme;
 import javafx.scene.control.theme.ModenaTheme;
 import java.util.Map;
 

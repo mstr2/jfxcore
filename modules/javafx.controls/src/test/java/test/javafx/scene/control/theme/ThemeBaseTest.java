@@ -19,13 +19,13 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package test.javafx.application.theme;
+package test.javafx.scene.control.theme;
 
 import com.sun.javafx.application.PlatformImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import javafx.application.ThemeBase;
+import javafx.scene.control.theme.ThemeBase;
 import javafx.scene.paint.Color;
 import java.util.ArrayList;
 import java.util.HashMap;

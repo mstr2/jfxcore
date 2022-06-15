@@ -23,11 +23,8 @@ package test.com.sun.javafx.application;
 
 import com.sun.javafx.application.PlatformImpl;
 import org.junit.jupiter.api.Test;
-import javafx.application.Theme;
-import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.ObservableList;
-import javafx.scene.paint.Color;
+import javafx.css.Theme;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -38,10 +35,6 @@ public class PlatformImplTest {
         PlatformImpl.platformUserAgentStylesheetProperty().set(null);
         PlatformImpl.platformThemeProperty().set(null);
         PlatformImpl.platformThemeProperty().set(new Theme() {
-            @Override public ReadOnlyBooleanProperty darkModeProperty() { return null; }
-            @Override public boolean isDarkMode() { return false; }
-            @Override public ReadOnlyObjectProperty<Color> accentColorProperty() { return null; }
-            @Override public Color getAccentColor() { return null; }
             @Override public ObservableList<String> getStylesheets() { return null; }
         });
 
