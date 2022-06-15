@@ -42,16 +42,19 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * {@link ThemeBase} is a base implementation for themes that can dynamically react to
- * {@link Platform#getPreferences() platform preferences}. {@code ThemeBase} uses the operating
- * system's preferences to determine the value of {@link #darkModeProperty()} and
- * {@link #accentColorProperty()}, with the option to override their values by setting
- * {@link #darkModeOverrideProperty()} or {@link #accentColorOverrideProperty()}.
+ * {@link ThemeBase} is a base implementation for themes that can dynamically change at runtime, for example
+ * by switching from light colors to dark colors, or by changing the accent color of UI controls.
  * <p>
- * Stylesheets that are added to this theme via {@link #addStylesheet(String)} always retain the
- * order in which they were added. The value of a stylesheet URL can be changed at any time with
- * the {@link WritableValue} wrapper that is returned by {@link #addStylesheet(String)}.
+ * {@code ThemeBase} uses the operating system's {@link Platform#getPreferences() preferences} to determine
+ * the value of {@link #darkModeProperty()} and {@link #accentColorProperty()}, with the option to override
+ * their values by setting {@link #darkModeOverrideProperty()} or {@link #accentColorOverrideProperty()}.
  * <p>
+ * Stylesheet URIs can be added to this theme by calling {@link #addStylesheet(String)}.
+ * The value of a stylesheet URI can be changed at any time with the {@link WritableValue} wrapper
+ * that is returned by {@link #addStylesheet(String)}.
+ * <p>
+ * <h2>Examples</h2>
+ * <h3>1. Creating a custom theme</h3>
  * In this example, a custom theme is created that responds to dark mode changes:
  * <pre>{@code
  *     public class MyTheme extends ThemeBase {
@@ -75,6 +78,10 @@ import java.util.Objects;
  *         }
  *     }
  * }</pre>
+ * Note that instead of loading stylesheets from disk, an application may also create a stylesheet
+ * programmatically and load it via an RFC 2397 "data" URI. Among other things, this can be useful
+ * to inject dynamically computed colors into themes.
+ * <h3>2. Extending an existing theme</h3>
  * A theme can be extended by subclassing its theme class and adding more stylesheets:
  * <pre>{@code
  *     public class MyExtendedTheme extends MyTheme {
@@ -84,6 +91,7 @@ import java.util.Objects;
  *     }
  * }</pre>
  *
+ * @see Theme
  * @since JFXcore 18
  */
 @Incubating
