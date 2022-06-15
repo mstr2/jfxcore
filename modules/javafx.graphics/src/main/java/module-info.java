@@ -48,7 +48,6 @@ module javafx.graphics {
 
     exports javafx.animation;
     exports javafx.application;
-    exports javafx.application.theme;
     exports javafx.concurrent;
     exports javafx.css;
     exports javafx.css.converter;

@@ -186,7 +186,7 @@ public class MyApp extends Application {
 public abstract class Application {
     /**
      * Constant for user agent stylesheet for the "Caspian" theme,
-     * corresponding to {@link javafx.application.theme.CaspianTheme}.
+     * corresponding to {@link javafx.scene.control.theme.CaspianTheme}.
      * Caspian is the theme that shipped as default in JavaFX 2.x.
      * This constant is provided for backwards compatibility only,
      * please use the {@code CaspianTheme} class instead.
@@ -196,7 +196,7 @@ public abstract class Application {
     public static final String STYLESHEET_CASPIAN = "CASPIAN";
     /**
      * Constant for user agent stylesheet for the "Modena" theme,
-     * corresponding to {@link javafx.application.theme.ModenaTheme}.
+     * corresponding to {@link javafx.scene.control.theme.ModenaTheme}.
      * Modena is the default theme for JavaFX 8.x.
      * This constant is provided for backwards compatibility only,
      * please use the {@code ModenaTheme} class instead.

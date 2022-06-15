@@ -19,13 +19,14 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package javafx.application.theme;
+package javafx.scene.control.theme;
 
 import com.sun.javafx.PlatformUtil;
 import com.sun.javafx.application.HighContrastScheme;
 import com.sun.javafx.application.PlatformImpl;
 import javafx.application.ConditionalFeature;
 import javafx.application.PlatformPreferences;
+import javafx.application.ThemeBase;
 import javafx.beans.value.WritableValue;
 import javafx.util.Incubating;
 import java.util.Map;

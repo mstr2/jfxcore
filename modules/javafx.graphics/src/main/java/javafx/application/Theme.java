@@ -21,7 +21,6 @@
 
 package javafx.application;
 
-import javafx.application.theme.ThemeBase;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.ObservableList;

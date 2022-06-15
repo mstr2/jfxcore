@@ -23,10 +23,7 @@ package test.com.sun.javafx.application;
 
 import com.sun.javafx.application.PlatformImpl;
 import org.junit.jupiter.api.Test;
-import javafx.application.Application;
 import javafx.application.Theme;
-import javafx.application.theme.CaspianTheme;
-import javafx.application.theme.ModenaTheme;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.ObservableList;
@@ -37,35 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class PlatformImplTest {
 
     @Test
-    public void testCaspianStylesheetNameSetsTheme() {
-        PlatformImpl.platformUserAgentStylesheetProperty().set(null);
-        PlatformImpl.platformThemeProperty().set(null);
-
-        PlatformImpl.platformUserAgentStylesheetProperty().set(Application.STYLESHEET_CASPIAN);
-        assertEquals(Application.STYLESHEET_CASPIAN, PlatformImpl.platformUserAgentStylesheetProperty().get());
-        assertTrue(PlatformImpl.platformThemeProperty().get() instanceof CaspianTheme);
-
-        PlatformImpl.platformThemeProperty().set(null);
-        assertNull(PlatformImpl.platformUserAgentStylesheetProperty().get());
-        assertNull(PlatformImpl.platformThemeProperty().get());
-    }
-
-    @Test
-    public void testModenaStylesheetNameSetsTheme() {
-        PlatformImpl.platformUserAgentStylesheetProperty().set(null);
-        PlatformImpl.platformThemeProperty().set(null);
-
-        PlatformImpl.platformUserAgentStylesheetProperty().set(Application.STYLESHEET_MODENA);
-        assertEquals(Application.STYLESHEET_MODENA, PlatformImpl.platformUserAgentStylesheetProperty().get());
-        assertTrue(PlatformImpl.platformThemeProperty().get() instanceof ModenaTheme);
-
-        PlatformImpl.platformThemeProperty().set(null);
-        assertNull(PlatformImpl.platformUserAgentStylesheetProperty().get());
-        assertNull(PlatformImpl.platformThemeProperty().get());
-    }
-
-    @Test
-    public void testThemeDoesNotSetUAStylesheet() {
+    public void testThemeDoesNotChangeUserAgentStylesheet() {
         PlatformImpl.platformUserAgentStylesheetProperty().set(null);
         PlatformImpl.platformThemeProperty().set(null);
         PlatformImpl.platformThemeProperty().set(new Theme() {

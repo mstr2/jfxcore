@@ -19,15 +19,11 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package javafx.application.theme;
+package javafx.application;
 
 import com.sun.javafx.application.PlatformImpl;
 import com.sun.javafx.css.StylesheetList;
 import com.sun.javafx.util.Utils;
-import javafx.application.Platform;
-import javafx.application.PlatformPreferencesListener;
-import javafx.application.Theme;
-import javafx.application.WeakPlatformPreferencesListener;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanPropertyBase;

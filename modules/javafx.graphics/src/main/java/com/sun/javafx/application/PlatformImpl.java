@@ -62,8 +62,6 @@ import javafx.application.ConditionalFeature;
 import javafx.application.PlatformPreferences;
 import javafx.application.PlatformPreferencesListener;
 import javafx.application.Theme;
-import javafx.application.theme.CaspianTheme;
-import javafx.application.theme.ModenaTheme;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -701,12 +699,15 @@ public class PlatformImpl {
     public static void ensureDefaultTheme() {
         if (isFxApplicationThread()) {
             if (platformTheme.get() == null) {
-                platformTheme.set(new ModenaTheme());
+                platformTheme.set(newThemeInstance(MODENA_THEME));
             }
         } else {
             runLater(PlatformImpl::ensureDefaultTheme);
         }
     }
+
+    private static final String CASPIAN_THEME = "javafx.scene.control.theme.CaspianTheme";
+    private static final String MODENA_THEME = "javafx.scene.control.theme.ModenaTheme";
 
     private static boolean isModena = false;
     private static boolean isCaspian = false;
@@ -735,13 +736,35 @@ public class PlatformImpl {
         return isCaspian;
     }
 
+    private static Theme newThemeInstance(String className) {
+        try {
+            Class<?> themeClass;
+
+            try {
+                themeClass = Class.forName(className, false, PlatformImpl.class.getClassLoader());
+            } catch (ClassNotFoundException ex) {
+                ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+                if (contextClassLoader != null) {
+                    themeClass = Class.forName(className, false, contextClassLoader);
+                } else {
+                    throw ex;
+                }
+            }
+
+            return (Theme)themeClass.getConstructor().newInstance();
+        } catch (ReflectiveOperationException ex) {
+            Logging.getJavaFXLogger().severe("Cannot instantiate " + className, ex);
+            return null;
+        }
+    }
+
     private static final StringProperty platformUserAgentStylesheet = new SimpleStringProperty() {
         @Override
         protected void invalidated() {
             if (Application.STYLESHEET_CASPIAN.equals(get())) {
-                platformTheme.set(new CaspianTheme());
+                platformTheme.set(newThemeInstance(CASPIAN_THEME));
             } else if (Application.STYLESHEET_MODENA.equals(get())) {
-                platformTheme.set(new ModenaTheme());
+                platformTheme.set(newThemeInstance(MODENA_THEME));
             } else {
                 onPlatformThemeChanged(get(), platformTheme.get());
             }
@@ -785,8 +808,9 @@ public class PlatformImpl {
             userAgentStylesheet = userAgentStylesheet.trim();
         }
 
-        isCaspian = theme instanceof CaspianTheme;
-        isModena = theme instanceof ModenaTheme;
+        String themeName = theme != null ? theme.getClass().getName() : null;
+        isCaspian = themeName != null && themeName.equals(CASPIAN_THEME);
+        isModena = themeName != null && themeName.equals(MODENA_THEME);
 
         updateStyleManager(userAgentStylesheet, theme != null ? theme.getStylesheets() : null);
     }
@@ -919,9 +943,13 @@ public class PlatformImpl {
     }
 
     public static class PlatformPreferencesImpl extends AbstractMap<String, Object> implements PlatformPreferences {
-        private final Map<String, Object> values = new HashMap<>(PlatformFactory.getPlatformFactory().getPreferences());
-        private final Set<Entry<String, Object>> unmodifiableEntrySet = Collections.unmodifiableSet(values.entrySet());
+        private final Map<String, Object> modifiableMap = new HashMap<>(PlatformFactory.getPlatformFactory().getPreferences());
+        private final Set<Entry<String, Object>> unmodifiableEntrySet = Collections.unmodifiableSet(modifiableMap.entrySet());
         private final List<PlatformPreferencesListener> listeners = new ArrayList<>();
+
+        public Map<String, Object> getModifiableMap() {
+            return modifiableMap;
+        }
 
         @Override
         public Set<Entry<String, Object>> entrySet() {
@@ -930,7 +958,7 @@ public class PlatformImpl {
 
         @Override
         public String getString(String key) {
-            Object value = values.get(key);
+            Object value = modifiableMap.get(key);
             if (value instanceof String s) {
                 return s;
             }
@@ -946,7 +974,7 @@ public class PlatformImpl {
 
         @Override
         public Boolean getBoolean(String key) {
-            Object value = values.get(key);
+            Object value = modifiableMap.get(key);
             if (value instanceof Boolean b) {
                 return b;
             }
@@ -962,7 +990,7 @@ public class PlatformImpl {
 
         @Override
         public Color getColor(String key) {
-            Object value = values.get(key);
+            Object value = modifiableMap.get(key);
             if (value instanceof Color c) {
                 return c;
             }
@@ -998,14 +1026,14 @@ public class PlatformImpl {
     public static void updatePreferences(Map<String, Object> newPreferences) {
         Map<String, Object> changed = new HashMap<>();
         for (Map.Entry<String, Object> entry : newPreferences.entrySet()) {
-            Object existingValue = platformPreferences.values.get(entry.getKey());
+            Object existingValue = platformPreferences.getModifiableMap().get(entry.getKey());
             if (!Objects.equals(existingValue, entry.getValue())) {
                 changed.put(entry.getKey(), entry.getValue());
             }
         }
 
         if (!changed.isEmpty()) {
-            platformPreferences.values.putAll(changed);
+            platformPreferences.getModifiableMap().putAll(changed);
             platformPreferences.firePreferencesChanged(changed);
         }
     }

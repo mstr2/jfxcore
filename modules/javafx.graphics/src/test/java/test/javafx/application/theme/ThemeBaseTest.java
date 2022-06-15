@@ -25,7 +25,7 @@ import com.sun.javafx.application.PlatformImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import javafx.application.theme.ThemeBase;
+import javafx.application.ThemeBase;
 import javafx.scene.paint.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
