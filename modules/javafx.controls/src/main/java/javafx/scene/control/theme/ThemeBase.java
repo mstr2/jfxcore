@@ -21,7 +21,6 @@
 
 package javafx.scene.control.theme;
 
-import com.sun.javafx.scene.control.theme.StylesheetList;
 import com.sun.javafx.util.Utils;
 import javafx.application.Platform;
 import javafx.application.PlatformPreferencesListener;

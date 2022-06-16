@@ -19,9 +19,9 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package test.com.sun.javafx.scene.control.theme;
+package test.javafx.scene.control.theme;
 
-import com.sun.javafx.scene.control.theme.StylesheetList;
+import javafx.scene.control.theme.StylesheetListShim;
 import org.junit.jupiter.api.Test;
 import test.javafx.collections.MockListObserver;
 import javafx.beans.value.WritableValue;
@@ -33,7 +33,7 @@ public class StylesheetListTest {
 
     @Test
     public void testEmptyList() {
-        var list = new StylesheetList() {
+        var list = new StylesheetListShim() {
             final WritableValue<String> p1 = addStylesheet(null);
             final WritableValue<String> p2 = addStylesheet(null);
             final WritableValue<String> p3 = addStylesheet(null);
@@ -44,7 +44,7 @@ public class StylesheetListTest {
 
     @Test
     public void testToggleItem() {
-        var list = new StylesheetList() {
+        var list = new StylesheetListShim() {
             final WritableValue<String> p1 = addStylesheet(null);
             final WritableValue<String> p2 = addStylesheet(null);
             final WritableValue<String> p3 = addStylesheet(null);
@@ -62,7 +62,7 @@ public class StylesheetListTest {
 
     @Test
     public void testChangeItem() {
-        var list = new StylesheetList() {
+        var list = new StylesheetListShim() {
             final WritableValue<String> p1 = addStylesheet(null);
             final WritableValue<String> p2 = addStylesheet(null);
             final WritableValue<String> p3 = addStylesheet(null);
@@ -80,7 +80,7 @@ public class StylesheetListTest {
 
     @Test
     public void testChangeEvent() {
-        var list = new StylesheetList() {
+        var list = new StylesheetListShim() {
             final WritableValue<String> p1 = addStylesheet(null);
             final WritableValue<String> p2 = addStylesheet(null);
             final WritableValue<String> p3 = addStylesheet(null);
@@ -116,7 +116,7 @@ public class StylesheetListTest {
 
     @Test
     public void testBatchChange() {
-        var list = new StylesheetList() {
+        var list = new StylesheetListShim() {
             final WritableValue<String> p1 = addStylesheet(null);
             final WritableValue<String> p2 = addStylesheet(null);
             final WritableValue<String> p3 = addStylesheet("baz");

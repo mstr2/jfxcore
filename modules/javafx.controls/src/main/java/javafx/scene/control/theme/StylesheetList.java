@@ -19,7 +19,7 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package com.sun.javafx.scene.control.theme;
+package javafx.scene.control.theme;
 
 import javafx.beans.value.WritableValue;
 import javafx.collections.ObservableListBase;
@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class StylesheetList extends ObservableListBase<String> {
+class StylesheetList extends ObservableListBase<String> {
 
     private final List<WritableValue<String>> items;
     private final List<String> values;
