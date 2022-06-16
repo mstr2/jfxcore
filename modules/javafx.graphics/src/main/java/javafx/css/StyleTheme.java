@@ -34,6 +34,19 @@ import java.io.File;
  * The list of stylesheets that comprise a {@code StyleTheme} can be modified while the application is running,
  * enabling applications to create dynamic themes that respond to changing user preferences.
  * <p>
+ * {@code StyleTheme} implementations can be applied using the {@link Application#setStyleTheme(StyleTheme)} method:
+ * <pre>{@code
+ *     public class App extends Application {
+ *         @Override
+ *         public void start(Stage primaryStage) {
+ *             setTheme(new MyCustomTheme());
+ *
+ *             primaryStage.setScene(...);
+ *             primaryStage.show();
+ *         }
+ *     }
+ * }</pre>
+ * <p>
  * In the CSS subsystem, stylesheets that comprise a {@code StyleTheme} are classified as
  * {@link StyleOrigin#USER_AGENT} stylesheets, but have a higher precedence in the CSS cascade
  * than a stylesheet referenced by {@link Application#userAgentStylesheetProperty()}.
