@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +28,6 @@ package com.sun.glass.ui.win;
 import com.sun.glass.ui.*;
 import com.sun.glass.ui.CommonDialogs.ExtensionFilter;
 import com.sun.glass.ui.CommonDialogs.FileChooserResult;
-import com.sun.javafx.application.PlatformImpl;
 import com.sun.prism.impl.PrismSettings;
 import com.sun.javafx.tk.Toolkit;
 
@@ -36,13 +36,9 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.ResourceBundle;
 
 final class WinApplication extends Application implements InvokeLaterDispatcher.InvokeLaterSubmitter {
     static float   overrideUIScale;
-    private static final String BASE_NAME = "com/sun/glass/ui/win/themes";
 
     private static boolean getBoolean(String propname, boolean defval, String description) {
         String str = System.getProperty(propname);
@@ -333,17 +329,6 @@ final class WinApplication extends Application implements InvokeLaterDispatcher.
         } else {
             submitForLaterInvocation(runnable);
         }
-    }
-
-    @Override
-    public String getHighContrastScheme(String themeName) {
-        return PlatformImpl.HighContrastScheme.fromThemeName(ResourceBundle.getBundle(BASE_NAME)::getString, themeName);
-    }
-
-    private native String _getHighContrastTheme();
-    @Override public String getHighContrastTheme() {
-        checkEventThread();
-        return getHighContrastScheme(_getHighContrastTheme());
     }
 
     @Override

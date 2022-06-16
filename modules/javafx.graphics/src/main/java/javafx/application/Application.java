@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,9 +33,15 @@ import java.util.List;
 import java.util.Map;
 
 import javafx.application.Preloader.PreloaderNotification;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.css.StyleTheme;
 import javafx.css.Stylesheet;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.util.Incubating;
 
 import com.sun.javafx.application.LauncherImpl;
 import com.sun.javafx.application.ParametersImpl;
@@ -179,14 +186,22 @@ public class MyApp extends Application {
  */
 public abstract class Application {
     /**
-     * Constant for user agent stylesheet for the "Caspian" theme. Caspian
-     * is the theme that shipped as default in JavaFX 2.x.
+     * Constant for user agent stylesheet for the "Caspian" theme,
+     * corresponding to {@link javafx.scene.control.theme.CaspianTheme}.
+     * Caspian is the theme that shipped as default in JavaFX 2.x.
+     * This constant is provided for backwards compatibility only,
+     * please use the {@code CaspianTheme} class instead.
+     *
      * @since JavaFX 8.0
      */
     public static final String STYLESHEET_CASPIAN = "CASPIAN";
     /**
-     * Constant for user agent stylesheet for the "Modena" theme. Modena
-     * is the default theme for JavaFX 8.x.
+     * Constant for user agent stylesheet for the "Modena" theme,
+     * corresponding to {@link javafx.scene.control.theme.ModenaTheme}.
+     * Modena is the default theme for JavaFX 8.x.
+     * This constant is provided for backwards compatibility only,
+     * please use the {@code ModenaTheme} class instead.
+     *
      * @since JavaFX 8.0
      */
     public static final String STYLESHEET_MODENA = "MODENA";
@@ -488,33 +503,15 @@ public abstract class Application {
 
     }
 
-    private static String userAgentStylesheet = null;
-
     /**
-     * Get the user agent stylesheet used by the whole application. This is
-     * used to provide default styling for all ui controls and other nodes.
-     * A value of null means the platform default stylesheet is being used.
+     * Specifies the user-agent stylesheet of the application.
      * <p>
-     * NOTE: This method must be called on the JavaFX Application Thread.
-     * </p>
-     *
-     * @return The URL to the stylesheet as a String.
-     * @since JavaFX 8.0
-     */
-    public static String getUserAgentStylesheet() {
-        return userAgentStylesheet;
-    }
-
-    /**
-     * Set the user agent stylesheet used by the whole application. This is used
-     * to provide default styling for all ui controls and other nodes. Each
-     * release of JavaFX may have a new default value for this so if you need
-     * to guarantee consistency you will need to call this method and choose
-     * what default you would like for your application. A value of null will
-     * restore the platform default stylesheet. This property can also be set
-     * on the command line with {@code -Djavafx.userAgentStylesheetUrl=[URL]}
-     * Setting it on the command line overrides anything set using this method
-     * in code.
+     * A user-agent stylesheet is a global stylesheet that is implicitly used by all JavaFX
+     * nodes in the scene graph. It can be used to provide default styling for UI controls
+     * and other nodes. A user-agent stylesheets has the lowest precedence in the CSS cascade.
+     * <p>
+     * This property can also be set on the command line with {@code -Djavafx.userAgentStylesheetUrl=[URL]}.
+     * Setting it on the command line overrides the value of this property.
      * <p>
      * The URL is a hierarchical URI of the form [scheme:][//authority][path]. If the URL
      * does not have a [scheme:] component, the URL is considered to be the [path] component only.
@@ -528,17 +525,64 @@ public abstract class Application {
      * If the MIME type is "application/octet-stream", the payload will be interpreted as a binary
      * CSS file (see {@link Stylesheet#convertToBinary(File, File)}).
      * <p>
-     * NOTE: This method must be called on the JavaFX Application Thread.
+     * Note: this property must only be modified on the JavaFX application thread.
      *
-     * @param url The URL to the stylesheet as a String.
-     * @since JavaFX 8.0
+     * @since JFXcore 18
      */
-    public static void setUserAgentStylesheet(String url) {
-        userAgentStylesheet = url;
-        if (url == null) {
-            PlatformImpl.setDefaultPlatformUserAgentStylesheet();
-        } else {
-            PlatformImpl.setPlatformUserAgentStylesheet(url);
+    private static StringProperty userAgentStylesheet;
+
+    @Incubating
+    public static StringProperty userAgentStylesheetProperty() {
+        if (userAgentStylesheet == null) {
+            userAgentStylesheet = new SimpleStringProperty(Application.class, "userAgentStylesheet");
+            userAgentStylesheet.bindBidirectional(PlatformImpl.platformUserAgentStylesheetProperty());
         }
+        return userAgentStylesheet;
     }
+
+    @Incubating
+    public static String getUserAgentStylesheet() {
+        return userAgentStylesheetProperty().get();
+    }
+
+    @Incubating
+    public static void setUserAgentStylesheet(String url) {
+        userAgentStylesheetProperty().set(url);
+    }
+
+    /**
+     * Specifies the {@link StyleTheme} for the application.
+     * <p>
+     * {@code StyleTheme} is a collection of stylesheets that specify the appearance of UI controls and other
+     * nodes in the application. Like a user-agent stylesheet, a {@code StyleTheme} is implicitly used by all
+     * JavaFX nodes in the scene graph.
+     * <p>
+     * Stylesheets that comprise a {@code StyleTheme} have a higher precedence in the CSS cascade than a
+     * stylesheet referenced by the {@link #userAgentStylesheetProperty() userAgentStylesheet} property.
+     * <p>
+     * Note: this property must only be modified on the JavaFX application thread.
+     *
+     * @since JFXcore 18
+     */
+    private static ObjectProperty<StyleTheme> styleTheme;
+
+    @Incubating
+    public static ObjectProperty<StyleTheme> styleThemeProperty() {
+        if (styleTheme == null) {
+            styleTheme = new SimpleObjectProperty<>(Application.class, "styleTheme");
+            styleTheme.bindBidirectional(PlatformImpl.platformThemeProperty());
+        }
+        return styleTheme;
+    }
+
+    @Incubating
+    public static StyleTheme getStyleTheme() {
+        return styleThemeProperty().get();
+    }
+
+    @Incubating
+    public static void setStyleTheme(StyleTheme theme) {
+        styleThemeProperty().set(theme);
+    }
+
 }

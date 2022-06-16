@@ -1,0 +1,50 @@
+<!doctype html>
+
+<!--
+/*
+ * Copyright (c) 2022, JFXcore. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  JFXcore designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+-->
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>javafx.scene.control.theme</title>
+</head>
+<body>
+<p>This package contains the built-in style themes for JavaFX controls.</p>
+<ol>
+    <li>{@link javafx.scene.control.theme.CaspianTheme Caspian}, which is the default theme for JavaFX 2.X</li>
+    <li>{@link javafx.scene.control.theme.ModenaTheme Modena}, which is the default theme for JavaFX 8.X</li>
+</ol>
+<p>Style themes can be applied using the {@link javafx.application.Application#setStyleTheme} method:</p>
+<pre>{@code
+    public class App extends Application {
+        @Override
+        public void start(Stage primaryStage) {
+            setStyleTheme(new CaspianTheme());
+
+            primaryStage.setScene(...);
+            primaryStage.show();
+        }
+    }
+}</pre>
+</body>
+</html>

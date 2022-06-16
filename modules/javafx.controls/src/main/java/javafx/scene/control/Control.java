@@ -98,10 +98,8 @@ public abstract class Control extends Region implements Skinnable {
             }
         });
 
-        // Ensures that the default application user agent stylesheet is loaded
-        if (Application.getUserAgentStylesheet() == null) {
-            PlatformImpl.setDefaultPlatformUserAgentStylesheet();
-        }
+        // Ensures that the default theme is loaded
+        PlatformImpl.ensureDefaultTheme();
     }
 
     /**

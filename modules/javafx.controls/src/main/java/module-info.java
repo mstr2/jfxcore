@@ -38,6 +38,7 @@ module javafx.controls {
     exports javafx.scene.control;
     exports javafx.scene.control.cell;
     exports javafx.scene.control.skin;
+    exports javafx.scene.control.theme;
 
     exports com.sun.javafx.scene.control to
         javafx.web;

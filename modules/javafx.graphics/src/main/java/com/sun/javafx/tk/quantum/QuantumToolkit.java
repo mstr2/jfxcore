@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -364,9 +365,9 @@ public final class QuantumToolkit extends Toolkit {
                     GlassStage.requestClosingAllWindows();
                 }
 
-                @Override public boolean handleThemeChanged(String themeName) {
-                    String highContrastSchemeName = Application.GetApplication().getHighContrastScheme(themeName);
-                    return PlatformImpl.setAccessibilityTheme(highContrastSchemeName);
+                @Override
+                public void handlePreferencesChanged(Map<String, Object> preferences) {
+                    PlatformImpl.updatePreferences(preferences);
                 }
             });
         }
@@ -1786,11 +1787,6 @@ public final class QuantumToolkit extends Toolkit {
     @Override
     public int getMultiClickMaxY() {
         return View.getMultiClickMaxY();
-    }
-
-    @Override
-    public String getThemeName() {
-        return Application.GetApplication().getHighContrastTheme();
     }
 
     @Override
