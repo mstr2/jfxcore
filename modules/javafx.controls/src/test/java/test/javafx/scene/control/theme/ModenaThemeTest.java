@@ -24,7 +24,6 @@ package test.javafx.scene.control.theme;
 import com.sun.javafx.application.PlatformImpl;
 import org.junit.jupiter.api.Test;
 import javafx.application.Application;
-import javafx.css.Theme;
 import javafx.scene.control.theme.ModenaTheme;
 import java.util.Map;
 
@@ -48,7 +47,7 @@ public class ModenaThemeTest {
 
     @Test
     public void testHighContrastThemeWithSystemProperty() {
-        Theme theme = new ModenaTheme();
+        var theme = new ModenaTheme();
         assertFalse(theme.getStylesheets().stream().anyMatch(fileName -> fileName.contains("blackOnWhite.css")));
         System.setProperty("com.sun.javafx.highContrastTheme", "BLACKONWHITE");
         theme = new ModenaTheme();
@@ -58,7 +57,7 @@ public class ModenaThemeTest {
 
     @Test
     public void testHighContrastThemeWithPlatformPreference() {
-        Theme theme = new ModenaTheme();
+        var theme = new ModenaTheme();
         assertFalse(theme.getStylesheets().stream().anyMatch(fileName -> fileName.contains("blackOnWhite.css")));
 
         Map<String, Object> map = ((PlatformImpl.PlatformPreferencesImpl)PlatformImpl.getPlatformPreferences()).getModifiableMap();

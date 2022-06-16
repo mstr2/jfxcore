@@ -24,7 +24,7 @@ package test.com.sun.javafx.application;
 import com.sun.javafx.application.PlatformImpl;
 import org.junit.jupiter.api.Test;
 import javafx.collections.ObservableList;
-import javafx.css.Theme;
+import javafx.css.StyleTheme;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -34,7 +34,7 @@ public class PlatformImplTest {
     public void testThemeDoesNotChangeUserAgentStylesheet() {
         PlatformImpl.platformUserAgentStylesheetProperty().set(null);
         PlatformImpl.platformThemeProperty().set(null);
-        PlatformImpl.platformThemeProperty().set(new Theme() {
+        PlatformImpl.platformThemeProperty().set(new StyleTheme() {
             @Override public ObservableList<String> getStylesheets() { return null; }
         });
 

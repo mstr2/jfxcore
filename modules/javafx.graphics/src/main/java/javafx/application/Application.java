@@ -37,8 +37,8 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.css.StyleTheme;
 import javafx.css.Stylesheet;
-import javafx.css.Theme;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Incubating;
@@ -551,38 +551,38 @@ public abstract class Application {
     }
 
     /**
-     * Specifies the {@link Theme} for the application.
+     * Specifies the {@link StyleTheme} for the application.
      * <p>
-     * Themes are collections of stylesheets that specify the appearance of UI controls
-     * and other nodes in the application. Like user-agent stylesheets, theme stylesheets
-     * are implicitly used by all JavaFX nodes in the scene graph.
+     * {@code StyleTheme} is a collection of stylesheets that specify the appearance of UI controls and other
+     * nodes in the application. Like a user-agent stylesheet, a {@code StyleTheme} is implicitly used by all
+     * JavaFX nodes in the scene graph.
      * <p>
-     * Theme stylesheets have a higher precedence in the CSS cascade than a stylesheet referenced
-     * by the {@link #userAgentStylesheetProperty() userAgentStylesheet} property.
+     * Stylesheets that comprise a {@code StyleTheme} have a higher precedence in the CSS cascade than a
+     * stylesheet referenced by the {@link #userAgentStylesheetProperty() userAgentStylesheet} property.
      * <p>
      * Note: this property must only be modified on the JavaFX application thread.
      *
      * @since JFXcore 18
      */
-    private static ObjectProperty<Theme> theme;
+    private static ObjectProperty<StyleTheme> styleTheme;
 
     @Incubating
-    public static ObjectProperty<Theme> themeProperty() {
-        if (theme == null) {
-            theme = new SimpleObjectProperty<>(Application.class, "theme");
-            theme.bindBidirectional(PlatformImpl.platformThemeProperty());
+    public static ObjectProperty<StyleTheme> styleThemeProperty() {
+        if (styleTheme == null) {
+            styleTheme = new SimpleObjectProperty<>(Application.class, "styleTheme");
+            styleTheme.bindBidirectional(PlatformImpl.platformThemeProperty());
         }
-        return theme;
+        return styleTheme;
     }
 
     @Incubating
-    public static Theme getTheme() {
-        return themeProperty().get();
+    public static StyleTheme getStyleTheme() {
+        return styleThemeProperty().get();
     }
 
     @Incubating
-    public static void setTheme(Theme theme) {
-        themeProperty().set(theme);
+    public static void setStyleTheme(StyleTheme theme) {
+        styleThemeProperty().set(theme);
     }
 
 }

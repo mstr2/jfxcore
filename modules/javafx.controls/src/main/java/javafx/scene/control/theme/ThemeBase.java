@@ -34,7 +34,7 @@ import javafx.beans.property.ReadOnlyObjectPropertyBase;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.WritableValue;
 import javafx.collections.ObservableList;
-import javafx.css.Theme;
+import javafx.css.StyleTheme;
 import javafx.scene.paint.Color;
 import javafx.util.Incubating;
 import java.util.Map;
@@ -90,11 +90,11 @@ import java.util.Objects;
  *     }
  * }</pre>
  *
- * @see Theme
+ * @see StyleTheme
  * @since JFXcore 18
  */
 @Incubating
-public abstract class ThemeBase implements Theme {
+public abstract class ThemeBase implements StyleTheme {
 
     /**
      * Indicates whether dark mode is requested by the operating system. When the platform does not

@@ -27,24 +27,24 @@ import javafx.util.Incubating;
 import java.io.File;
 
 /**
- * Themes are collections of stylesheets that specify the appearance of UI controls and other nodes
- * in the application. Like user-agent stylesheets, theme stylesheets are implicitly used by all
+ * {@code StyleTheme} is a collection of stylesheets that specify the appearance of UI controls and other
+ * nodes in the application. Like a user-agent stylesheet, a {@code StyleTheme} is implicitly used by all
  * JavaFX nodes in the scene graph.
  * <p>
- * The list of stylesheets that comprise a {@code Theme} can be modified while the application is running,
+ * The list of stylesheets that comprise a {@code StyleTheme} can be modified while the application is running,
  * enabling applications to create dynamic themes that respond to changing user preferences.
  * <p>
- * In the CSS subsystem, theme stylesheets are classified as {@link StyleOrigin#USER_AGENT} stylesheets.
- * Theme stylesheets have a higher precedence in the CSS cascade than a stylesheet referenced by
- * {@link Application#userAgentStylesheetProperty()}.
+ * In the CSS subsystem, stylesheets that comprise a {@code StyleTheme} are classified as
+ * {@link StyleOrigin#USER_AGENT} stylesheets, but have a higher precedence in the CSS cascade
+ * than a stylesheet referenced by {@link Application#userAgentStylesheetProperty()}.
  *
  * @since JFXcore 18
  */
 @Incubating
-public interface Theme {
+public interface StyleTheme {
 
     /**
-     * Gets the list of stylesheet URLs that comprise this theme.
+     * Gets the list of stylesheet URLs that comprise this {@code StyleTheme}.
      * <p>
      * The URL is a hierarchical URI of the form [scheme:][//authority][path]. If the URL
      * does not have a [scheme:] component, the URL is considered to be the [path] component only.

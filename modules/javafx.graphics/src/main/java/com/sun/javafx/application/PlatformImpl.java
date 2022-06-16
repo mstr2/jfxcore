@@ -69,7 +69,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.css.Theme;
+import javafx.css.StyleTheme;
 import javafx.scene.paint.Color;
 import javafx.util.FXPermission;
 
@@ -736,7 +736,7 @@ public class PlatformImpl {
         return isCaspian;
     }
 
-    private static Theme newThemeInstance(String className) {
+    private static StyleTheme newThemeInstance(String className) {
         try {
             Class<?> themeClass;
 
@@ -751,7 +751,7 @@ public class PlatformImpl {
                 }
             }
 
-            return (Theme)themeClass.getConstructor().newInstance();
+            return (StyleTheme)themeClass.getConstructor().newInstance();
         } catch (Throwable ex) {
             Logging.getJavaFXLogger().severe("Cannot instantiate " + className, ex);
             return null;
@@ -775,7 +775,7 @@ public class PlatformImpl {
         return platformUserAgentStylesheet;
     }
 
-    private static final ObjectProperty<Theme> platformTheme = new SimpleObjectProperty<>() {
+    private static final ObjectProperty<StyleTheme> platformTheme = new SimpleObjectProperty<>() {
         @Override
         protected void invalidated() {
             if (isCaspian && Application.STYLESHEET_CASPIAN.equals(platformUserAgentStylesheet.get())) {
@@ -796,11 +796,11 @@ public class PlatformImpl {
         }
     };
 
-    public static ObjectProperty<Theme> platformThemeProperty() {
+    public static ObjectProperty<StyleTheme> platformThemeProperty() {
         return platformTheme;
     }
 
-    private static void onPlatformThemeChanged(String userAgentStylesheet, Theme theme) {
+    private static void onPlatformThemeChanged(String userAgentStylesheet, StyleTheme theme) {
         String overrideStylesheetUrl = System.getProperty("javafx.userAgentStylesheetUrl");
         if (overrideStylesheetUrl != null) {
             userAgentStylesheet = overrideStylesheetUrl.trim();

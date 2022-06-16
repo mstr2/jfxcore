@@ -24,7 +24,6 @@ package test.javafx.scene.control.theme;
 import com.sun.javafx.application.PlatformImpl;
 import org.junit.jupiter.api.Test;
 import javafx.application.Application;
-import javafx.css.Theme;
 import javafx.scene.control.theme.CaspianTheme;
 import java.util.Map;
 
@@ -48,7 +47,7 @@ public class CaspianThemeTest {
 
     @Test
     public void testHighContrastThemeWithSystemProperty() {
-        Theme theme = new CaspianTheme();
+        var theme = new CaspianTheme();
         assertFalse(theme.getStylesheets().stream().anyMatch(fileName -> fileName.contains("highcontrast.css")));
         System.setProperty("com.sun.javafx.highContrastTheme", "ANY_VALUE_HERE");
         theme = new CaspianTheme();
@@ -58,7 +57,7 @@ public class CaspianThemeTest {
 
     @Test
     public void testHighContrastThemeWithPlatformPreference() {
-        Theme theme = new CaspianTheme();
+        var theme = new CaspianTheme();
         assertFalse(theme.getStylesheets().stream().anyMatch(fileName -> fileName.contains("highcontrast.css")));
 
         Map<String, Object> map = ((PlatformImpl.PlatformPreferencesImpl)PlatformImpl.getPlatformPreferences()).getModifiableMap();
