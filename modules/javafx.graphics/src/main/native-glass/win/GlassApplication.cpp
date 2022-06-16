@@ -177,19 +177,26 @@ bool GlassApplication::UpdatePreferences()
         m_preferences = env->NewGlobalRef(newPreferences);
 
         jclass collectionsClass = (jclass)env->FindClass("java/util/Collections");
-        if (CheckAndClearException(env)) { env->DeleteLocalRef(objectClass); return false; }
-
-        jmethodID method = env->GetStaticMethodID(collectionsClass, "unmodifiableMap", "(Ljava/util/Map;)Ljava/util/Map;");
-        newPreferences = env->CallStaticObjectMethod(collectionsClass, method, newPreferences);
-        if (!CheckAndClearException(env)) {
-            env->CallVoidMethod(m_grefThis, javaIDs.Application.notifyPreferencesChangedMID, newPreferences);
+        if (CheckAndClearException(env)) {
+            env->DeleteLocalRef(newPreferences);
+            env->DeleteLocalRef(objectClass);
+            return false;
         }
 
+        jmethodID method = env->GetStaticMethodID(collectionsClass, "unmodifiableMap", "(Ljava/util/Map;)Ljava/util/Map;");
+        jobject unmodifiablePreferences = env->CallStaticObjectMethod(collectionsClass, method, newPreferences);
+        if (!CheckAndClearException(env)) {
+            env->CallVoidMethod(m_grefThis, javaIDs.Application.notifyPreferencesChangedMID, unmodifiablePreferences);
+        }
+
+        env->DeleteLocalRef(unmodifiablePreferences);
+        env->DeleteLocalRef(newPreferences);
         env->DeleteLocalRef(collectionsClass);
         env->DeleteLocalRef(objectClass);
         return true;
     }
 
+    env->DeleteLocalRef(newPreferences);
     env->DeleteLocalRef(objectClass);
     return false;
 }
