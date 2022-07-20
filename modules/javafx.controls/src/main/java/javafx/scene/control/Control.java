@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2022, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -238,19 +238,6 @@ public abstract class Control extends Region implements Skinnable {
         // only needed because invalidated() does not currently take
         // a reference to the old value.
         private Skin<?> oldValue;
-
-        @Override
-        //This code is basically a kind of optimization that prevents a Skin that is equal but not instance equal.
-        //Although it's not kosher from the property perspective (bindings won't pass through set), it should not do any harm.
-        //But it should be evaluated in the future.
-        public void set(Skin<?> v) {
-            if (v == null
-                ? oldValue == null
-                : oldValue != null && v.getClass().equals(oldValue.getClass()))
-                return;
-
-            super.set(v);
-        }
 
         @Override protected void invalidated() {
             Skin<?> skin = get();

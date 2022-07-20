@@ -1,12 +1,13 @@
 /*
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  JFXcore designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -17,36 +18,80 @@
  * You should have received a copy of the GNU General Public License version
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package test.javafx.scene.control.skin;
-
-import javafx.scene.Node;
-import javafx.scene.control.Spinner;
-import javafx.scene.control.SpinnerValueFactory;
-import javafx.scene.control.skin.SpinnerSkin;
-import org.junit.Before;
-import org.junit.Test;
-import test.com.sun.javafx.scene.control.infrastructure.MouseEventFirer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Before;
+import org.junit.Test;
+import test.com.sun.javafx.scene.control.infrastructure.MouseEventFirer;
+
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.skin.SpinnerSkin;
+import javafx.scene.layout.Region;
+
+/**
+ * Tests for SpinnerSkin
+ */
 public class SpinnerSkinTest {
-    private Spinner<Double> spinner;
+    private static final double CONTROL_WIDTH = 300;
+    private static final double CONTROL_HEIGHT = 300;
+    private static final double PADDING_TOP = 5;
+    private static final double PADDING_RIGHT = 7;
+    private static final double PADDING_BOTTOM = 11;
+    private static final double PADDING_LEFT = 13;
+    private static final double WIDTH = CONTROL_WIDTH - PADDING_LEFT - PADDING_RIGHT;
+    private static final double HEIGHT = CONTROL_HEIGHT - PADDING_TOP - PADDING_BOTTOM;
+    private static final double PADDING_DECREMENT_ARROW_TOP = 1;
+    private static final double PADDING_DECREMENT_ARROW_RIGHT = 2;
+    private static final double PADDING_DECREMENT_ARROW_BOTTOM = 3;
+    private static final double PADDING_DECREMENT_ARROW_LEFT = 4;
+    private static final double PADDING_INCREMENT_ARROW_TOP = 2;
+    private static final double PADDING_INCREMENT_ARROW_RIGHT = 1;
+    private static final double PADDING_INCREMENT_ARROW_BOTTOM = 4;
+    private static final double PADDING_INCREMENT_ARROW_LEFT = 3;
+    private static final double DECREMENT_ARROW_WIDTH = PADDING_DECREMENT_ARROW_LEFT + PADDING_DECREMENT_ARROW_RIGHT;
+    private static final double DECREMENT_ARROW_HEIGHT = PADDING_DECREMENT_ARROW_TOP + PADDING_DECREMENT_ARROW_BOTTOM;
+    private static final double INCREMENT_ARROW_WIDTH = PADDING_INCREMENT_ARROW_LEFT + PADDING_INCREMENT_ARROW_RIGHT;
+    private static final double INCREMENT_ARROW_HEIGHT = PADDING_INCREMENT_ARROW_TOP + PADDING_INCREMENT_ARROW_BOTTOM;
+
+    private Spinner<?> spinner;
+
+    private Region decrementArrowButton;
+    private Region incrementArrowButton;
 
     @Before
-    public void setup() {
+    public void before() {
         spinner = new Spinner<>(new SpinnerValueFactory.DoubleSpinnerValueFactory(0, 100, 0));
+        spinner.resize(CONTROL_WIDTH, CONTROL_HEIGHT);
         spinner.setSkin(new SpinnerSkin<>(spinner));
+
+        decrementArrowButton = (Region)spinner.lookup(".decrement-arrow-button");
+        incrementArrowButton = (Region)spinner.lookup(".increment-arrow-button");
+
+        // Give everything some weird paddings so anomalies should not go undetected:
+        spinner.setPadding(new Insets(PADDING_TOP, PADDING_RIGHT, PADDING_BOTTOM, PADDING_LEFT));
+        decrementArrowButton.setPadding(new Insets(PADDING_DECREMENT_ARROW_TOP, PADDING_DECREMENT_ARROW_RIGHT, PADDING_DECREMENT_ARROW_BOTTOM, PADDING_DECREMENT_ARROW_LEFT));
+        incrementArrowButton.setPadding(new Insets(PADDING_INCREMENT_ARROW_TOP, PADDING_INCREMENT_ARROW_RIGHT, PADDING_INCREMENT_ARROW_BOTTOM, PADDING_INCREMENT_ARROW_LEFT));
     }
 
     @Test
     public void testNotUserModifiedWhenDecrementButtonIsClickedWithMinValue() {
         Node button = spinner.getSkin().getNode().lookup(".decrement-arrow-button");
         new MouseEventFirer(button).fireMousePressAndRelease();
-        assertEquals(0, spinner.getValue(), 0.001);
+        assertEquals(0, (double)spinner.getValue(), 0.001);
         assertFalse(spinner.isUserModified());
     }
 
@@ -54,14 +99,75 @@ public class SpinnerSkinTest {
     public void testUserModifiedWhenIncrementButtonIsClicked() {
         Node button = spinner.getSkin().getNode().lookup(".increment-arrow-button");
         new MouseEventFirer(button).fireMousePressAndRelease();
-        assertEquals(1, spinner.getValue(), 0.001);
+        assertEquals(1, (double)spinner.getValue(), 0.001);
         assertTrue(spinner.isUserModified());
     }
 
     @Test
     public void testNotUserModifiedWhenIncrementedProgrammatically() {
         spinner.increment();
-        assertEquals(1, spinner.getValue(), 0.001);
+        assertEquals(1, (double)spinner.getValue(), 0.001);
         assertFalse(spinner.isUserModified());
+    }
+
+    @Test
+    public void shouldPositionArrowsRightAndAboveEachOther() {  // This is the default style
+        spinner.layout();
+
+        double widest = Math.max(DECREMENT_ARROW_WIDTH, INCREMENT_ARROW_WIDTH);
+
+        assertEquals(new BoundingBox(PADDING_LEFT + WIDTH - widest, PADDING_TOP + HEIGHT / 2, widest, HEIGHT / 2), decrementArrowButton.getBoundsInParent());
+        assertEquals(new BoundingBox(PADDING_LEFT + WIDTH - widest, PADDING_TOP, widest, HEIGHT / 2), incrementArrowButton.getBoundsInParent());
+    }
+
+    @Test
+    public void shouldPositionArrowsLeftAndAboveEachOther() {
+        spinner.getStyleClass().setAll(Spinner.STYLE_CLASS_ARROWS_ON_LEFT_VERTICAL);
+        spinner.layout();
+
+        double widest = Math.max(DECREMENT_ARROW_WIDTH, INCREMENT_ARROW_WIDTH);
+
+        assertEquals(new BoundingBox(PADDING_LEFT, PADDING_TOP + HEIGHT / 2, widest, HEIGHT / 2), decrementArrowButton.getBoundsInParent());
+        assertEquals(new BoundingBox(PADDING_LEFT, PADDING_TOP, widest, HEIGHT / 2), incrementArrowButton.getBoundsInParent());
+    }
+
+    @Test
+    public void shouldPositionArrowsLeftAndNextToEachOther() {
+        spinner.getStyleClass().setAll(Spinner.STYLE_CLASS_ARROWS_ON_LEFT_HORIZONTAL);
+        spinner.layout();
+
+        assertEquals(new BoundingBox(PADDING_LEFT, PADDING_TOP, DECREMENT_ARROW_WIDTH, HEIGHT), decrementArrowButton.getBoundsInParent());
+        assertEquals(new BoundingBox(PADDING_LEFT + DECREMENT_ARROW_WIDTH, PADDING_TOP, INCREMENT_ARROW_WIDTH, HEIGHT), incrementArrowButton.getBoundsInParent());
+    }
+
+    @Test
+    public void shouldPositionArrowsRightAndNextToEachOther() {
+        spinner.getStyleClass().setAll(Spinner.STYLE_CLASS_ARROWS_ON_RIGHT_HORIZONTAL);
+        spinner.layout();
+
+        assertEquals(new BoundingBox(PADDING_LEFT + WIDTH - DECREMENT_ARROW_WIDTH - INCREMENT_ARROW_WIDTH, PADDING_TOP, DECREMENT_ARROW_WIDTH, HEIGHT), decrementArrowButton.getBoundsInParent());
+        assertEquals(new BoundingBox(PADDING_LEFT + WIDTH - INCREMENT_ARROW_WIDTH, PADDING_TOP, INCREMENT_ARROW_WIDTH, HEIGHT), incrementArrowButton.getBoundsInParent());
+    }
+
+    @Test
+    public void shouldPositionArrowsSplitLeftAndRight() {
+        spinner.getStyleClass().setAll(Spinner.STYLE_CLASS_SPLIT_ARROWS_HORIZONTAL);
+        spinner.layout();
+
+        double widest = Math.max(DECREMENT_ARROW_WIDTH, INCREMENT_ARROW_WIDTH);
+
+        assertEquals(new BoundingBox(PADDING_LEFT, PADDING_TOP, widest, HEIGHT), decrementArrowButton.getBoundsInParent());
+        assertEquals(new BoundingBox(PADDING_LEFT + WIDTH - widest, PADDING_TOP, widest, HEIGHT), incrementArrowButton.getBoundsInParent());
+    }
+
+    @Test
+    public void shouldPositionArrowsSplitTopAndBottom() {
+        spinner.getStyleClass().setAll(Spinner.STYLE_CLASS_SPLIT_ARROWS_VERTICAL);
+        spinner.layout();
+
+        double tallest = Math.max(DECREMENT_ARROW_HEIGHT, INCREMENT_ARROW_HEIGHT);
+
+        assertEquals(new BoundingBox(PADDING_LEFT, PADDING_TOP + HEIGHT - tallest, WIDTH, tallest), decrementArrowButton.getBoundsInParent());
+        assertEquals(new BoundingBox(PADDING_LEFT, PADDING_TOP, WIDTH, tallest), incrementArrowButton.getBoundsInParent());
     }
 }

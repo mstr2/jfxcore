@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -32,6 +32,7 @@ import com.sun.javafx.geom.PickRay;
 import com.sun.javafx.geom.transform.BaseTransform;
 import com.sun.javafx.scene.input.PickResultChooser;
 import com.sun.javafx.scene.traversal.Direction;
+import com.sun.javafx.scene.traversal.TraversalMethod;
 import com.sun.javafx.sg.prism.NGNode;
 import com.sun.javafx.util.Utils;
 import java.util.List;
@@ -239,8 +240,8 @@ public abstract class NodeHelper {
         return nodeAccessor.showMnemonicsProperty(node);
     }
 
-    public static boolean traverse(Node node, Direction direction) {
-        return nodeAccessor.traverse(node, direction);
+    public static boolean traverse(Node node, Direction direction, TraversalMethod method) {
+        return nodeAccessor.traverse(node, direction, method);
     }
 
     public static double getPivotX(Node node) {
@@ -313,6 +314,10 @@ public abstract class NodeHelper {
         return nodeAccessor.findStyles(node, styleMap);
     }
 
+    public static void requestFocusVisible(Node node) {
+        nodeAccessor.requestFocusVisible(node);
+    }
+
     public static <T extends Event> void setEventHandler(Node node, EventType<T> eventType, EventHandler<? super T> eventHandler) {
         nodeAccessor.setEventHandler(node, eventType, eventHandler);
     }
@@ -368,7 +373,7 @@ public abstract class NodeHelper {
         void setShowMnemonics(Node node, boolean value);
         boolean isShowMnemonics(Node node);
         BooleanProperty showMnemonicsProperty(Node node);
-        boolean traverse(Node node, Direction direction);
+        boolean traverse(Node node, Direction direction, TraversalMethod method);
         double getPivotX(Node node);
         double getPivotY(Node node);
         double getPivotZ(Node node);
@@ -388,6 +393,7 @@ public abstract class NodeHelper {
         List<Style> getMatchingStyles(CssMetaData cssMetaData, Styleable styleable);
         Map<StyleableProperty<?>,List<Style>> findStyles(Node node,
                 Map<StyleableProperty<?>,List<Style>> styleMap);
+        void requestFocusVisible(Node node);
         <T extends Event> void setEventHandler(Node node, EventType<T> eventType, EventHandler<? super T> eventHandler);
         List<CommandHandler> getCommandHandlers(Node node);
         List<EventBinding<?>> getEventBindings(Node node);
