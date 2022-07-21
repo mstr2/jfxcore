@@ -9,6 +9,7 @@ on:
 
 jobs:
   validation:
+    if: github.repository_owner == 'jfxcore'
     name: "Gradle Wrapper Validation"
     runs-on: ubuntu-latest
     steps:
@@ -16,6 +17,7 @@ jobs:
       - uses: gradle/wrapper-validation-action@v1
 
   linux_build:
+    if: github.repository_owner == 'jfxcore'
     name: Linux x64
     needs: validation
     runs-on: "ubuntu-20.04"
@@ -59,6 +61,7 @@ jobs:
           path: build/publications
 
   macos_build:
+    if: github.repository_owner == 'jfxcore'
     name: macOS x64
     needs: validation
     runs-on: "macos-10.15"
@@ -96,6 +99,7 @@ jobs:
           path: build/publications
 
   windows_build:
+    if: github.repository_owner == 'jfxcore'
     name: Windows x64
     needs: validation
     runs-on: "windows-2019"
@@ -152,6 +156,7 @@ jobs:
           path: build/publications
 
   deploy:
+    if: github.repository_owner == 'jfxcore'
     name: Deployment
     needs: [linux_build, macos_build, windows_build]
     runs-on: ubuntu-latest
