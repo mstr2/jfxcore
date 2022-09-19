@@ -23,23 +23,65 @@ package javafx.scene.control.cell.behavior;
 
 import javafx.scene.Node;
 import javafx.scene.control.Cell;
+import javafx.scene.control.cell.CellTemplate;
+import javafx.util.Incubating;
 
+/**
+ * Base class for behaviors that run when a {@link Cell}'s editing mode is started,
+ * cancelled or when the changes are committed.
+ * <p>
+ * {@code CellBehavior} is a mechanism to customize the behavior of a control that is placed
+ * in a {@link CellTemplate}. It can be added to any control within a {@code CellTemplate} by
+ * adding it to the control's static {@link CellTemplate#getEditingBehaviors(Node)} list.
+ *
+ * @param <T> the type of the templated node
+ * @since JFXcore 19
+ */
+@Incubating
 public abstract class CellBehavior<T extends Node> {
 
     private final Class<?> nodeClass;
 
+    /**
+     * Initializes a new instance of {@code CellBehavior}.
+     *
+     * @param nodeClass the type of the templated node
+     */
     protected CellBehavior(Class<T> nodeClass) {
         this.nodeClass = nodeClass;
     }
 
+    /**
+     * Gets the type of the templated node.
+     *
+     * @return the {@code Class} of the node
+     */
     public final Class<?> getNodeClass() {
         return nodeClass;
     }
 
+    /**
+     * Occurs when cell editing has started.
+     *
+     * @param cell the cell
+     * @param node the templated node
+     */
     public void onStartEdit(Cell<Object> cell, T node) {}
 
+    /**
+     * Occurs when cell editing was cancelled.
+     *
+     * @param cell the cell
+     * @param node the templated node
+     */
     public void onCancelEdit(Cell<Object> cell, T node) {}
 
+    /**
+     * Occurs when cell editing was completed by committing the changes.
+     *
+     * @param cell the cell
+     * @param node the templated node
+     */
     public void onCommitEdit(Cell<Object> cell, T node) {}
 
 }

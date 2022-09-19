@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.sun.javafx.scene.control.Properties;
-import com.sun.javafx.scene.control.template.TemplateObserver;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.collections.FXCollections;
@@ -53,6 +52,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionModel;
+import com.sun.javafx.scene.control.template.TemplateManager;
 import com.sun.javafx.scene.control.behavior.ListViewBehavior;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
@@ -114,6 +114,7 @@ public class ListViewSkin<T> extends VirtualContainerBase<ListView<T>, ListCell<
 
     private int itemCount = -1;
     private ListViewBehavior<T> behavior;
+    private TemplateManager templateManager;
 
 
 
@@ -193,7 +194,12 @@ public class ListViewSkin<T> extends VirtualContainerBase<ListView<T>, ListCell<
     public ListViewSkin(final ListView<T> control) {
         super(control);
 
-        TemplateObserver.install(control);
+        templateManager = new TemplateManager(control) {
+            @Override
+            protected void onApplyTemplate() {
+                control.getProperties().put(Properties.RECREATE, Boolean.TRUE);
+            }
+        };
 
         // install default input map for the ListView control
         behavior = new ListViewBehavior<>(control);
@@ -282,6 +288,8 @@ public class ListViewSkin<T> extends VirtualContainerBase<ListView<T>, ListCell<
         if (behavior != null) {
             behavior.dispose();
         }
+
+        templateManager.dispose();
     }
 
     /** {@inheritDoc} */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,116 +21,308 @@
 
 package com.sun.javafx.scene.control.template;
 
+import javafx.beans.property.ReadOnlyProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.MapChangeListener;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TreeTableView;
-import javafx.scene.control.TreeView;
-import javafx.scene.Template;
+import javafx.scene.control.Template;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-public final class TemplateObserver implements MapChangeListener<Object, Object>, ChangeListener<Parent> {
+/**
+ * {@code TemplateObserver} is installed on a node (and all of its parents) to observe the scene graph
+ * and notify downstream {@code TemplateObservers} when templates are added or removed from the node's
+ * {@link Node#getProperties()} map, when a template was changed, or when the parent of a node in the
+ * scene graph has changed. {@link TemplateManager} listens to these notifications and potentially
+ * re-applies templates.
+ */
+public final class TemplateObserver implements MapChangeListener<Object, Object>,
+                                               ChangeListener<Parent>,
+                                               TemplateListener {
 
-    private static final String KEY = TemplateObserver.class.getName();
+    /**
+     * Acquires the {@code TemplateObserver} for the specified node.
+     * If a {@code TemplateObserver} already exists, it is returned and its use count is increased.
+     * Otherwise, a new {@code TemplateObserver} instance will be created.
+     */
+    static TemplateObserver acquire(Node node) {
+        TemplateObserver observer = getTemplateObserver(node);
+        if (observer != null) {
+            observer.useCount += 1;
+            return observer;
+        }
 
-    private final Node host;
-    private final List<TemplateObserver> children = new ArrayList<>(2);
-
-    public static void install(Node host) {
-        host.getProperties().put(KEY, new TemplateObserver(host));
+        observer = new TemplateObserver(node);
+        observer.useCount  = 1;
+        return observer;
     }
 
-    public static TemplateObserver get(Node host) {
-        return (TemplateObserver)host.getProperties().get(KEY);
+    /**
+     * Releases a {@code TemplateObserver} that was acquired with {@link #acquire(Node)}.
+     * This decreases the use count of the {@code TemplateObserver}.
+     * If the use count reaches zero, the {@code TemplateObserver} is disposed.
+     */
+    static void release(TemplateObserver observer) {
+        observer.useCount -= 1;
+
+        if (observer.useCount == 0) {
+            observer.dispose();
+        }
     }
 
-    private TemplateObserver(Node host) {
-        this.host = host;
-        host.parentProperty().addListener(this);
-        host.getProperties().addListener(this);
-
-        Parent parent = host.getParent();
-        if (parent != null) {
-            if (parent.hasProperties() && parent.getProperties().get(KEY) instanceof TemplateObserver observer) {
-                observer.childAdded(this);
+    /**
+     * Tries to find a template that matches the specified data object on the specified node
+     * or any of its parents.
+     *
+     * @param node the {@code Node}
+     * @param data the data object
+     * @return a {@code Template} instance or {@code null}
+     */
+    static Template<?> findTemplate(Node node, Object data) {
+        Node parent = node;
+        while (parent != null) {
+            TemplateObserver observer = getTemplateObserver(parent);
+            Template<?> template = observer != null ? observer.findTemplate(data) : null;
+            if (template != null) {
+                return template;
             } else {
-                var observer = new TemplateObserver(parent);
-                parent.getProperties().put(KEY, observer);
-                observer.childAdded(this);
+                parent = parent.getParent();
+            }
+        }
+
+        return null;
+    }
+
+    private final Node node;
+    private final List<TemplateObserver> children = new ArrayList<>(2);
+    private AmbientTemplateContainer container;
+    private List<Runnable> applyListeners;
+    private int useCount;
+
+    private TemplateObserver(Node node) {
+        this.node = node;
+        this.container = null;
+
+        for (Map.Entry<Object, Object> entry : node.getProperties().entrySet()) {
+            if (entry.getValue() instanceof Template<?> template) {
+                TemplateHelper.addListener(template, this);
+
+                if (template.isAmbient()) {
+                    if (container == null) {
+                        container = new AmbientTemplateContainer();
+                    }
+
+                    container.add(template);
+                }
+            }
+        }
+
+        node.parentProperty().addListener(this);
+        node.getProperties().addListener(this);
+
+        if (node.getProperties().put(TemplateObserver.class, this) != null) {
+            throw new IllegalStateException("TemplateObserver is already installed on " + node);
+        }
+
+        Node parent = node.getParent();
+        if (parent != null) {
+            connectToParent(parent);
+        }
+    }
+
+    // package-private for testing
+    int getUseCount() {
+        return useCount;
+    }
+
+    // package-private for testing
+    List<TemplateObserver> getChildren() {
+        return children;
+    }
+
+    /**
+     * Adds a listener that is invoked when a template in the scene graph may need to be reapplied.
+     */
+    public void addApplyListener(Runnable listener) {
+        if (applyListeners == null) {
+            applyListeners = new ArrayList<>(2);
+        }
+
+        applyListeners.add(listener);
+    }
+
+    /**
+     * Removes a listener that was added via {@link #addApplyListener(Runnable)}.
+     */
+    public void removeApplyListener(Runnable listener) {
+        if (applyListeners != null) {
+            applyListeners.remove(listener);
+
+            if (applyListeners.isEmpty()) {
+                applyListeners = null;
             }
         }
     }
 
+    private void dispose() {
+        node.parentProperty().removeListener(this);
+        node.getProperties().removeListener(this);
+        node.getProperties().remove(TemplateObserver.class);
+
+        for (Map.Entry<Object, Object> entry : node.getProperties().entrySet()) {
+            if (entry.getValue() instanceof Template<?> template) {
+                TemplateHelper.removeListener(template, this);
+            }
+        }
+
+        Node parent = node.getParent();
+        if (parent != null) {
+            disconnectFromParent(parent);
+        }
+    }
+
+    private void connectToParent(Node parent) {
+        TemplateObserver parentObserver = getTemplateObserver(parent);
+        if (parentObserver == null) {
+            parentObserver = new TemplateObserver(parent);
+            parent.getProperties().put(TemplateObserver.class, parentObserver);
+        }
+
+        parentObserver.children.add(this);
+        parentObserver.useCount += 1;
+    }
+
+    private void disconnectFromParent(Node parent) {
+        TemplateObserver parentObserver = getTemplateObserver(parent);
+        parentObserver.children.remove(this);
+        parentObserver.useCount -= 1;
+
+        if (parentObserver.useCount == 0) {
+            parentObserver.dispose();
+        }
+    }
+
+    private Template<?> findTemplate(Object item) {
+        return container != null ? container.find(item) : null;
+    }
+
+    /**
+     * Invoked when the {@link Node#getProperties()} map of the node that corresponds to this
+     * {@code TemplateObserver has changed.
+     */
+    @Override
+    public void onChanged(Change<?, ?> change) {
+        boolean templateChanged = false;
+
+        if (container != null && change.wasRemoved() && change.getValueRemoved() instanceof Template<?> template) {
+            TemplateHelper.removeListener(template, this);
+
+            if (template.isAmbient()) {
+                container.remove(template);
+                templateChanged = true;
+            }
+        }
+
+        if (change.wasAdded() && change.getValueAdded() instanceof Template<?> template) {
+            TemplateHelper.addListener(template, this);
+
+            if (template.isAmbient()) {
+                if (container == null) {
+                    container = new AmbientTemplateContainer();
+                }
+
+                container.add(template);
+                templateChanged = true;
+            }
+        }
+
+        if (templateChanged) {
+            if (container != null && container.isEmpty()) {
+                container = null;
+            }
+
+            fireReapplyEvent();
+        }
+    }
+
+    /**
+     * Invoked when the {@link Node#parentProperty()} of the node that corresponds to this
+     * {@code TemplateObserver} has changed.
+     */
     @Override
     public void changed(ObservableValue<? extends Parent> observable, Parent oldParent, Parent newParent) {
         if (oldParent != null) {
-            TemplateObserver observer = (TemplateObserver)oldParent.getProperties().get(KEY);
-            if (observer != null) {
-                observer.childRemoved(this);
-            }
+            disconnectFromParent(oldParent);
         }
 
         if (newParent != null) {
-            TemplateObserver observer = (TemplateObserver)newParent.getProperties().get(KEY);
-            if (observer == null) {
-                observer = new TemplateObserver(newParent);
-                newParent.getProperties().put(KEY, observer);
-            }
+            connectToParent(newParent);
 
-            observer.childAdded(this);
+            if (isAnyTemplateInSceneGraph()) {
+                fireReapplyEvent();
+            }
         }
     }
 
+    /**
+     * Invoked when a template has changed (i.e. one of its properties has changed).
+     */
     @Override
-    public void onChanged(Change<?, ?> change) {
-        boolean templatesChanged =
-            change.wasAdded() && change.getValueAdded() instanceof Template ||
-            change.wasRemoved() && change.getValueRemoved() instanceof Template;
+    public void onTemplateChanged(Template<?> template, ReadOnlyProperty<?> observable) {
+        if (observable == template.ambientProperty()) {
+            if (template.isAmbient()) {
+                if (container == null) {
+                    container = new AmbientTemplateContainer();
+                }
 
-        if (templatesChanged) {
-            notifyTemplatesChanged();
-        }
-    }
-
-    private void childRemoved(TemplateObserver observer) {
-        children.remove(observer);
-
-        if (children.isEmpty()) {
-            host.getProperties().remove(KEY);
-            host.getProperties().removeListener(this);
-
-            Parent parent = host.getParent();
-            if (parent != null
-                    && parent.hasProperties()
-                    && parent.getProperties().get(KEY) instanceof TemplateObserver parentObserver) {
-                parentObserver.childRemoved(this);
+                container.add(template);
+            } else {
+                container.remove(template);
             }
         }
+
+        fireReapplyEvent();
     }
 
-    private void childAdded(TemplateObserver observer) {
-        children.add(observer);
+    private void fireReapplyEvent() {
+        if (applyListeners != null) {
+            for (Runnable listener : applyListeners) {
+                listener.run();
+            }
+        }
+
+        for (TemplateObserver childObserver : children) {
+            childObserver.fireReapplyEvent();
+        }
     }
 
-    private void notifyTemplatesChanged() {
-        if (host instanceof ListView<?> listView) {
-            listView.refresh();
-        } else if (host instanceof TableView<?> tableView) {
-            tableView.refresh();
-        } else if (host instanceof TreeView<?> treeView) {
-            treeView.refresh();
-        } else if (host instanceof TreeTableView<?> treeTableView) {
-            treeTableView.refresh();
+    private boolean isAnyTemplateInSceneGraph() {
+        if (container != null && !container.isEmpty()) {
+            return true;
         }
 
-        for (TemplateObserver child : children) {
-            child.notifyTemplatesChanged();
+        Node parent = node;
+        while (parent != null) {
+            TemplateObserver observer = getTemplateObserver(parent);
+            if (observer != null && observer.container != null && !observer.container.isEmpty()) {
+                return true;
+            }
+
+            parent = parent.getParent();
         }
+
+        return false;
+    }
+
+    private static TemplateObserver getTemplateObserver(Node node) {
+        if (node == null || !node.hasProperties()) {
+            return null;
+        }
+
+        return (TemplateObserver)node.getProperties().get(TemplateObserver.class);
     }
 
 }

@@ -19,11 +19,28 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package javafx.scene;
+package javafx.scene.control;
 
+import javafx.scene.Node;
+import javafx.util.Incubating;
+
+/**
+ * Represents a function that creates a visual representation for a data object.
+ *
+ * @see Template
+ * @param <T> the data type
+ * @since JFXcore 19
+ */
+@Incubating
 @FunctionalInterface
 public interface TemplateContent<T> {
 
-    Node newInstance(T item);
+    /**
+     * Returns the visual representation of the specified data object.
+     *
+     * @param data the data object
+     * @return a {@code Node} that represents the data object
+     */
+    Node newInstance(T data);
 
 }

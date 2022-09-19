@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,7 @@
 package javafx.scene.control.skin;
 
 import com.sun.javafx.scene.control.Properties;
-import com.sun.javafx.scene.control.template.TemplateObserver;
+import com.sun.javafx.scene.control.template.TemplateManager;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.WeakInvalidationListener;
@@ -88,7 +88,7 @@ public class TreeViewSkin<T> extends VirtualContainerBase<TreeView<T>, TreeCell<
     private final VirtualFlow<TreeCell<T>> flow;
     private WeakReference<TreeItem<T>> weakRoot;
     private final TreeViewBehavior<T> behavior;
-
+    private final TemplateManager templateManager;
 
 
     /* *************************************************************************
@@ -154,7 +154,12 @@ public class TreeViewSkin<T> extends VirtualContainerBase<TreeView<T>, TreeCell<
     public TreeViewSkin(final TreeView control) {
         super(control);
 
-        TemplateObserver.install(control);
+        templateManager = new TemplateManager(control) {
+            @Override
+            protected void onApplyTemplate() {
+                control.getProperties().put(Properties.RECREATE, Boolean.TRUE);
+            }
+        };
 
         // install default input map for the TreeView control
         behavior = new TreeViewBehavior<>(control);
@@ -233,6 +238,8 @@ public class TreeViewSkin<T> extends VirtualContainerBase<TreeView<T>, TreeCell<
         if (behavior != null) {
             behavior.dispose();
         }
+
+        templateManager.dispose();
     }
 
     /** {@inheritDoc} */

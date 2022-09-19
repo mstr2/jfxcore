@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2021, JFXcore. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,8 +31,7 @@ import com.sun.javafx.scene.control.Properties;
 import com.sun.javafx.scene.control.ReadOnlyUnbackedObservableList;
 
 import com.sun.javafx.scene.control.TreeTableViewBackingList;
-import com.sun.javafx.scene.control.skin.Utils;
-import com.sun.javafx.scene.control.template.TemplateObserver;
+import com.sun.javafx.scene.control.template.TemplateManager;
 import javafx.event.WeakEventHandler;
 import javafx.scene.control.*;
 
@@ -77,6 +76,7 @@ public class TreeTableViewSkin<T> extends TableViewSkinBase<T, TreeItem<T>, Tree
 
     private WeakReference<TreeItem<T>> weakRootRef;
     private final TreeTableViewBehavior<T>  behavior;
+    private final TemplateManager templateManager;
 
 
 
@@ -136,7 +136,12 @@ public class TreeTableViewSkin<T> extends TableViewSkinBase<T, TreeItem<T>, Tree
     public TreeTableViewSkin(final TreeTableView<T> control) {
         super(control);
 
-        TemplateObserver.install(control);
+        templateManager = new TemplateManager(control) {
+            @Override
+            protected void onApplyTemplate() {
+                control.getProperties().put(Properties.RECREATE, Boolean.TRUE);
+            }
+        };
 
         // install default input map for the TreeTableView control
         behavior = new TreeTableViewBehavior<>(control);
@@ -210,6 +215,8 @@ public class TreeTableViewSkin<T> extends TableViewSkinBase<T, TreeItem<T>, Tree
         if (behavior != null) {
             behavior.dispose();
         }
+
+        templateManager.dispose();
     }
 
     /** {@inheritDoc} */

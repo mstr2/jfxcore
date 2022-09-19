@@ -23,18 +23,27 @@ package javafx.scene.control.cell;
 
 import javafx.beans.NamedArg;
 import javafx.scene.Node;
-import javafx.scene.Template;
+import javafx.scene.control.Template;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeView;
+import javafx.util.Incubating;
 
+/**
+ * Template-based cell factory for {@link TreeView}.
+ *
+ * @param <T> the data type
+ *
+ * @since JFXcore 19
+ */
+@Incubating
 public final class TemplatedTreeCellFactory<T> extends TemplatedCellFactory<T, TreeView<T>, TreeCell<T>> {
 
     public TemplatedTreeCellFactory() {
         super(TreeView::refresh);
     }
 
-    public TemplatedTreeCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
-        super(TreeView::refresh, cellTemplate);
+    public TemplatedTreeCellFactory(@NamedArg("template") Template<T> template) {
+        super(TreeView::refresh, template);
     }
 
     @Override
@@ -48,7 +57,7 @@ public final class TemplatedTreeCellFactory<T> extends TemplatedCellFactory<T, T
 
                 @Override
                 protected Template<T> getTemplate() {
-                    return getCellTemplate();
+                    return TemplatedTreeCellFactory.this.getTemplate();
                 }
             };
 

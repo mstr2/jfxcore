@@ -23,18 +23,27 @@ package javafx.scene.control.cell;
 
 import javafx.beans.NamedArg;
 import javafx.scene.Node;
-import javafx.scene.Template;
+import javafx.scene.control.Template;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.util.Incubating;
 
+/**
+ * Template-based cell factory for {@link ListView}.
+ *
+ * @param <T> the data type
+ *
+ * @since JFXcore 19
+ */
+@Incubating
 public final class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, ListView<T>, ListCell<T>> {
 
     public TemplatedListCellFactory() {
         super(ListView::refresh);
     }
 
-    public TemplatedListCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
-        super(ListView::refresh, cellTemplate);
+    public TemplatedListCellFactory(@NamedArg("template") Template<T> template) {
+        super(ListView::refresh, template);
     }
 
     @Override
@@ -48,7 +57,7 @@ public final class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, L
 
                 @Override
                 protected Template<T> getTemplate() {
-                    return getCellTemplate();
+                    return TemplatedListCellFactory.this.getTemplate();
                 }
             };
 

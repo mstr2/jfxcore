@@ -21,16 +21,18 @@
 
 package javafx.scene.control.cell;
 
+import com.sun.javafx.scene.control.template.TemplateManager;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.Template;
-import javafx.scene.TemplateContent;
 import javafx.scene.control.Cell;
+import javafx.scene.control.Template;
+import javafx.scene.control.TemplateContent;
 import javafx.scene.control.cell.behavior.CellBehavior;
 import javafx.util.Callback;
+import javafx.util.Incubating;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.List;
@@ -38,10 +40,25 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.Consumer;
 
-@DefaultProperty("cellTemplate")
+/**
+ * Base class for template-based cell factories.
+ *
+ * @see TemplatedListCellFactory
+ * @see TemplatedTableCellFactory
+ * @see TemplatedTreeCellFactory
+ * @see TemplatedTreeTableCellFactory
+ *
+ * @param <T> the data type
+ * @param <V> the view type
+ * @param <C> the cell type
+ *
+ * @since JFXcore 19
+ */
+@Incubating
+@DefaultProperty("template")
 public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
 
-    private final ObjectProperty<Template<T>> cellTemplate = new ObjectPropertyBase<>() {
+    private final ObjectProperty<Template<T>> template = new ObjectPropertyBase<>() {
         @Override
         public Object getBean() {
             return TemplatedCellFactory.this;
@@ -49,7 +66,7 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
 
         @Override
         public String getName() {
-            return "cellTemplate";
+            return "template";
         }
 
         @Override
@@ -68,21 +85,21 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
         cache = new Cache<>(refreshMethod);
     }
 
-    protected TemplatedCellFactory(Consumer<V> refreshMethod, Template<T> cellTemplate) {
+    protected TemplatedCellFactory(Consumer<V> refreshMethod, Template<T> template) {
         cache = new Cache<>(refreshMethod);
-        setCellTemplate(cellTemplate);
+        setTemplate(template);
     }
 
-    public final ObjectProperty<Template<T>> cellTemplateProperty() {
-        return cellTemplate;
+    public final ObjectProperty<Template<T>> templateProperty() {
+        return template;
     }
 
-    public final void setCellTemplate(Template<T> value) {
-        cellTemplate.set(value);
+    public final void setTemplate(Template<T> value) {
+        template.set(value);
     }
 
-    public final Template<T> getCellTemplate() {
-        return cellTemplate.get();
+    public final Template<T> getTemplate() {
+        return template.get();
     }
 
     @Override
@@ -152,7 +169,7 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
 
     abstract static class CellWrapper<T> {
         private final Cell<T> cell;
-        private TemplateContent<T> currentTemplateContent;
+        private TemplateContent<? super T> currentTemplateContent;
         private Node currentTemplateNode;
         private T currentItem;
 
@@ -221,10 +238,10 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
 
         private boolean applyTemplate(T item, boolean editing) {
             Node listView = getControl();
-            Template<T> template = getTemplate();
+            Template<? super T> template = getTemplate();
 
-            if (template == null || !Template.match(template, item)) {
-                template = listView != null ? Template.find(listView, item) : null;
+            if (template == null || !TemplateManager.match(template, item)) {
+                template = listView != null ? TemplateManager.find(listView, item) : null;
             }
 
             if (template == null) {
@@ -233,7 +250,7 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
                 return false;
             }
 
-            TemplateContent<T> content = CellTemplate.getContent(template, editing);
+            TemplateContent<? super T> content = CellTemplate.getContent(template, editing);
 
             if (content == null) {
                 currentTemplateContent = null;

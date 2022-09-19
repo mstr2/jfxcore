@@ -25,16 +25,26 @@ import javafx.beans.NamedArg;
 import javafx.scene.Node;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableView;
-import javafx.scene.Template;
+import javafx.scene.control.Template;
+import javafx.util.Incubating;
 
+/**
+ * Template-based cell factory for {@link TableView}.
+ *
+ * @param <S> the data type
+ * @param <T> the type of the item contained in the cell
+ *
+ * @since JFXcore 19
+ */
+@Incubating
 public class TemplatedTableCellFactory<S, T> extends TemplatedCellFactory<T, TableView<T>, TableCell<S, T>> {
 
     public TemplatedTableCellFactory() {
         super(TableView::refresh);
     }
 
-    public TemplatedTableCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
-        super(TableView::refresh, cellTemplate);
+    public TemplatedTableCellFactory(@NamedArg("template") Template<T> template) {
+        super(TableView::refresh, template);
     }
 
     @Override
@@ -48,7 +58,7 @@ public class TemplatedTableCellFactory<S, T> extends TemplatedCellFactory<T, Tab
 
                 @Override
                 protected Template<T> getTemplate() {
-                    return getCellTemplate();
+                    return TemplatedTableCellFactory.this.getTemplate();
                 }
             };
 
