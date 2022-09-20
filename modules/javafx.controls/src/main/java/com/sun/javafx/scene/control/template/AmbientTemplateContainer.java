@@ -48,12 +48,12 @@ public final class AmbientTemplateContainer extends HashSet<Template<?>> {
      */
     @SuppressWarnings("unchecked")
     public Template<?> find(Object data) {
-        Class<?> itemType = data.getClass();
+        Class<?> dataType = data.getClass();
         Template<?> match = null;
         boolean multipleMatches = false;
 
         for (Template<?> template : this) {
-            if (!template.isAmbient() || !template.getDataType().isAssignableFrom(itemType)) {
+            if (!template.isAmbient() || !template.getDataType().isAssignableFrom(dataType)) {
                 continue;
             }
 

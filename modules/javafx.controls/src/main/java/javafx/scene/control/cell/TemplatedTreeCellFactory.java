@@ -31,23 +31,31 @@ import javafx.util.Incubating;
 /**
  * Template-based cell factory for {@link TreeView}.
  *
- * @param <T> the data type
+ * @param <T> the item type
  *
  * @since JFXcore 19
  */
 @Incubating
 public final class TemplatedTreeCellFactory<T> extends TemplatedCellFactory<T, TreeView<T>, TreeCell<T>> {
 
+    /**
+     * Initializes a new instance of {@code TemplatedTreeCellFactory}.
+     */
     public TemplatedTreeCellFactory() {
         super(TreeView::refresh);
     }
 
-    public TemplatedTreeCellFactory(@NamedArg("template") Template<T> template) {
-        super(TreeView::refresh, template);
+    /**
+     * Initializes a new instance of {@code TemplatedTreeCellFactory}.
+     *
+     * @param cellTemplate the cell template for this {@code TemplatedTreeCellFactory}
+     */
+    public TemplatedTreeCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
+        super(TreeView::refresh, cellTemplate);
     }
 
     @Override
-    public TreeCell<T> createCell(TreeView<T> listView) {
+    protected TreeCell<T> createCell(TreeView<T> listView) {
         return new TreeCell<>() {
             final CellWrapper<T> cellWrapper = new CellWrapper<>(this) {
                 @Override
@@ -57,7 +65,7 @@ public final class TemplatedTreeCellFactory<T> extends TemplatedCellFactory<T, T
 
                 @Override
                 protected Template<T> getTemplate() {
-                    return TemplatedTreeCellFactory.this.getTemplate();
+                    return TemplatedTreeCellFactory.this.getCellTemplate();
                 }
             };
 

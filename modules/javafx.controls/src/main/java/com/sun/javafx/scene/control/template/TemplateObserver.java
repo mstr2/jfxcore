@@ -205,8 +205,8 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
         }
     }
 
-    private Template<?> findTemplate(Object item) {
-        return container != null ? container.find(item) : null;
+    private Template<?> findTemplate(Object data) {
+        return container != null ? container.find(data) : null;
     }
 
     /**

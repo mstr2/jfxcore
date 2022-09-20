@@ -48,7 +48,7 @@ import java.util.function.Consumer;
  * @see TemplatedTreeCellFactory
  * @see TemplatedTreeTableCellFactory
  *
- * @param <T> the data type
+ * @param <T> the item type
  * @param <V> the view type
  * @param <C> the cell type
  *
@@ -58,7 +58,33 @@ import java.util.function.Consumer;
 @DefaultProperty("template")
 public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
 
-    private final ObjectProperty<Template<T>> template = new ObjectPropertyBase<>() {
+    private Cache<V> cache;
+
+    /**
+     * Initializes a new instance of {@code TemplatedCellFactory}.
+     *
+     * @param refreshMethod the method that is invoked when templates need to be re-applied
+     */
+    protected TemplatedCellFactory(Consumer<V> refreshMethod) {
+        cache = new Cache<>(refreshMethod);
+    }
+
+    /**
+     * Initializes a new instance of {@code TemplatedCellFactory}.
+     *
+     * @param refreshMethod the method that is invoked when templates need to be re-applied
+     * @param cellTemplate the cell template for this {@code TemplatedCellFactory}
+     */
+    protected TemplatedCellFactory(Consumer<V> refreshMethod, Template<T> cellTemplate) {
+        cache = new Cache<>(refreshMethod);
+        setCellTemplate(cellTemplate);
+    }
+
+    /**
+     * The template that describes the visual representation of the cells created
+     * by this {@code TemplatedCellFactory}.
+     */
+    private final ObjectProperty<Template<T>> cellTemplate = new ObjectPropertyBase<>() {
         @Override
         public Object getBean() {
             return TemplatedCellFactory.this;
@@ -66,7 +92,7 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
 
         @Override
         public String getName() {
-            return "template";
+            return "cellTemplate";
         }
 
         @Override
@@ -79,27 +105,16 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
         }
     };
 
-    private Cache<V> cache;
-
-    protected TemplatedCellFactory(Consumer<V> refreshMethod) {
-        cache = new Cache<>(refreshMethod);
+    public final ObjectProperty<Template<T>> cellTemplateProperty() {
+        return cellTemplate;
     }
 
-    protected TemplatedCellFactory(Consumer<V> refreshMethod, Template<T> template) {
-        cache = new Cache<>(refreshMethod);
-        setTemplate(template);
+    public final void setCellTemplate(Template<T> value) {
+        cellTemplate.set(value);
     }
 
-    public final ObjectProperty<Template<T>> templateProperty() {
-        return template;
-    }
-
-    public final void setTemplate(Template<T> value) {
-        template.set(value);
-    }
-
-    public final Template<T> getTemplate() {
-        return template.get();
+    public final Template<T> getCellTemplate() {
+        return cellTemplate.get();
     }
 
     @Override
@@ -108,6 +123,12 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
         return createCell(param);
     }
 
+    /**
+     * Creates a new cell instance that represents the specified data item.
+     *
+     * @param item the data item
+     * @return a new cell instance
+     */
     protected abstract C createCell(V item);
 
     @SuppressWarnings({"rawtypes", "unchecked"})

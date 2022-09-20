@@ -31,23 +31,31 @@ import javafx.util.Incubating;
 /**
  * Template-based cell factory for {@link ListView}.
  *
- * @param <T> the data type
+ * @param <T> the item type
  *
  * @since JFXcore 19
  */
 @Incubating
 public final class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, ListView<T>, ListCell<T>> {
 
+    /**
+     * Initializes a new instance of {@code TemplatedListCellFactory}.
+     */
     public TemplatedListCellFactory() {
         super(ListView::refresh);
     }
 
-    public TemplatedListCellFactory(@NamedArg("template") Template<T> template) {
-        super(ListView::refresh, template);
+    /**
+     * Initializes a new instance of {@code TemplatedListCellFactory}.
+     *
+     * @param cellTemplate the cell template for this {@code TemplatedListCellFactory}
+     */
+    public TemplatedListCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
+        super(ListView::refresh, cellTemplate);
     }
 
     @Override
-    public ListCell<T> createCell(ListView<T> listView) {
+    protected ListCell<T> createCell(ListView<T> listView) {
         return new ListCell<>() {
             final CellWrapper<T> cellWrapper = new CellWrapper<>(this) {
                 @Override
@@ -57,7 +65,7 @@ public final class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, L
 
                 @Override
                 protected Template<T> getTemplate() {
-                    return TemplatedListCellFactory.this.getTemplate();
+                    return TemplatedListCellFactory.this.getCellTemplate();
                 }
             };
 

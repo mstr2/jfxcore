@@ -34,19 +34,19 @@ import java.util.function.Predicate;
 public abstract class TemplateManager {
 
     /**
-     * Tries to find a template in the scene graph that matches the specified item.
+     * Tries to find a template in the scene graph that matches the specified data object.
      */
     @SuppressWarnings("unchecked")
-    public static <T> Template<? super T> find(Node node, T item) {
-        return (Template<? super T>)TemplateObserver.findTemplate(node, item);
+    public static <T> Template<? super T> find(Node node, T data) {
+        return (Template<? super T>)TemplateObserver.findTemplate(node, data);
     }
 
     /**
      * Determines whether the template matches the specified item.
      */
-    public static <T> boolean match(Template<? super T> template, T item) {
+    public static <T> boolean match(Template<? super T> template, T data) {
         Predicate<? super T> selector = template.getSelector();
-        return selector == null || selector.test(item);
+        return selector == null || selector.test(data);
     }
 
     private final Runnable applyHandler = this::onApplyTemplate;

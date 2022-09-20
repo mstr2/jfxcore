@@ -31,24 +31,33 @@ import javafx.util.Incubating;
 /**
  * Template-based cell factory for {@link TableView}.
  *
- * @param <S> the data type
- * @param <T> the type of the item contained in the cell
+ * @param <S> The type of the TableView generic type (i.e. S == TableView&lt;S&gt;).
+ *            This should also match with the first generic type in TableColumn.
+ * @param <T> The type of the item contained within the cell.
  *
  * @since JFXcore 19
  */
 @Incubating
 public class TemplatedTableCellFactory<S, T> extends TemplatedCellFactory<T, TableView<T>, TableCell<S, T>> {
 
+    /**
+     * Initializes a new instance of {@code TemplatedTableCellFactory}.
+     */
     public TemplatedTableCellFactory() {
         super(TableView::refresh);
     }
 
-    public TemplatedTableCellFactory(@NamedArg("template") Template<T> template) {
-        super(TableView::refresh, template);
+    /**
+     * Initializes a new instance of {@code TemplatedTableCellFactory}.
+     *
+     * @param cellTemplate the cell template for this {@code TemplatedTableCellFactory}
+     */
+    public TemplatedTableCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
+        super(TableView::refresh, cellTemplate);
     }
 
     @Override
-    public TableCell<S, T> createCell(TableView<T> listView) {
+    protected TableCell<S, T> createCell(TableView<T> listView) {
         return new TableCell<>() {
             final CellWrapper<T> cellWrapper = new CellWrapper<>(this) {
                 @Override
@@ -58,7 +67,7 @@ public class TemplatedTableCellFactory<S, T> extends TemplatedCellFactory<T, Tab
 
                 @Override
                 protected Template<T> getTemplate() {
-                    return TemplatedTableCellFactory.this.getTemplate();
+                    return TemplatedTableCellFactory.this.getCellTemplate();
                 }
             };
 

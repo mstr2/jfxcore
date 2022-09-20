@@ -31,20 +31,28 @@ import javafx.util.Incubating;
 /**
  * Template-based cell factory for {@link TreeTableView}.
  *
- * @param <S> the data type
- * @param <T> the type of the item contained in the cell
+ * @param <S> The type of the TreeTableView generic type
+ * @param <T> The type of the item contained in the cell
  *
  * @since JFXcore 19
  */
 @Incubating
 public class TemplatedTreeTableCellFactory<S, T> extends TemplatedCellFactory<T, TreeTableView<T>, TreeTableCell<S, T>> {
 
+    /**
+     * Initializes a new instance of {@code TemplatedTreeTableCellFactory}.
+     */
     public TemplatedTreeTableCellFactory() {
         super(TreeTableView::refresh);
     }
 
-    public TemplatedTreeTableCellFactory(@NamedArg("template") Template<T> template) {
-        super(TreeTableView::refresh, template);
+    /**
+     * Initializes a new instance of {@code TemplatedTreeTableCellFactory}.
+     *
+     * @param cellTemplate the cell template for this {@code TemplatedTreeTableCellFactory}
+     */
+    public TemplatedTreeTableCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
+        super(TreeTableView::refresh, cellTemplate);
     }
 
     @Override
@@ -58,7 +66,7 @@ public class TemplatedTreeTableCellFactory<S, T> extends TemplatedCellFactory<T,
 
                 @Override
                 protected Template<T> getTemplate() {
-                    return TemplatedTreeTableCellFactory.this.getTemplate();
+                    return TemplatedTreeTableCellFactory.this.getCellTemplate();
                 }
             };
 
