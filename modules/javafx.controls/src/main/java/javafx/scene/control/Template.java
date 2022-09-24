@@ -169,7 +169,7 @@ public class Template<T> {
     /**
      * Indicates whether this template is an <em>ambient template</em>.
      * <p>
-     * An ambient template can be picked up by templated controls without being referenced by name.
+     * An ambient template can be picked up by templated controls without being directly referenced.
      * In order to be found by a templated control, the ambient template needs to be placed in the
      * {@link Node#getProperties} map of the control or any of its parents.
      */

@@ -41,9 +41,7 @@ public final class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, L
     /**
      * Initializes a new instance of {@code TemplatedListCellFactory}.
      */
-    public TemplatedListCellFactory() {
-        super(ListView::refresh);
-    }
+    public TemplatedListCellFactory() {}
 
     /**
      * Initializes a new instance of {@code TemplatedListCellFactory}.
@@ -51,7 +49,7 @@ public final class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, L
      * @param cellTemplate the cell template for this {@code TemplatedListCellFactory}
      */
     public TemplatedListCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
-        super(ListView::refresh, cellTemplate);
+        super(cellTemplate);
     }
 
     @Override
@@ -64,7 +62,7 @@ public final class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, L
                 }
 
                 @Override
-                protected Template<T> getTemplate() {
+                protected Template<? super T> getCellTemplate() {
                     return TemplatedListCellFactory.this.getCellTemplate();
                 }
             };

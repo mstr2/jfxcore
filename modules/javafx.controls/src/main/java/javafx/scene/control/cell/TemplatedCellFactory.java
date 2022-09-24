@@ -28,17 +28,14 @@ import javafx.beans.property.ObjectPropertyBase;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Cell;
+import javafx.scene.control.Control;
 import javafx.scene.control.Template;
 import javafx.scene.control.TemplateContent;
 import javafx.scene.control.cell.behavior.CellBehavior;
 import javafx.util.Callback;
 import javafx.util.Incubating;
-import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.function.Consumer;
 
 /**
  * Base class for template-based cell factories.
@@ -56,35 +53,34 @@ import java.util.function.Consumer;
  */
 @Incubating
 @DefaultProperty("template")
-public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
-
-    private Cache<V> cache;
+public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<T>> implements Callback<V, C> {
 
     /**
      * Initializes a new instance of {@code TemplatedCellFactory}.
-     *
-     * @param refreshMethod the method that is invoked when templates need to be re-applied
      */
-    protected TemplatedCellFactory(Consumer<V> refreshMethod) {
-        cache = new Cache<>(refreshMethod);
-    }
+    protected TemplatedCellFactory() {}
 
     /**
      * Initializes a new instance of {@code TemplatedCellFactory}.
      *
-     * @param refreshMethod the method that is invoked when templates need to be re-applied
      * @param cellTemplate the cell template for this {@code TemplatedCellFactory}
      */
-    protected TemplatedCellFactory(Consumer<V> refreshMethod, Template<T> cellTemplate) {
-        cache = new Cache<>(refreshMethod);
+    protected TemplatedCellFactory(Template<T> cellTemplate) {
         setCellTemplate(cellTemplate);
     }
 
     /**
      * The template that describes the visual representation of the cells created
      * by this {@code TemplatedCellFactory}.
+     * <p>
+     * If this property is set to an instance of {@link Template}, the specified template
+     * is used to generate the visual cell representation. If this property is set to
+     * {@code null}, ambient templates in the scene graph may be selected to generate the
+     * visual cell representation.
      */
-    private final ObjectProperty<Template<T>> cellTemplate = new ObjectPropertyBase<>() {
+    private final TemplateProperty cellTemplate = new TemplateProperty();
+
+    private final class TemplateProperty extends ObjectPropertyBase<Template<? super T>> {
         @Override
         public Object getBean() {
             return TemplatedCellFactory.this;
@@ -94,32 +90,22 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
         public String getName() {
             return "cellTemplate";
         }
+    }
 
-        @Override
-        protected void invalidated() {
-            get(); // needed to validate the property
-
-            if (cache != null) {
-                cache.refresh();
-            }
-        }
-    };
-
-    public final ObjectProperty<Template<T>> cellTemplateProperty() {
+    public final ObjectProperty<Template<? super T>> cellTemplateProperty() {
         return cellTemplate;
     }
 
-    public final void setCellTemplate(Template<T> value) {
+    public final void setCellTemplate(Template<? super T> value) {
         cellTemplate.set(value);
     }
 
-    public final Template<T> getCellTemplate() {
+    public final Template<? super T> getCellTemplate() {
         return cellTemplate.get();
     }
 
     @Override
     public final C call(V param) {
-        cache = cache.add(param);
         return createCell(param);
     }
 
@@ -188,21 +174,53 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
         }
     }
 
-    abstract static class CellWrapper<T> {
+    /**
+     * Implementations of {@code TemplatedCellFactory} should use {@code CellWrapper} to support
+     * cell templating by delegating to {@code CellWrapper} from the cells produced by the factory.
+     *
+     * @param <T> the data item type
+     */
+    protected abstract static class CellWrapper<T> {
         private final Cell<T> cell;
         private TemplateContent<? super T> currentTemplateContent;
         private Node currentTemplateNode;
         private T currentItem;
 
-        CellWrapper(Cell<T> cell) {
+        /**
+         * Initializes a new instance of {@code CellWrapper}.
+         *
+         * @param cell the wrapped cell
+         */
+        protected CellWrapper(Cell<T> cell) {
             this.cell = cell;
         }
 
+        /**
+         * Returns the control that hosts the cells.
+         *
+         * @return the control
+         */
         protected abstract Node getControl();
 
-        protected abstract Template<T> getTemplate();
+        /**
+         * Returns the cell template.
+         *
+         * @return the cell template
+         */
+        protected abstract Template<? super T> getCellTemplate();
 
-        public void startEdit() {
+        /**
+         * {@link Cell} implementations should delegate to this method from {@link Cell#startEdit()}:
+         *
+         * <pre>{@code
+         *     @Override
+         *     public void startEdit() {
+         *         super.startEdit();
+         *         cellWrapper.startEdit();
+         *     }
+         * }</pre>
+         */
+        public final void startEdit() {
             if (!cell.isEditing()) {
                 return;
             }
@@ -213,7 +231,18 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
             }
         }
 
-        public void cancelEdit() {
+        /**
+         * {@link Cell} implementations should delegate to this method from {@link Cell#cancelEdit()}:
+         *
+         * <pre>{@code
+         *     @Override
+         *     public void cancelEdit() {
+         *         super.cancelEdit();
+         *         cellWrapper.cancelEdit();
+         *     }
+         * }</pre>
+         */
+        public final void cancelEdit() {
             T item = cell.getItem();
             if (item != null) {
                 Node lastTemplateNode = currentTemplateNode;
@@ -223,7 +252,18 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
             }
         }
 
-        public void commitEdit() {
+        /**
+         * {@link Cell} implementations should delegate to this method from {@link Cell#commitEdit(Object)}:
+         *
+         * <pre>{@code
+         *     @Override
+         *     public void commitEdit(T newValue) {
+         *         super.commitEdit(newValue);
+         *         cellWrapper.commitEdit(newValue);
+         *     }
+         * }</pre>
+         */
+        public final void commitEdit() {
             T item = cell.getItem();
             if (item != null) {
                 Node lastTemplateNode = currentTemplateNode;
@@ -233,7 +273,18 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
             }
         }
 
-        public void updateItem(T item, boolean empty) {
+        /**
+         * {@link Cell} implementations should delegate to this method from {@link Cell#updateItem(Object, boolean)}:
+         *
+         * <pre>{@code
+         *     @Override
+         *     public void updateItem(T item, boolean empty) {
+         *         super.updateItem(item, empty);
+         *         cellWrapper.updateItem(item, empty);
+         *     }
+         * }</pre>
+         */
+        public final void updateItem(T item, boolean empty) {
             if (item == null || empty) {
                 cell.setText(null);
                 cell.setGraphic(null);
@@ -244,7 +295,7 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
                     if (item instanceof Node newNode) {
                         cell.setText(null);
                         Node currentNode = cell.getGraphic();
-                        if (currentNode == null || ! currentNode.equals(newNode)) {
+                        if (currentNode == null || !currentNode.equals(newNode)) {
                             cell.setGraphic(newNode);
                         }
                     } else {
@@ -259,10 +310,12 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
 
         private boolean applyTemplate(T item, boolean editing) {
             Node listView = getControl();
-            Template<? super T> template = getTemplate();
+            Template<? super T> template = getCellTemplate();
 
-            if (template == null || !TemplateManager.match(template, item)) {
+            if (template == null) {
                 template = listView != null ? TemplateManager.find(listView, item) : null;
+            } else if (!TemplateManager.match(template, item)) {
+                template = null;
             }
 
             if (template == null) {
@@ -287,76 +340,6 @@ public abstract class TemplatedCellFactory<T, V, C> implements Callback<V, C> {
             }
 
             return true;
-        }
-    }
-
-    static class Cache<U> {
-        final Consumer<U> refreshMethod;
-
-        public Cache(Consumer<U> refreshMethod) {
-            this.refreshMethod = refreshMethod;
-        }
-
-        public void refresh() {}
-
-        Cache<U> add(U newItem) {
-            return new SingleCacheItem<>(refreshMethod, newItem);
-        }
-    }
-
-    private static class SingleCacheItem<U> extends Cache<U> {
-        private WeakReference<U> item;
-
-        SingleCacheItem(Consumer<U> refreshMethod, U item) {
-            super(refreshMethod);
-            this.item = new WeakReference<>(item);
-        }
-
-        @Override
-        public void refresh() {
-            U ref = item.get();
-            if (ref != null) {
-                refreshMethod.accept(ref);
-            }
-        }
-
-        @Override
-        Cache<U> add(U newItem) {
-            U existingItem = this.item.get();
-            if (existingItem == null) {
-                this.item = new WeakReference<>(newItem);
-                return this;
-            }
-
-            if (existingItem != newItem) {
-                var cache = new MultipleCacheItems<>(refreshMethod);
-                cache.add(existingItem);
-                cache.add(newItem);
-                return cache;
-            }
-
-            return this;
-        }
-    }
-
-    private static class MultipleCacheItems<U> extends Cache<U> {
-        private final Set<U> items = Collections.newSetFromMap(new WeakHashMap<>(2));
-
-        MultipleCacheItems(Consumer<U> refreshMethod) {
-            super(refreshMethod);
-        }
-
-        @Override
-        public void refresh() {
-            for (U item : items) {
-                refreshMethod.accept(item);
-            }
-        }
-
-        @Override
-        Cache<U> add(U item) {
-            items.add(item);
-            return this;
         }
     }
 

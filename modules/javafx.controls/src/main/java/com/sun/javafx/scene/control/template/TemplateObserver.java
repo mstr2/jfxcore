@@ -47,8 +47,10 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
      * Acquires the {@code TemplateObserver} for the specified node.
      * If a {@code TemplateObserver} already exists, it is returned and its use count is increased.
      * Otherwise, a new {@code TemplateObserver} instance will be created.
+     *
+     * @param node the node for which a {@code TemplateObserver} should be acquired
      */
-    static TemplateObserver acquire(Node node) {
+    public static TemplateObserver acquire(Node node) {
         TemplateObserver observer = getTemplateObserver(node);
         if (observer != null) {
             observer.useCount += 1;
@@ -64,8 +66,10 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
      * Releases a {@code TemplateObserver} that was acquired with {@link #acquire(Node)}.
      * This decreases the use count of the {@code TemplateObserver}.
      * If the use count reaches zero, the {@code TemplateObserver} is disposed.
+     *
+     * @param observer the {@code TemplateObserver} returned by {@link #acquire(Node)}
      */
-    static void release(TemplateObserver observer) {
+    public static void release(TemplateObserver observer) {
         observer.useCount -= 1;
 
         if (observer.useCount == 0) {
@@ -81,7 +85,7 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
      * @param data the data object
      * @return a {@code Template} instance or {@code null}
      */
-    static Template<?> findTemplate(Node node, Object data) {
+    public static Template<?> findTemplate(Node node, Object data) {
         Node parent = node;
         while (parent != null) {
             TemplateObserver observer = getTemplateObserver(parent);
@@ -98,8 +102,8 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
 
     private final Node node;
     private final List<TemplateObserver> children = new ArrayList<>(2);
+    private List<TemplateReapplyListener> reapplyListeners;
     private AmbientTemplateContainer container;
-    private List<Runnable> applyListeners;
     private int useCount;
 
     private TemplateObserver(Node node) {
@@ -146,23 +150,23 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
     /**
      * Adds a listener that is invoked when a template in the scene graph may need to be reapplied.
      */
-    public void addApplyListener(Runnable listener) {
-        if (applyListeners == null) {
-            applyListeners = new ArrayList<>(2);
+    public void addListener(TemplateReapplyListener listener) {
+        if (reapplyListeners == null) {
+            reapplyListeners = new ArrayList<>(2);
         }
 
-        applyListeners.add(listener);
+        reapplyListeners.add(listener);
     }
 
     /**
-     * Removes a listener that was added via {@link #addApplyListener(Runnable)}.
+     * Removes a listener that was added via {@link #addListener(TemplateReapplyListener)}.
      */
-    public void removeApplyListener(Runnable listener) {
-        if (applyListeners != null) {
-            applyListeners.remove(listener);
+    public void removeListener(TemplateReapplyListener listener) {
+        if (reapplyListeners != null) {
+            reapplyListeners.remove(listener);
 
-            if (applyListeners.isEmpty()) {
-                applyListeners = null;
+            if (reapplyListeners.isEmpty()) {
+                reapplyListeners = null;
             }
         }
     }
@@ -215,14 +219,14 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
      */
     @Override
     public void onChanged(Change<?, ?> change) {
-        boolean templateChanged = false;
+        boolean templatesChanged = false;
 
         if (container != null && change.wasRemoved() && change.getValueRemoved() instanceof Template<?> template) {
             TemplateHelper.removeListener(template, this);
 
             if (template.isAmbient()) {
                 container.remove(template);
-                templateChanged = true;
+                templatesChanged = true;
             }
         }
 
@@ -235,11 +239,11 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
                 }
 
                 container.add(template);
-                templateChanged = true;
+                templatesChanged = true;
             }
         }
 
-        if (templateChanged) {
+        if (templatesChanged) {
             if (container != null && container.isEmpty()) {
                 container = null;
             }
@@ -282,15 +286,17 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
             } else {
                 container.remove(template);
             }
-        }
 
-        fireReapplyEvent();
+            fireReapplyEvent();
+        } else if (template.isAmbient()) {
+            fireReapplyEvent();
+        }
     }
 
     private void fireReapplyEvent() {
-        if (applyListeners != null) {
-            for (Runnable listener : applyListeners) {
-                listener.run();
+        if (reapplyListeners != null) {
+            for (TemplateReapplyListener listener : reapplyListeners) {
+                listener.reapply();
             }
         }
 

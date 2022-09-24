@@ -48,7 +48,7 @@ public class TemplateObserverTest {
     }
 
     private static class TemplateManagerMock extends TemplateManager {
-        TemplateManagerMock(Node node) { super(node); }
+        TemplateManagerMock(Node node) { super(node, null); }
         @Override protected void onApplyTemplate() {}
     }
 
@@ -211,7 +211,7 @@ public class TemplateObserverTest {
         // No template is present, so no event is fired.
         new TemplateManagerMock(c);
         boolean[] flag = new boolean[1];
-        getTemplateObserver(c).addApplyListener(() -> flag[0] = true);
+        getTemplateObserver(c).addListener(() -> flag[0] = true);
         b.getChildren().add(c);
         assertFalse(flag[0]);
 
@@ -233,7 +233,7 @@ public class TemplateObserverTest {
 
         new TemplateManagerMock(c);
         boolean[] flag = new boolean[1];
-        getTemplateObserver(c).addApplyListener(() -> flag[0] = true);
+        getTemplateObserver(c).addListener(() -> flag[0] = true);
         b.getChildren().add(c);
 
         assertTrue(flag[0]);
@@ -248,7 +248,7 @@ public class TemplateObserverTest {
 
         new TemplateManagerMock(b);
         int[] count = new int[1];
-        getTemplateObserver(b).addApplyListener(() -> count[0]++);
+        getTemplateObserver(b).addListener(() -> count[0]++);
 
         // Add a non-ambient template at the root, which fires no event.
         Template<?> template = new Template<>(String.class);

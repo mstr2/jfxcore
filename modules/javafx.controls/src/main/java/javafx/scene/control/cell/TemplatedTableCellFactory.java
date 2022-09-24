@@ -43,9 +43,7 @@ public class TemplatedTableCellFactory<S, T> extends TemplatedCellFactory<T, Tab
     /**
      * Initializes a new instance of {@code TemplatedTableCellFactory}.
      */
-    public TemplatedTableCellFactory() {
-        super(TableView::refresh);
-    }
+    public TemplatedTableCellFactory() {}
 
     /**
      * Initializes a new instance of {@code TemplatedTableCellFactory}.
@@ -53,7 +51,7 @@ public class TemplatedTableCellFactory<S, T> extends TemplatedCellFactory<T, Tab
      * @param cellTemplate the cell template for this {@code TemplatedTableCellFactory}
      */
     public TemplatedTableCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
-        super(TableView::refresh, cellTemplate);
+        super(cellTemplate);
     }
 
     @Override
@@ -66,7 +64,7 @@ public class TemplatedTableCellFactory<S, T> extends TemplatedCellFactory<T, Tab
                 }
 
                 @Override
-                protected Template<T> getTemplate() {
+                protected Template<? super T> getCellTemplate() {
                     return TemplatedTableCellFactory.this.getCellTemplate();
                 }
             };

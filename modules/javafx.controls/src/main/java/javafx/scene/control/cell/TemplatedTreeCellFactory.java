@@ -41,9 +41,7 @@ public final class TemplatedTreeCellFactory<T> extends TemplatedCellFactory<T, T
     /**
      * Initializes a new instance of {@code TemplatedTreeCellFactory}.
      */
-    public TemplatedTreeCellFactory() {
-        super(TreeView::refresh);
-    }
+    public TemplatedTreeCellFactory() {}
 
     /**
      * Initializes a new instance of {@code TemplatedTreeCellFactory}.
@@ -51,7 +49,7 @@ public final class TemplatedTreeCellFactory<T> extends TemplatedCellFactory<T, T
      * @param cellTemplate the cell template for this {@code TemplatedTreeCellFactory}
      */
     public TemplatedTreeCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
-        super(TreeView::refresh, cellTemplate);
+        super(cellTemplate);
     }
 
     @Override
@@ -64,7 +62,7 @@ public final class TemplatedTreeCellFactory<T> extends TemplatedCellFactory<T, T
                 }
 
                 @Override
-                protected Template<T> getTemplate() {
+                protected Template<? super T> getCellTemplate() {
                     return TemplatedTreeCellFactory.this.getCellTemplate();
                 }
             };

@@ -154,7 +154,7 @@ public class TreeViewSkin<T> extends VirtualContainerBase<TreeView<T>, TreeCell<
     public TreeViewSkin(final TreeView control) {
         super(control);
 
-        templateManager = new TemplateManager(control) {
+        templateManager = new TemplateManager(control, control.cellFactoryProperty()) {
             @Override
             protected void onApplyTemplate() {
                 control.getProperties().put(Properties.RECREATE, Boolean.TRUE);

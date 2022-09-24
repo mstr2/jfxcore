@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,7 +31,6 @@ import java.util.List;
 import com.sun.javafx.scene.control.Properties;
 import com.sun.javafx.scene.control.behavior.BehaviorBase;
 import com.sun.javafx.scene.control.skin.Utils;
-import com.sun.javafx.scene.control.template.TemplateManager;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.collections.FXCollections;
@@ -73,7 +71,6 @@ public class TableViewSkin<T> extends TableViewSkinBase<T, T, TableView<T>, Tabl
      **************************************************************************/
 
     private final TableViewBehavior<T>  behavior;
-    private final TemplateManager templateManager;
 
 
 
@@ -92,13 +89,6 @@ public class TableViewSkin<T> extends TableViewSkinBase<T, T, TableView<T>, Tabl
      */
     public TableViewSkin(final TableView<T> control) {
         super(control);
-
-        templateManager = new TemplateManager(control) {
-            @Override
-            protected void onApplyTemplate() {
-                control.getProperties().put(Properties.RECREATE, Boolean.TRUE);
-            }
-        };
 
         // install default input map for the TableView control
         behavior = new TableViewBehavior<>(control);
@@ -154,8 +144,6 @@ public class TableViewSkin<T> extends TableViewSkinBase<T, T, TableView<T>, Tabl
         if (behavior != null) {
             behavior.dispose();
         }
-
-        templateManager.dispose();
     }
 
     /** {@inheritDoc} */
