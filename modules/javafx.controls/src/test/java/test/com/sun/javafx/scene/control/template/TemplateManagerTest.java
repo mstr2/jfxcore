@@ -23,6 +23,7 @@ package test.com.sun.javafx.scene.control.template;
 
 import com.sun.javafx.scene.control.template.TemplateManager;
 import org.junit.jupiter.api.Test;
+import test.util.memory.JMemoryBuddy;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.scene.Group;
@@ -200,6 +201,29 @@ public class TemplateManagerTest {
         // Changing the selector of the directly referenced template refreshes ListView again.
         template.setSelector(null);
         assertEquals(2, count[0]);
+    }
+
+    @Test
+    public void testControlIsNotReferencedByDisposedTemplateManager() {
+        JMemoryBuddy.memoryTest(test -> {
+            var template = new Template<>(String.class);
+            var factory = new TemplatedCellFactoryImpl(template);
+            var listView = new ListViewImpl(factory, List.of("foo", "bar", "baz"));
+            var manager = new TemplateManager(listView, listView.cellFactoryProperty()) {
+                @Override protected void onApplyTemplate() {}
+            };
+
+            var root = new Group(listView);
+            var scene = new Scene(root);
+            listView.applyCss();
+            listView.layout();
+            manager.dispose();
+
+            test.setAsReferenced(manager);
+            test.assertCollectable(listView);
+            test.assertCollectable(factory);
+            test.assertCollectable(template);
+        });
     }
 
     private static class ListViewImpl extends ListView<String> {

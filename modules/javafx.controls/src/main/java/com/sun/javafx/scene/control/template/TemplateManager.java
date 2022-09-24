@@ -72,9 +72,9 @@ public abstract class TemplateManager {
     private final WeakTemplateListener weakTemplateSubPropertyChangeListener =
             new WeakTemplateListener(templateSubPropertyChangeListener);
 
-    private final ObservableValue<? extends Callback<?, ?>> cellFactory;
-    private final TemplateReapplyListener reapplyHandler;
-    private final TemplateObserver observer;
+    private ObservableValue<? extends Callback<?, ?>> cellFactory;
+    private TemplateReapplyListener reapplyHandler;
+    private TemplateObserver observer;
     private boolean disposed;
 
     /**
@@ -130,8 +130,11 @@ public abstract class TemplateManager {
             cellFactory.removeListener(weakCellFactoryChangeListener);
         }
 
-        observer.removeListener(reapplyHandler);
         TemplateObserver.release(observer);
+        observer.removeListener(reapplyHandler);
+        observer = null;
+        reapplyHandler = null;
+        cellFactory = null;
     }
 
     /**
