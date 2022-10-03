@@ -21,15 +21,12 @@
 
 package com.sun.javafx.scene.control.template;
 
+import javafx.beans.InvalidationListener;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.beans.value.WeakChangeListener;
 import javafx.scene.Node;
 import javafx.scene.control.Template;
-import javafx.scene.control.cell.TemplatedCellFactory;
-import javafx.util.Callback;
 import java.util.Objects;
-import java.util.function.Predicate;
 
 /**
  * {@code TemplateManager} is installed on a {@link Node} to receive notifications when templates
@@ -39,138 +36,94 @@ import java.util.function.Predicate;
 public abstract class TemplateManager {
 
     /**
-     * Tries to find a template in the scene graph that matches the specified data object.
+     * Tries to find a template in the scene graph above the specified node that matches the data object.
+     * <p>
+     * This method will inspect the {@link Node#getProperties()} map of the specified node and potentially
+     * all of its parents to find a template that matches the data object.
+     *
+     * @param node the {@code Node} that will be inspected
      */
     @SuppressWarnings("unchecked")
-    public static <T> Template<? super T> find(Node node, T data) {
+    public static <T> Template<? super T> findTemplate(Node node, T data) {
         return (Template<? super T>)TemplateObserver.findTemplate(node, data);
     }
 
-    /**
-     * Determines whether the template matches the specified item.
-     */
-    public static <T> boolean match(Template<? super T> template, T data) {
-        Predicate<? super T> selector = template.getSelector();
-        return selector == null || selector.test(data);
-    }
+    private static final ObservableValue<Boolean> TRUE = new ObservableValue<>() {
+        @Override public void addListener(ChangeListener<? super Boolean> listener) {}
+        @Override public void removeListener(ChangeListener<? super Boolean> listener) {}
+        @Override public Boolean getValue() { return Boolean.TRUE; }
+        @Override public void addListener(InvalidationListener listener) {}
+        @Override public void removeListener(InvalidationListener listener) {}
+    };
 
-    private final ChangeListener<Callback<?, ?>> cellFactoryChangeListener =
-            (observable, oldValue, newValue) -> cellFactoryChanged(oldValue, newValue);
-
-    private final WeakChangeListener<Callback<?, ?>> weakCellFactoryChangeListener =
-            new WeakChangeListener<>(cellFactoryChangeListener);
-
-    private final ChangeListener<Template<?>> templateChangeListener =
-            (observable, oldValue, newValue) -> templateChanged(oldValue, newValue);
-
-    private final WeakChangeListener<Template<?>> weakTemplateChangeListener =
-            new WeakChangeListener<>(templateChangeListener);
-
-    private final TemplateListener templateSubPropertyChangeListener =
-            (template, observable) -> onApplyTemplate();
-
-    private final WeakTemplateListener weakTemplateSubPropertyChangeListener =
-            new WeakTemplateListener(templateSubPropertyChangeListener);
-
-    private ObservableValue<? extends Callback<?, ?>> cellFactory;
-    private TemplateReapplyListener reapplyHandler;
+    private final TemplateObserver.ReapplyListener reapplyListener = this::onApplyTemplate;
+    private final InvalidationListener activeListener;
+    private ObservableValue<Boolean> active;
     private TemplateObserver observer;
+    private Node control;
     private boolean disposed;
 
     /**
      * Initializes a new instance of {@code TemplateManager}.
      *
-     * @param node the node on which the {@code TemplateManager} is installed
-     * @param cellFactory the cell factory of the control
+     * @param control the control on which the {@code TemplateManager} is installed
      */
-    public TemplateManager(Node node, ObservableValue<? extends Callback<?, ?>> cellFactory) {
-        this.observer = TemplateObserver.acquire(Objects.requireNonNull(node, "node cannot be null"));
-        this.observer.addListener(reapplyHandler = () -> {
-            // Applying an ambient template is only relevant if the control has a TemplatedCellFactory,
-            // but no template is set. If a template is explicitly set on the TemplatedCellFactory, the
-            // explicit template always takes precedence.
-            if (cellFactory != null
-                    && cellFactory.getValue() instanceof TemplatedCellFactory<?, ?, ?> templatedCellFactory
-                    && templatedCellFactory.getCellTemplate() == null) {
-                onApplyTemplate();
-            }
-        });
-
-        // The following listeners observe the explicit template on the TemplatedCellFactory.
-        // Ambient templates are observed by TemplateObserver.
-        this.cellFactory = cellFactory;
-        if (cellFactory != null) {
-            cellFactory.addListener(weakCellFactoryChangeListener);
-            if (cellFactory.getValue() instanceof TemplatedCellFactory<?, ?, ?> templatedCellFactory) {
-                templatedCellFactory.cellTemplateProperty().addListener(weakTemplateChangeListener);
-                Template<?> template = templatedCellFactory.getCellTemplate();
-                if (template != null) {
-                    TemplateHelper.addListener(template, weakTemplateSubPropertyChangeListener);
-                }
-            }
-        }
+    public TemplateManager(Node control) {
+        this(control, TRUE);
     }
 
-    public final void dispose() {
+    /**
+     * Initializes a new instance of {@code TemplateManager}.
+     *
+     * @param control the control on which the {@code TemplateManager} is installed
+     * @param active when the {@code active} value is {@code true}, the scene graph is observed
+     *               for the presence of templates
+     */
+    public TemplateManager(Node control, ObservableValue<Boolean> active) {
+        this.control = Objects.requireNonNull(control, "control cannot be null");
+        this.active = Objects.requireNonNull(active, "active cannot be null");
+        this.active.addListener(activeListener = observable -> onActiveChanged(this.active.getValue() == Boolean.TRUE));
+        onActiveChanged(active.getValue() == Boolean.TRUE);
+    }
+
+    /**
+     * Disposes all resources of this {@code TemplateManager}.
+     */
+    public void dispose() {
         if (disposed) {
             return;
         }
 
-        disposed = true;
-
-        if (cellFactory instanceof TemplatedCellFactory<?, ?, ?> templatedCellFactory) {
-            templatedCellFactory.cellTemplateProperty().removeListener(weakTemplateChangeListener);
-            Template<?> template = templatedCellFactory.getCellTemplate();
-            if (template != null) {
-                TemplateHelper.removeListener(template, weakTemplateSubPropertyChangeListener);
-            }
+        if (observer != null) {
+            TemplateObserver.release(observer);
+            observer.removeListener(reapplyListener);
         }
 
-        if (cellFactory != null) {
-            cellFactory.removeListener(weakCellFactoryChangeListener);
-        }
-
-        TemplateObserver.release(observer);
-        observer.removeListener(reapplyHandler);
+        active.removeListener(activeListener);
         observer = null;
-        reapplyHandler = null;
-        cellFactory = null;
+        control = null;
+        active = null;
+        disposed = true;
     }
 
     /**
-     * Occurs when a template (either the explicit {@link TemplatedCellFactory#cellTemplateProperty() cellTemplate}
-     * or an ambient template in the scene graph) has changed in a way that makes it necessary to re-apply templates.
+     * Occurs when a template has been invalidated and needs to be re-applied.
+     * <p>
+     * Implementations of {@code TemplateManager} must override this method and provide the logic to
+     * apply a template to the control. Often, this involves calling {@link #findTemplate(Node, Object)}
+     * to select a template from the scene graph that can visualize the data object.
      */
     protected abstract void onApplyTemplate();
 
-    private void cellFactoryChanged(Callback<?, ?> oldValue, Callback<?, ?> newValue) {
-        Template<?> oldTemplate = null, newTemplate = null;
-
-        if (oldValue instanceof TemplatedCellFactory<?, ?, ?> templatedCellFactory) {
-            templatedCellFactory.cellTemplateProperty().removeListener(weakTemplateChangeListener);
-            oldTemplate = templatedCellFactory.getCellTemplate();
+    private void onActiveChanged(boolean active) {
+        if (active) {
+            observer = TemplateObserver.acquire(control);
+            observer.addListener(reapplyListener);
+        } else if (observer != null) {
+            TemplateObserver.release(observer);
+            observer.removeListener(reapplyListener);
+            observer = null;
         }
-
-        if (newValue instanceof TemplatedCellFactory<?, ?, ?> templatedCellFactory) {
-            templatedCellFactory.cellTemplateProperty().addListener(weakTemplateChangeListener);
-            newTemplate = templatedCellFactory.getCellTemplate();
-        }
-
-        if (oldTemplate != newTemplate) {
-            templateChanged(oldTemplate, newTemplate);
-        }
-    }
-
-    private void templateChanged(Template<?> oldTemplate, Template<?> newTemplate) {
-        if (oldTemplate != null) {
-            TemplateHelper.removeListener(oldTemplate, weakTemplateSubPropertyChangeListener);
-        }
-
-        if (newTemplate != null) {
-            TemplateHelper.addListener(newTemplate, weakTemplateSubPropertyChangeListener);
-        }
-
-        onApplyTemplate();
     }
 
 }

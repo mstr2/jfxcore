@@ -22,9 +22,6 @@
 package javafx.scene.control.cell;
 
 import com.sun.javafx.scene.control.template.TemplateManager;
-import javafx.beans.DefaultProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ObjectPropertyBase;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Cell;
@@ -41,9 +38,7 @@ import java.util.List;
  * Base class for template-based cell factories.
  *
  * @see TemplatedListCellFactory
- * @see TemplatedTableCellFactory
  * @see TemplatedTreeCellFactory
- * @see TemplatedTreeTableCellFactory
  *
  * @param <T> the item type
  * @param <V> the view type
@@ -52,57 +47,12 @@ import java.util.List;
  * @since JFXcore 19
  */
 @Incubating
-@DefaultProperty("template")
 public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<T>> implements Callback<V, C> {
 
     /**
      * Initializes a new instance of {@code TemplatedCellFactory}.
      */
     protected TemplatedCellFactory() {}
-
-    /**
-     * Initializes a new instance of {@code TemplatedCellFactory}.
-     *
-     * @param cellTemplate the cell template for this {@code TemplatedCellFactory}
-     */
-    protected TemplatedCellFactory(Template<T> cellTemplate) {
-        setCellTemplate(cellTemplate);
-    }
-
-    /**
-     * The template that describes the visual representation of the cells created
-     * by this {@code TemplatedCellFactory}.
-     * <p>
-     * If this property is set to an instance of {@link Template}, the specified template
-     * is used to generate the visual cell representation. If this property is set to
-     * {@code null}, ambient templates in the scene graph may be selected to generate the
-     * visual cell representation.
-     */
-    private final TemplateProperty cellTemplate = new TemplateProperty();
-
-    private final class TemplateProperty extends ObjectPropertyBase<Template<? super T>> {
-        @Override
-        public Object getBean() {
-            return TemplatedCellFactory.this;
-        }
-
-        @Override
-        public String getName() {
-            return "cellTemplate";
-        }
-    }
-
-    public final ObjectProperty<Template<? super T>> cellTemplateProperty() {
-        return cellTemplate;
-    }
-
-    public final void setCellTemplate(Template<? super T> value) {
-        cellTemplate.set(value);
-    }
-
-    public final Template<? super T> getCellTemplate() {
-        return cellTemplate.get();
-    }
 
     @Override
     public final C call(V param) {
@@ -177,8 +127,47 @@ public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<
     /**
      * Implementations of {@code TemplatedCellFactory} should use {@code CellWrapper} to support
      * cell templating by delegating to {@code CellWrapper} from the cells produced by the factory.
+     * <p>
+     * An implementation for {@link javafx.scene.control.ListView} looks like this:
+     * <pre>{@code
+     * public class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, ListView<T>, ListCell<T>> {
+     *     @Override
+     *     protected ListCell<T> createCell(ListView<T> listView) {
+     *         return new ListCell<>() {
+     *             final CellWrapper<T> cellWrapper = new CellWrapper<>(this) {
+     *                 @Override
+     *                 protected Node getControl() {
+     *                     return getListView();
+     *                 }
+     *             };
      *
-     * @param <T> the data item type
+     *             @Override
+     *             public void startEdit() {
+     *                 super.startEdit();
+     *                 cellWrapper.startEdit();
+     *             }
+     *
+     *             @Override
+     *             public void cancelEdit() {
+     *                 super.cancelEdit();
+     *                 cellWrapper.cancelEdit();
+     *             }
+     *
+     *             @Override
+     *             public void commitEdit(T newValue) {
+     *                 super.commitEdit(newValue);
+     *                 cellWrapper.commitEdit();
+     *             }
+     *
+     *             @Override
+     *             public void updateItem(T item, boolean empty) {
+     *                 super.updateItem(item, empty);
+     *                 cellWrapper.updateItem(item, empty);
+     *             }
+     *         };
+     *     }
+     * }
+     * }</pre>
      */
     protected abstract static class CellWrapper<T> {
         private final Cell<T> cell;
@@ -201,13 +190,6 @@ public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<
          * @return the control
          */
         protected abstract Node getControl();
-
-        /**
-         * Returns the cell template.
-         *
-         * @return the cell template
-         */
-        protected abstract Template<? super T> getCellTemplate();
 
         /**
          * {@link Cell} implementations should delegate to this method from {@link Cell#startEdit()}:
@@ -310,21 +292,16 @@ public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<
 
         private boolean applyTemplate(T item, boolean editing) {
             Node listView = getControl();
-            Template<? super T> template = getCellTemplate();
+            Template<? super T> selectedTemplate =
+                listView != null ? TemplateManager.findTemplate(listView, item) : null;
 
-            if (template == null) {
-                template = listView != null ? TemplateManager.find(listView, item) : null;
-            } else if (!TemplateManager.match(template, item)) {
-                template = null;
-            }
-
-            if (template == null) {
+            if (selectedTemplate == null) {
                 currentTemplateContent = null;
                 currentTemplateNode = null;
                 return false;
             }
 
-            TemplateContent<? super T> content = CellTemplate.getContent(template, editing);
+            TemplateContent<? super T> content = CellTemplate.getContent(selectedTemplate, editing);
 
             if (content == null) {
                 currentTemplateContent = null;

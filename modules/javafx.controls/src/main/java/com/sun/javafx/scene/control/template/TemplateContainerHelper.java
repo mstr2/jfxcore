@@ -21,39 +21,24 @@
 
 package com.sun.javafx.scene.control.template;
 
-import javafx.scene.Node;
 import javafx.scene.control.Template;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 
-/**
- * A container for ambient templates that are added to {@link Node#getProperties()}.
- * This class contains the logic to find a template that matches a given data object.
- */
-public final class AmbientTemplateContainer extends HashSet<Template<?>> {
+public final class TemplateContainerHelper {
 
     private List<Template<?>> matches;
 
-    /**
-     * Finds a template that matches the specified data object by type and selector.
-     * If several templates match the data object, this method returns the template with
-     * the most derived data type.
-     *
-     * @see Template#getSelector()
-     * @see Template#getDataType()
-     * @param data the data object
-     * @return a {@code Template} instance, or {@code null} if no matching template was found
-     */
     @SuppressWarnings("unchecked")
-    public Template<?> find(Object data) {
+    public Template<?> selectTemplate(Collection<Template<?>> templates, Object data) {
         Class<?> dataType = data.getClass();
         Template<?> match = null;
         boolean multipleMatches = false;
 
-        for (Template<?> template : this) {
-            if (!template.isAmbient() || !template.getDataType().isAssignableFrom(dataType)) {
+        for (Template<?> template : templates) {
+            if (!template.getDataType().isAssignableFrom(dataType)) {
                 continue;
             }
 
@@ -78,7 +63,7 @@ public final class AmbientTemplateContainer extends HashSet<Template<?>> {
             }
         }
 
-        Template<?> template = multipleMatches ? selectMostDerived(matches, matches.size()) : match;
+        Template<?> template = multipleMatches ? selectMostDerivedTemplate(matches, matches.size()) : match;
 
         if (matches != null) {
             matches.clear();
@@ -87,7 +72,7 @@ public final class AmbientTemplateContainer extends HashSet<Template<?>> {
         return template;
     }
 
-    private Template<?> selectMostDerived(List<Template<?>> list, int size) {
+    private Template<?> selectMostDerivedTemplate(List<Template<?>> list, int size) {
         if (size == 2) {
             Template<?> t1 = list.get(0);
             Template<?> t2 = list.get(1);
@@ -108,7 +93,7 @@ public final class AmbientTemplateContainer extends HashSet<Template<?>> {
             list.set(size / 2, list.get(size - 1));
         }
 
-        return selectMostDerived(list, (int)Math.ceil(size / 2.0));
+        return selectMostDerivedTemplate(list, (int)Math.ceil(size / 2.0));
     }
 
 }

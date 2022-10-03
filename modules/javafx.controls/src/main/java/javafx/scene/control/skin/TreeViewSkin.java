@@ -43,6 +43,7 @@ import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.TreeItem.TreeModificationEvent;
+import javafx.scene.control.cell.TemplatedCellFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -154,7 +155,8 @@ public class TreeViewSkin<T> extends VirtualContainerBase<TreeView<T>, TreeCell<
     public TreeViewSkin(final TreeView control) {
         super(control);
 
-        templateManager = new TemplateManager(control, control.cellFactoryProperty()) {
+        templateManager = new TemplateManager(control, control.cellFactoryProperty().map(
+                v -> v instanceof TemplatedCellFactory<?, ?, ?>)) {
             @Override
             protected void onApplyTemplate() {
                 control.getProperties().put(Properties.RECREATE, Boolean.TRUE);

@@ -22,17 +22,17 @@
 package test.com.sun.javafx.scene.control.template;
 
 import com.sun.javafx.scene.control.template.TemplateManager;
+import com.sun.javafx.scene.control.template.TemplateObserver;
 import org.junit.jupiter.api.Test;
 import test.util.memory.JMemoryBuddy;
-import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.Cell;
-import javafx.scene.control.Control;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Skin;
 import javafx.scene.control.Template;
 import javafx.scene.control.cell.TemplatedCellFactory;
 import java.util.ArrayList;
@@ -48,20 +48,14 @@ public class TemplateManagerTest {
         var branch = new Group(new Group(leaf));
         var root = new Group();
         var flag = new int[1];
-        var cellFactory = new SimpleObjectProperty<>(new TemplatedCellFactory<>() {
-            @Override
-            protected Cell<Object> createCell(Control item) {
-                return null;
-            }
-        });
-        var manager = new TemplateManager(leaf, cellFactory) {
+        var manager = new TemplateManager(leaf) {
             @Override
             protected void onApplyTemplate() {
                 flag[0]++;
             }
         };
 
-        root.getProperties().put("test_root", new Template<>(String.class) {{ setAmbient(true); }});
+        root.getProperties().put("test_root", new Template<>(String.class));
         assertEquals(0, flag[0]);
         root.getChildren().add(branch);
         assertEquals(1, flag[0]);
@@ -78,38 +72,32 @@ public class TemplateManagerTest {
                     c = new Group())));
 
         var flag = new int[1];
-        var cellFactory = new SimpleObjectProperty<>(new TemplatedCellFactory<>() {
-            @Override
-            protected Cell<Object> createCell(Control item) {
-                return null;
-            }
-        });
-        var manager = new TemplateManager(a, cellFactory) {
+        var manager = new TemplateManager(a) {
             @Override
             protected void onApplyTemplate() {
                 flag[0]++;
             }
         };
 
-        c.getProperties().put("test_c", new Template<>(String.class) {{ setAmbient(true); }});
+        c.getProperties().put("test_c", new Template<>(String.class));
         assertEquals(0, flag[0]);
 
-        b.getProperties().put("test_c", new Template<>(String.class) {{ setAmbient(true); }});
+        b.getProperties().put("test_c", new Template<>(String.class));
         assertEquals(0, flag[0]);
 
-        a.getProperties().put("test_a", new Template<>(String.class) {{ setAmbient(true); }});
+        a.getProperties().put("test_a", new Template<>(String.class));
         assertEquals(1, flag[0]);
 
-        root.getProperties().put("test_root", new Template<>(String.class) {{ setAmbient(true); }});
+        root.getProperties().put("test_root", new Template<>(String.class));
         assertEquals(2, flag[0]);
     }
 
     @Test
-    public void testTemplateIsAppliedWhenCellTemplateIsChanged() {
+    public void testTemplatesAreAppliedWhenTemplateIsAdded() {
         int[] count = new int[1];
         var factory = new TemplatedCellFactoryImpl();
         var listView = new ListViewImpl(factory, List.of("foo", "bar", "baz"));
-        var manager = new TemplateManager(listView, listView.cellFactoryProperty()) {
+        var manager = new TemplateManager(listView) {
             @Override protected void onApplyTemplate() { count[0]++; }
         };
 
@@ -118,20 +106,47 @@ public class TemplateManagerTest {
         listView.layout();
         assertEquals(0, count[0]);
 
-        factory.setCellTemplate(new Template<>(String.class));
+        listView.getProperties().put("t1", new Template<>(String.class));
         assertEquals(1, count[0]);
 
-        factory.setCellTemplate(new Template<>(String.class));
+        listView.getProperties().put("t2", new Template<>(String.class));
         assertEquals(2, count[0]);
     }
 
     @Test
-    public void testTemplateIsAppliedWhenCellTemplateSubPropertyIsChanged() {
+    public void testTemplatesAreAppliedForMultipleControlsWhenTemplateIsAdded() {
+        List<String> trace = new ArrayList<>();
+        var factory = new TemplatedCellFactoryImpl();
+        var listView1 = new ListViewImpl(factory, List.of("foo"));
+        var manager1 = new TemplateManager(listView1) {
+            @Override protected void onApplyTemplate() { trace.add("listView1"); }
+        };
+        var listView2 = new ListViewImpl(factory, List.of("bar"));
+        var manager2 = new TemplateManager(listView2) {
+            @Override protected void onApplyTemplate() { trace.add("listView2"); }
+        };
+
+        var root = new Group(listView1, listView2);
+        var scene = new Scene(root);
+        listView1.applyCss();
+        listView1.layout();
+        listView2.applyCss();
+        listView2.layout();
+
+        root.getProperties().put("t", new Template<>(String.class));
+        assertEquals(2, trace.size());
+        assertTrue(trace.contains("listView1"));
+        assertTrue(trace.contains("listView2"));
+    }
+
+    @Test
+    public void testTemplatesAreAppliedWhenTemplatePropertyIsChanged() {
         int[] count = new int[1];
-        var template = new Template<>(String.class);
-        var factory = new TemplatedCellFactoryImpl(template);
+        var factory = new TemplatedCellFactoryImpl();
         var listView = new ListViewImpl(factory, List.of("foo", "bar", "baz"));
-        var manager = new TemplateManager(listView, listView.cellFactoryProperty()) {
+        var template = new Template<>(String.class);
+        listView.getProperties().put("t1", template);
+        var manager = new TemplateManager(listView) {
             @Override protected void onApplyTemplate() { count[0]++; }
         };
 
@@ -148,68 +163,33 @@ public class TemplateManagerTest {
     }
 
     @Test
-    public void testMultipleControlsAreRefreshedWhenCellTemplateIsChanged() {
-        List<String> trace = new ArrayList<>();
+    public void testInactiveTemplateManagerDoesNotObserveTemplates() {
         var factory = new TemplatedCellFactoryImpl();
-        var listView1 = new ListViewImpl(factory, List.of("foo"));
-        var manager1 = new TemplateManager(listView1, listView1.cellFactoryProperty()) {
-            @Override protected void onApplyTemplate() { trace.add("listView1"); }
-        };
-        var listView2 = new ListViewImpl(factory, List.of("bar"));
-        var manager2 = new TemplateManager(listView2, listView2.cellFactoryProperty()) {
-            @Override protected void onApplyTemplate() { trace.add("listView2"); }
-        };
-
-        var scene = new Scene(new Group(listView1, listView2));
-        listView1.applyCss();
-        listView1.layout();
-        listView2.applyCss();
-        listView2.layout();
-
-        factory.setCellTemplate(new Template<>(String.class));
-        assertEquals(2, trace.size());
-        assertTrue(trace.contains("listView1"));
-        assertTrue(trace.contains("listView2"));
-    }
-
-    @Test
-    public void testControlWithDirectlyReferencedTemplateIsNotRefreshedByAmbientTemplate() {
-        int[] count = new int[1];
-        var template = new Template<>(String.class);
-        var factory = new TemplatedCellFactoryImpl(template);
         var listView = new ListViewImpl(factory, List.of("foo", "bar", "baz"));
-        var manager = new TemplateManager(listView, listView.cellFactoryProperty()) {
-            @Override protected void onApplyTemplate() { count[0]++; }
+        var active = new SimpleBooleanProperty(false);
+        var manager = new TemplateManager(listView, active) {
+            @Override protected void onApplyTemplate() {}
         };
 
-        var root = new Group(listView);
-        var scene = new Scene(root);
+        var scene = new Scene(listView);
         listView.applyCss();
         listView.layout();
-        assertEquals(0, count[0]);
+        assertNull(listView.getProperties().get(TemplateObserver.class));
 
-        // Changing the selector of the directly referenced template refreshes the ListView.
-        template.setSelector(x -> true);
-        assertEquals(1, count[0]);
+        active.set(true);
+        assertNotNull(listView.getProperties().get(TemplateObserver.class));
 
-        // The added ambient template doesn't cause ListView to be refreshed.
-        var ambientTemplate = new Template<>(String.class);
-        ambientTemplate.setAmbient(true);
-        root.getProperties().put("template", ambientTemplate);
-        assertEquals(1, count[0]);
-
-        // Changing the selector of the directly referenced template refreshes ListView again.
-        template.setSelector(null);
-        assertEquals(2, count[0]);
+        active.set(false);
+        assertNull(listView.getProperties().get(TemplateObserver.class));
     }
 
     @Test
     public void testControlIsNotReferencedByDisposedTemplateManager() {
         JMemoryBuddy.memoryTest(test -> {
             var template = new Template<>(String.class);
-            var factory = new TemplatedCellFactoryImpl(template);
+            var factory = new TemplatedCellFactoryImpl();
             var listView = new ListViewImpl(factory, List.of("foo", "bar", "baz"));
-            var manager = new TemplateManager(listView, listView.cellFactoryProperty()) {
+            var manager = new TemplateManager(listView) {
                 @Override protected void onApplyTemplate() {}
             };
 
@@ -231,16 +211,15 @@ public class TemplateManagerTest {
             super(FXCollections.observableList(items));
             setCellFactory(factory);
         }
+
+        @Override
+        protected Skin<?> createDefaultSkin() {
+            return null;
+        }
     }
 
     private static class TemplatedCellFactoryImpl
             extends TemplatedCellFactory<String, ListView<String>, ListCell<String>> {
-        TemplatedCellFactoryImpl() {}
-
-        TemplatedCellFactoryImpl(Template<String> template) {
-            super(template);
-        }
-
         @Override
         protected ListCell<String> createCell(ListView<String> item) {
             return new ListCell<>() {
@@ -248,11 +227,6 @@ public class TemplateManagerTest {
                     @Override
                     protected Node getControl() {
                         return getListView();
-                    }
-
-                    @Override
-                    protected Template<? super String> getCellTemplate() {
-                        return TemplatedCellFactoryImpl.this.getCellTemplate();
                     }
                 };
 

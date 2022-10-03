@@ -48,7 +48,7 @@ public class TemplateObserverTest {
     }
 
     private static class TemplateManagerMock extends TemplateManager {
-        TemplateManagerMock(Node node) { super(node, null); }
+        TemplateManagerMock(Node node) { super(node); }
         @Override protected void onApplyTemplate() {}
     }
 
@@ -201,35 +201,15 @@ public class TemplateObserverTest {
     }
 
     @Test
-    public void testReapplyEventIsNotFiredWhenNoAmbientTemplateIsPresent() {
+    public void testReapplyEventIsFiredWhenParentIsChanged() {
         Group root, a, b, c;
         root = new Group(
             a = new Group(
                 b = new Group()));
         c = new Group();
 
-        // No template is present, so no event is fired.
-        new TemplateManagerMock(c);
-        boolean[] flag = new boolean[1];
-        getTemplateObserver(c).addListener(() -> flag[0] = true);
-        b.getChildren().add(c);
-        assertFalse(flag[0]);
-
-        // Add a non-ambient template at the root, which fires no event.
+        // Add a template at the root, as otherwise no event would be fired.
         root.getProperties().put("test", new Template<>(String.class));
-        assertFalse(flag[0]);
-    }
-
-    @Test
-    public void testReapplyEventIsFiredWhenAmbientTemplateIsPresent() {
-        Group root, a, b, c;
-        root = new Group(
-                a = new Group(
-                        b = new Group()));
-        c = new Group();
-
-        // Add an ambient template at the root, without which no event would be fired.
-        root.getProperties().put("test", new Template<>(String.class) {{ setAmbient(true); }});
 
         new TemplateManagerMock(c);
         boolean[] flag = new boolean[1];
@@ -240,28 +220,31 @@ public class TemplateObserverTest {
     }
 
     @Test
-    public void testReapplyEventIsFiredWhenAmbientFlagIsToggled() {
+    public void testReapplyEventIsFiredWhenTemplatePropertyIsChanged() {
         Group root, a, b;
         root = new Group(
             a = new Group(
                 b = new Group()));
 
+        var template = new Template<>(String.class);
+        root.getProperties().put("test", template);
+
         new TemplateManagerMock(b);
         int[] count = new int[1];
         getTemplateObserver(b).addListener(() -> count[0]++);
-
-        // Add a non-ambient template at the root, which fires no event.
-        Template<?> template = new Template<>(String.class);
-        root.getProperties().put("test", template);
         assertEquals(0, count[0]);
 
-        // Set the template to ambient, which fires an event.
-        template.setAmbient(true);
+        template.setContent(value -> null);
         assertEquals(1, count[0]);
 
-        // Setting it back to non-ambient fires the event again.
-        template.setAmbient(false);
+        template.setSelector(value -> true);
         assertEquals(2, count[0]);
+
+        template.setContent(null);
+        assertEquals(3, count[0]);
+
+        template.setSelector(null);
+        assertEquals(4, count[0]);
     }
 
 }

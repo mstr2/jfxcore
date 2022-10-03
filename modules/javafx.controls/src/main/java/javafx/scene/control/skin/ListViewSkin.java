@@ -54,6 +54,7 @@ import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionModel;
 import com.sun.javafx.scene.control.template.TemplateManager;
 import com.sun.javafx.scene.control.behavior.ListViewBehavior;
+import javafx.scene.control.cell.TemplatedCellFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 
@@ -194,7 +195,8 @@ public class ListViewSkin<T> extends VirtualContainerBase<ListView<T>, ListCell<
     public ListViewSkin(final ListView<T> control) {
         super(control);
 
-        templateManager = new TemplateManager(control, control.cellFactoryProperty()) {
+        templateManager = new TemplateManager(control, control.cellFactoryProperty().map(
+                value -> value instanceof TemplatedCellFactory<?, ?, ?>)) {
             @Override
             protected void onApplyTemplate() {
                 control.getProperties().put(Properties.RECREATE, Boolean.TRUE);

@@ -21,9 +21,7 @@
 
 package javafx.scene.control.cell;
 
-import javafx.beans.NamedArg;
 import javafx.scene.Node;
-import javafx.scene.control.Template;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeView;
 import javafx.util.Incubating;
@@ -43,15 +41,6 @@ public final class TemplatedTreeCellFactory<T> extends TemplatedCellFactory<T, T
      */
     public TemplatedTreeCellFactory() {}
 
-    /**
-     * Initializes a new instance of {@code TemplatedTreeCellFactory}.
-     *
-     * @param cellTemplate the cell template for this {@code TemplatedTreeCellFactory}
-     */
-    public TemplatedTreeCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
-        super(cellTemplate);
-    }
-
     @Override
     protected TreeCell<T> createCell(TreeView<T> listView) {
         return new TreeCell<>() {
@@ -59,11 +48,6 @@ public final class TemplatedTreeCellFactory<T> extends TemplatedCellFactory<T, T
                 @Override
                 protected Node getControl() {
                     return getTreeView();
-                }
-
-                @Override
-                protected Template<? super T> getCellTemplate() {
-                    return TemplatedTreeCellFactory.this.getCellTemplate();
                 }
             };
 

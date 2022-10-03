@@ -21,9 +21,7 @@
 
 package javafx.scene.control.cell;
 
-import javafx.beans.NamedArg;
 import javafx.scene.Node;
-import javafx.scene.control.Template;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.util.Incubating;
@@ -43,15 +41,6 @@ public final class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, L
      */
     public TemplatedListCellFactory() {}
 
-    /**
-     * Initializes a new instance of {@code TemplatedListCellFactory}.
-     *
-     * @param cellTemplate the cell template for this {@code TemplatedListCellFactory}
-     */
-    public TemplatedListCellFactory(@NamedArg("cellTemplate") Template<T> cellTemplate) {
-        super(cellTemplate);
-    }
-
     @Override
     protected ListCell<T> createCell(ListView<T> listView) {
         return new ListCell<>() {
@@ -59,11 +48,6 @@ public final class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, L
                 @Override
                 protected Node getControl() {
                     return getListView();
-                }
-
-                @Override
-                protected Template<? super T> getCellTemplate() {
-                    return TemplatedListCellFactory.this.getCellTemplate();
                 }
             };
 

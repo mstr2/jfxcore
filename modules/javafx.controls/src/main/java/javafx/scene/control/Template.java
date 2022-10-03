@@ -25,12 +25,9 @@ import com.sun.javafx.scene.control.template.TemplateHelper;
 import com.sun.javafx.scene.control.template.TemplateListener;
 import javafx.beans.DefaultProperty;
 import javafx.beans.NamedArg;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.BooleanPropertyBase;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.ReadOnlyProperty;
-import javafx.scene.Node;
 import javafx.scene.control.cell.TemplatedCellFactory;
 import javafx.util.Incubating;
 import java.util.List;
@@ -164,43 +161,6 @@ public class Template<T> {
 
     public final void setSelector(Predicate<? super T> selector) {
         this.selector.set(selector);
-    }
-
-    /**
-     * Indicates whether this template is an <em>ambient template</em>.
-     * <p>
-     * An ambient template can be picked up by templated controls without being directly referenced.
-     * In order to be found by a templated control, the ambient template needs to be placed in the
-     * {@link Node#getProperties} map of the control or any of its parents.
-     */
-    private final BooleanProperty ambient = new BooleanPropertyBase() {
-        @Override
-        public Object getBean() {
-            return Template.this;
-        }
-
-        @Override
-        public String getName() {
-            return "ambient";
-        }
-
-        @Override
-        protected void invalidated() {
-            get(); // validate the property
-            notifyTemplateChanged(this);
-        }
-    };
-
-    public final BooleanProperty ambientProperty() {
-        return ambient;
-    }
-
-    public final boolean isAmbient() {
-        return ambient.get();
-    }
-
-    public final void setAmbient(boolean ambient) {
-        this.ambient.set(ambient);
     }
 
     /**

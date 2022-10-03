@@ -29,8 +29,10 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Template;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * {@code TemplateObserver} is installed on a node (and all of its parents) to observe the scene graph
@@ -70,10 +72,12 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
      * @param observer the {@code TemplateObserver} returned by {@link #acquire(Node)}
      */
     public static void release(TemplateObserver observer) {
-        observer.useCount -= 1;
+        if (observer.useCount > 0) {
+            observer.useCount -= 1;
 
-        if (observer.useCount == 0) {
-            observer.dispose();
+            if (observer.useCount == 0) {
+                observer.dispose();
+            }
         }
     }
 
@@ -89,7 +93,10 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
         Node parent = node;
         while (parent != null) {
             TemplateObserver observer = getTemplateObserver(parent);
-            Template<?> template = observer != null ? observer.findTemplate(data) : null;
+            Template<?> template =
+                observer != null && observer.container != null ?
+                observer.containerHelper.selectTemplate(observer.container, data) : null;
+
             if (template != null) {
                 return template;
             } else {
@@ -102,8 +109,9 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
 
     private final Node node;
     private final List<TemplateObserver> children = new ArrayList<>(2);
-    private List<TemplateReapplyListener> reapplyListeners;
-    private AmbientTemplateContainer container;
+    private final TemplateContainerHelper containerHelper = new TemplateContainerHelper();
+    private List<ReapplyListener> reapplyListeners;
+    private Set<Template<?>> container;
     private int useCount;
 
     private TemplateObserver(Node node) {
@@ -112,15 +120,12 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
 
         for (Map.Entry<Object, Object> entry : node.getProperties().entrySet()) {
             if (entry.getValue() instanceof Template<?> template) {
-                TemplateHelper.addListener(template, this);
-
-                if (template.isAmbient()) {
-                    if (container == null) {
-                        container = new AmbientTemplateContainer();
-                    }
-
-                    container.add(template);
+                if (container == null) {
+                    container = new HashSet<>();
                 }
+
+                container.add(template);
+                TemplateHelper.addListener(template, this);
             }
         }
 
@@ -150,7 +155,7 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
     /**
      * Adds a listener that is invoked when a template in the scene graph may need to be reapplied.
      */
-    public void addListener(TemplateReapplyListener listener) {
+    public void addListener(ReapplyListener listener) {
         if (reapplyListeners == null) {
             reapplyListeners = new ArrayList<>(2);
         }
@@ -159,9 +164,9 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
     }
 
     /**
-     * Removes a listener that was added via {@link #addListener(TemplateReapplyListener)}.
+     * Removes a listener that was added via {@link #addListener(ReapplyListener)}.
      */
-    public void removeListener(TemplateReapplyListener listener) {
+    public void removeListener(ReapplyListener listener) {
         if (reapplyListeners != null) {
             reapplyListeners.remove(listener);
 
@@ -209,10 +214,6 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
         }
     }
 
-    private Template<?> findTemplate(Object data) {
-        return container != null ? container.find(data) : null;
-    }
-
     /**
      * Invoked when the {@link Node#getProperties()} map of the node that corresponds to this
      * {@code TemplateObserver has changed.
@@ -222,25 +223,19 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
         boolean templatesChanged = false;
 
         if (container != null && change.wasRemoved() && change.getValueRemoved() instanceof Template<?> template) {
+            container.remove(template);
             TemplateHelper.removeListener(template, this);
-
-            if (template.isAmbient()) {
-                container.remove(template);
-                templatesChanged = true;
-            }
+            templatesChanged = true;
         }
 
         if (change.wasAdded() && change.getValueAdded() instanceof Template<?> template) {
-            TemplateHelper.addListener(template, this);
-
-            if (template.isAmbient()) {
-                if (container == null) {
-                    container = new AmbientTemplateContainer();
-                }
-
-                container.add(template);
-                templatesChanged = true;
+            if (container == null) {
+                container = new HashSet<>();
             }
+
+            container.add(template);
+            TemplateHelper.addListener(template, this);
+            templatesChanged = true;
         }
 
         if (templatesChanged) {
@@ -276,26 +271,12 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
      */
     @Override
     public void onTemplateChanged(Template<?> template, ReadOnlyProperty<?> observable) {
-        if (observable == template.ambientProperty()) {
-            if (template.isAmbient()) {
-                if (container == null) {
-                    container = new AmbientTemplateContainer();
-                }
-
-                container.add(template);
-            } else {
-                container.remove(template);
-            }
-
-            fireReapplyEvent();
-        } else if (template.isAmbient()) {
-            fireReapplyEvent();
-        }
+        fireReapplyEvent();
     }
 
     private void fireReapplyEvent() {
         if (reapplyListeners != null) {
-            for (TemplateReapplyListener listener : reapplyListeners) {
+            for (ReapplyListener listener : reapplyListeners) {
                 listener.reapply();
             }
         }
@@ -329,6 +310,10 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
         }
 
         return (TemplateObserver)node.getProperties().get(TemplateObserver.class);
+    }
+
+    public interface ReapplyListener {
+        void reapply();
     }
 
 }
