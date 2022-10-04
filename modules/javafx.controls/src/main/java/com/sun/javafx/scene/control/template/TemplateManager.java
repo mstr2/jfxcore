@@ -35,19 +35,6 @@ import java.util.Objects;
  */
 public abstract class TemplateManager {
 
-    /**
-     * Tries to find a template in the scene graph above the specified node that matches the data object.
-     * <p>
-     * This method will inspect the {@link Node#getProperties()} map of the specified node and potentially
-     * all of its parents to find a template that matches the data object.
-     *
-     * @param node the {@code Node} that will be inspected
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> Template<? super T> findTemplate(Node node, T data) {
-        return (Template<? super T>)TemplateObserver.findTemplate(node, data);
-    }
-
     private static final ObservableValue<Boolean> TRUE = new ObservableValue<>() {
         @Override public void addListener(ChangeListener<? super Boolean> listener) {}
         @Override public void removeListener(ChangeListener<? super Boolean> listener) {}
@@ -110,7 +97,7 @@ public abstract class TemplateManager {
      * Occurs when a template has been invalidated and needs to be re-applied.
      * <p>
      * Implementations of {@code TemplateManager} must override this method and provide the logic to
-     * apply a template to the control. Often, this involves calling {@link #findTemplate(Node, Object)}
+     * apply a template to the control. Often, this involves calling {@link Template#find(Node, Object)}
      * to select a template from the scene graph that can visualize the data object.
      */
     protected abstract void onApplyTemplate();

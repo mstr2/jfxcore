@@ -93,9 +93,7 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
         Node parent = node;
         while (parent != null) {
             TemplateObserver observer = getTemplateObserver(parent);
-            Template<?> template =
-                observer != null && observer.container != null ?
-                observer.containerHelper.selectTemplate(observer.container, data) : null;
+            Template<?> template = observer != null ? observer.findTemplate(data) : null;
 
             if (template != null) {
                 return template;
@@ -284,6 +282,10 @@ public final class TemplateObserver implements MapChangeListener<Object, Object>
         for (TemplateObserver childObserver : children) {
             childObserver.fireReapplyEvent();
         }
+    }
+
+    private Template<?> findTemplate(Object data) {
+        return container != null ? containerHelper.selectTemplate(container, data) : null;
     }
 
     private boolean isAnyTemplateInSceneGraph() {

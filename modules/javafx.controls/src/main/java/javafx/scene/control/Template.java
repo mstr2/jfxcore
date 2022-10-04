@@ -23,14 +23,18 @@ package javafx.scene.control;
 
 import com.sun.javafx.scene.control.template.TemplateHelper;
 import com.sun.javafx.scene.control.template.TemplateListener;
+import com.sun.javafx.scene.control.template.TemplateManager;
+import com.sun.javafx.scene.control.template.TemplateObserver;
 import javafx.beans.DefaultProperty;
 import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.ReadOnlyProperty;
+import javafx.scene.Node;
 import javafx.scene.control.cell.TemplatedCellFactory;
 import javafx.util.Incubating;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 
@@ -57,6 +61,64 @@ public class Template<T> {
                 template.listeners.remove(listener);
             }
         });
+    }
+
+    private static final class TemplateManagerImpl extends TemplateManager {
+        final Runnable runnable;
+
+        public TemplateManagerImpl(Node control, Runnable runnable) {
+            super(control);
+            this.runnable = Objects.requireNonNull(runnable, "runnable cannot be null");
+        }
+
+        @Override
+        protected void onApplyTemplate() {
+            runnable.run();
+        }
+    }
+
+    /**
+     * Sets the {@code Runnable} that is invoked when templates need to be re-applied on the specified node.
+     *
+     * @param node the templated {@code Node}
+     * @param runnable the {@code Runnable} that is invoked when templates need to be re-applied
+     */
+    public static void setOnApply(Node node, Runnable runnable) {
+        if (node.getProperties().get(TemplateManagerImpl.class) instanceof TemplateManagerImpl templateManager) {
+            templateManager.dispose();
+            node.getProperties().remove(TemplateManagerImpl.class);
+        }
+
+        if (runnable != null) {
+            node.getProperties().put(TemplateManagerImpl.class, new TemplateManagerImpl(node, runnable));
+        }
+    }
+
+    /**
+     * Gets the {@code Runnable} that is invoked when templates need to be re-applied on the specified node.
+     *
+     * @param control the templated {@code Node}
+     * @return the {@code Runnable} that is invoked when templates need to be re-applied
+     */
+    public static Runnable getOnApply(Node control) {
+        if (control.getProperties().get(TemplateManagerImpl.class) instanceof TemplateManagerImpl templateManager) {
+            return templateManager.runnable;
+        }
+
+        return null;
+    }
+
+    /**
+     * Tries to find a template in the scene graph above the specified node that matches the data object.
+     * <p>
+     * This method will inspect the {@link Node#getProperties()} map of the specified node and potentially
+     * all of its parents to find a template that matches the data object.
+     *
+     * @param node the {@code Node} that will be inspected
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> Template<? super T> find(Node node, T data) {
+        return (Template<? super T>)TemplateObserver.findTemplate(node, data);
     }
 
     private final Class<T> dataType;

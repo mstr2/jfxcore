@@ -21,7 +21,6 @@
 
 package javafx.scene.control.cell;
 
-import com.sun.javafx.scene.control.template.TemplateManager;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Cell;
@@ -292,9 +291,7 @@ public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<
 
         private boolean applyTemplate(T item, boolean editing) {
             Node listView = getControl();
-            Template<? super T> selectedTemplate =
-                listView != null ? TemplateManager.findTemplate(listView, item) : null;
-
+            Template<? super T> selectedTemplate = listView != null ? Template.find(listView, item) : null;
             if (selectedTemplate == null) {
                 currentTemplateContent = null;
                 currentTemplateNode = null;
@@ -302,7 +299,6 @@ public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<
             }
 
             TemplateContent<? super T> content = CellTemplate.getContent(selectedTemplate, editing);
-
             if (content == null) {
                 currentTemplateContent = null;
                 currentTemplateNode = null;
