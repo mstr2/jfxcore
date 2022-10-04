@@ -144,9 +144,6 @@ public class Template<T> {
     /**
      * The selector predicate is used to determine whether this template should be selected
      * to create the visual representation for a given data object.
-     * The selector is only considered when a data object could potentially be represented by
-     * this template, which requires the data object type be a subtype of this template's
-     * {@link #getDataType() data type}.
      */
     private final ObjectProperty<Predicate<? super T>> selector = new ObjectPropertyBase<>() {
         @Override

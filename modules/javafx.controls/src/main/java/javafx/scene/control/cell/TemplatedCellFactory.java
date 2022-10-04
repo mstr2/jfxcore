@@ -163,7 +163,7 @@ public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<
      *     @Override
      *     protected ListCell<T> createCell(ListView<T> listView) {
      *         return new ListCell<>() {
-     *             final CellWrapper<T> cellWrapper = new CellWrapper<>(this) {
+     *             final CellWrapper cellWrapper = new CellWrapper(this) {
      *                 @Override
      *                 protected Node getControl() {
      *                     return getListView();
