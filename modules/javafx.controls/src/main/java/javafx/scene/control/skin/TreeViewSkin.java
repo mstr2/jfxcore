@@ -27,7 +27,6 @@
 package javafx.scene.control.skin;
 
 import com.sun.javafx.scene.control.Properties;
-import com.sun.javafx.scene.control.template.TemplateManager;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.WeakInvalidationListener;
@@ -89,7 +88,6 @@ public class TreeViewSkin<T> extends VirtualContainerBase<TreeView<T>, TreeCell<
     private final VirtualFlow<TreeCell<T>> flow;
     private WeakReference<TreeItem<T>> weakRoot;
     private final TreeViewBehavior<T> behavior;
-    private final TemplateManager templateManager;
 
 
     /* *************************************************************************
@@ -155,13 +153,12 @@ public class TreeViewSkin<T> extends VirtualContainerBase<TreeView<T>, TreeCell<
     public TreeViewSkin(final TreeView control) {
         super(control);
 
-        templateManager = new TemplateManager(control, control.cellFactoryProperty().map(
-                v -> v instanceof TemplatedCellFactory<?, ?, ?>)) {
-            @Override
-            protected void onApplyTemplate() {
-                control.getProperties().put(Properties.RECREATE, Boolean.TRUE);
-            }
-        };
+        registerTemplateHandler(
+            () -> control.getProperties().put(Properties.RECREATE, Boolean.TRUE),
+            control.cellFactoryProperty().map(value -> value instanceof TemplatedCellFactory<?, ?, ?>),
+            ((TreeView<T>)control).cellFactoryProperty()
+                .map(value -> value instanceof TemplatedCellFactory<?, ?, ?> f ? f : null)
+                .flatMap(TemplatedCellFactory::templateProperty));
 
         // install default input map for the TreeView control
         behavior = new TreeViewBehavior<>(control);
@@ -240,8 +237,6 @@ public class TreeViewSkin<T> extends VirtualContainerBase<TreeView<T>, TreeCell<
         if (behavior != null) {
             behavior.dispose();
         }
-
-        templateManager.dispose();
     }
 
     /** {@inheritDoc} */

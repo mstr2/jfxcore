@@ -24,53 +24,68 @@ package com.sun.javafx.scene.control.template;
 import javafx.beans.InvalidationListener;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.beans.value.WeakChangeListener;
 import javafx.scene.Node;
 import javafx.scene.control.Template;
-import java.util.Objects;
 
 /**
- * {@code TemplateManager} is installed on a {@link Node} to receive notifications when templates
- * need to be re-applied. Implementations must override the {@link #onApplyTemplate()} method and
- * provide the logic to apply templates.
+ * {@code TemplateManager} receives notifications when templates need to be re-applied by observing changes of
+ * templates in the scene graph, or of explicitly specified template dependencies.
  */
-public abstract class TemplateManager {
+public final class TemplateManager {
 
-    private static final ObservableValue<Boolean> TRUE = new ObservableValue<>() {
-        @Override public void addListener(ChangeListener<? super Boolean> listener) {}
-        @Override public void removeListener(ChangeListener<? super Boolean> listener) {}
-        @Override public Boolean getValue() { return Boolean.TRUE; }
-        @Override public void addListener(InvalidationListener listener) {}
-        @Override public void removeListener(InvalidationListener listener) {}
-    };
-
-    private final TemplateObserver.ReapplyListener reapplyListener = this::onApplyTemplate;
-    private final InvalidationListener activeListener;
-    private ObservableValue<Boolean> active;
+    private final Node control;
+    private final ObservableValue<Boolean> active;
+    private final ObservableValue<Template<?>>[] templates;
+    private final Runnable applyHandler;
+    private TemplateObserver.ReapplyListener reapplyListener;
+    private InvalidationListener activeListener;
+    private WeakChangeListener<Template<?>> weakTemplateChangeListener;
+    private ChangeListener<Template<?>> templateChangeListener;
+    private WeakTemplateListener weakTemplateListener;
+    private TemplateListener templateListener;
     private TemplateObserver observer;
-    private Node control;
     private boolean disposed;
 
     /**
      * Initializes a new instance of {@code TemplateManager}.
      *
-     * @param control the control on which the {@code TemplateManager} is installed
-     */
-    public TemplateManager(Node control) {
-        this(control, TRUE);
-    }
-
-    /**
-     * Initializes a new instance of {@code TemplateManager}.
-     *
-     * @param control the control on which the {@code TemplateManager} is installed
+     * @param control the control that is observed for the presence of templates, or {@code null}
      * @param active when the {@code active} value is {@code true}, the scene graph is observed
-     *               for the presence of templates
+     *               for the presence of templates; when {@code null} is specified, the value is
+     *               assumed to be {@code true}
+     * @param templates additional templates that are observed, or {@code null}
+     * @param handler the handler that is invoked when templates need to be re-applied, or {@code null}
      */
-    public TemplateManager(Node control, ObservableValue<Boolean> active) {
-        this.control = Objects.requireNonNull(control, "control cannot be null");
-        this.active = Objects.requireNonNull(active, "active cannot be null");
-        this.active.addListener(activeListener = observable -> onActiveChanged(this.active.getValue() == Boolean.TRUE));
-        onActiveChanged(active.getValue() == Boolean.TRUE);
+    public TemplateManager(Node control,
+                           ObservableValue<Boolean> active,
+                           ObservableValue<Template<?>>[] templates,
+                           Runnable handler) {
+        this.applyHandler = handler != null ? handler : () -> {};
+        this.control = control;
+        this.templates = templates;
+        this.active = active;
+
+        if (active != null) {
+            active.addListener(activeListener = observable -> onActiveChanged(this.active.getValue() == Boolean.TRUE));
+        }
+
+        if (templates != null && templates.length > 0) {
+            templateChangeListener = this::onTemplateChanged;
+            weakTemplateChangeListener = new WeakChangeListener<>(templateChangeListener);
+            templateListener = (template, observable) -> applyHandler.run();
+            weakTemplateListener = new WeakTemplateListener(templateListener);
+
+            for (ObservableValue<Template<?>> template : templates) {
+                template.addListener(weakTemplateChangeListener);
+                Template<?> value = template.getValue();
+                if (value != null) {
+                    onTemplateChanged(template, null, value);
+                }
+            }
+        }
+
+        onActiveChanged(active == null || active.getValue() == Boolean.TRUE);
     }
 
     /**
@@ -86,24 +101,27 @@ public abstract class TemplateManager {
             observer.removeListener(reapplyListener);
         }
 
-        active.removeListener(activeListener);
-        observer = null;
-        control = null;
-        active = null;
+        if (templates != null) {
+            for (ObservableValue<Template<?>> template : templates) {
+                Template<?> value = template.getValue();
+                if (value != null) {
+                    TemplateHelper.removeListener(value, weakTemplateListener);
+                }
+
+                template.removeListener(weakTemplateChangeListener);
+            }
+        }
+
+        if (activeListener != null) {
+            active.removeListener(activeListener);
+        }
+
         disposed = true;
     }
 
-    /**
-     * Occurs when a template has been invalidated and needs to be re-applied.
-     * <p>
-     * Implementations of {@code TemplateManager} must override this method and provide the logic to
-     * apply a template to the control. Often, this involves calling {@link Template#find(Node, Object)}
-     * to select a template from the scene graph that can visualize the data object.
-     */
-    protected abstract void onApplyTemplate();
-
     private void onActiveChanged(boolean active) {
-        if (active) {
+        if (active && control != null) {
+            reapplyListener = applyHandler::run;
             observer = TemplateObserver.acquire(control);
             observer.addListener(reapplyListener);
         } else if (observer != null) {
@@ -111,6 +129,19 @@ public abstract class TemplateManager {
             observer.removeListener(reapplyListener);
             observer = null;
         }
+    }
+
+    private void onTemplateChanged(ObservableValue<? extends Template<?>> observable,
+                                   Template<?> oldValue, Template<?> newValue) {
+        if (oldValue != null) {
+            TemplateHelper.removeListener(oldValue, weakTemplateListener);
+        }
+
+        if (newValue != null) {
+            TemplateHelper.addListener(newValue, weakTemplateListener);
+        }
+
+        applyHandler.run();
     }
 
 }

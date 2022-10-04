@@ -44,7 +44,7 @@ public final class TemplatedListCellFactory<T> extends TemplatedCellFactory<T, L
     @Override
     protected ListCell<T> createCell(ListView<T> listView) {
         return new ListCell<>() {
-            final CellWrapper<T> cellWrapper = new CellWrapper<>(this) {
+            final CellWrapper cellWrapper = new CellWrapper(this) {
                 @Override
                 protected Node getControl() {
                     return getListView();

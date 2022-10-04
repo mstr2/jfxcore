@@ -19,45 +19,37 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package test.javafx.scene.control;
+package com.sun.javafx.scene.control.template;
 
-import com.sun.javafx.scene.control.template.TemplateHelper;
-import org.junit.jupiter.api.Test;
+import javafx.beans.WeakListener;
+import javafx.beans.property.ReadOnlyProperty;
 import javafx.scene.control.Template;
+import java.lang.ref.WeakReference;
+import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.*;
+public final class WeakTemplateListener implements TemplateListener, WeakListener {
 
-public class TemplateTest {
+    private final WeakReference<TemplateListener> ref;
 
-    @Test
-    public void testContentDefaultValueIsNull() {
-        assertNull(new Template<>(String.class).getContent());
+    public WeakTemplateListener(TemplateListener listener) {
+        this.ref = new WeakReference<>(
+            Objects.requireNonNull(listener, "Listener must be specified."));
     }
 
-    @Test
-    public void testSelectorDefaultValueIsNull() {
-        assertNull(new Template<>(String.class).getSelector());
+    @Override
+    public boolean wasGarbageCollected() {
+        return ref.get() == null;
     }
 
-    @Test
-    public void testTemplateListenerIsInvoked() {
-        class TemplateImpl extends Template<String> {
-            public TemplateImpl() {
-                super(String.class);
-            }
-
-            void notifyTemplateChanged() {
-                notifyTemplateChanged(null);
-            }
+    @Override
+    public void onTemplateChanged(Template<?> template, ReadOnlyProperty<?> observable) {
+        TemplateListener listener = ref.get();
+        if (listener != null) {
+            listener.onTemplateChanged(template, observable);
+        } else {
+            TemplateHelper.removeListener(template, this);
         }
-
-        var template = new TemplateImpl();
-        int[] count = new int[1];
-        TemplateHelper.addListener(template, (t, observable) -> count[0]++);
-        assertEquals(0, count[0]);
-
-        template.notifyTemplateChanged();
-        assertEquals(1, count[0]);
     }
+
 
 }

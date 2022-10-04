@@ -24,8 +24,9 @@ package test.com.sun.javafx.scene.control.template;
 import com.sun.javafx.scene.control.template.TemplateManager;
 import com.sun.javafx.scene.control.template.TemplateObserver;
 import org.junit.jupiter.api.Test;
-import test.util.memory.JMemoryBuddy;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -33,7 +34,9 @@ import javafx.scene.Scene;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Skin;
+import javafx.scene.control.SkinBase;
 import javafx.scene.control.Template;
+import javafx.scene.control.TemplateShim;
 import javafx.scene.control.cell.TemplatedCellFactory;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,12 +51,7 @@ public class TemplateManagerTest {
         var branch = new Group(new Group(leaf));
         var root = new Group();
         var flag = new int[1];
-        var manager = new TemplateManager(leaf) {
-            @Override
-            protected void onApplyTemplate() {
-                flag[0]++;
-            }
-        };
+        var manager = new TemplateManager(leaf, null, null, () -> flag[0]++);
 
         root.getProperties().put("test_root", new Template<>(String.class));
         assertEquals(0, flag[0]);
@@ -72,12 +70,7 @@ public class TemplateManagerTest {
                     c = new Group())));
 
         var flag = new int[1];
-        var manager = new TemplateManager(a) {
-            @Override
-            protected void onApplyTemplate() {
-                flag[0]++;
-            }
-        };
+        var manager = new TemplateManager(a, null, null, () -> flag[0]++);
 
         c.getProperties().put("test_c", new Template<>(String.class));
         assertEquals(0, flag[0]);
@@ -93,13 +86,11 @@ public class TemplateManagerTest {
     }
 
     @Test
-    public void testTemplatesAreAppliedWhenTemplateIsAdded() {
+    public void testTemplatesAreAppliedWhenTemplateIsAddedToNodeProperties() {
         int[] count = new int[1];
         var factory = new TemplatedCellFactoryImpl();
         var listView = new ListViewImpl(factory, List.of("foo", "bar", "baz"));
-        var manager = new TemplateManager(listView) {
-            @Override protected void onApplyTemplate() { count[0]++; }
-        };
+        var manager = new TemplateManager(listView, null, null, () -> count[0]++);
 
         var scene = new Scene(listView);
         listView.applyCss();
@@ -114,17 +105,13 @@ public class TemplateManagerTest {
     }
 
     @Test
-    public void testTemplatesAreAppliedForMultipleControlsWhenTemplateIsAdded() {
+    public void testTemplatesAreAppliedForMultipleControlsWhenTemplateIsAddedToNodeProperties() {
         List<String> trace = new ArrayList<>();
         var factory = new TemplatedCellFactoryImpl();
         var listView1 = new ListViewImpl(factory, List.of("foo"));
-        var manager1 = new TemplateManager(listView1) {
-            @Override protected void onApplyTemplate() { trace.add("listView1"); }
-        };
+        var manager1 = new TemplateManager(listView1, null, null, () -> trace.add("listView1"));
         var listView2 = new ListViewImpl(factory, List.of("bar"));
-        var manager2 = new TemplateManager(listView2) {
-            @Override protected void onApplyTemplate() { trace.add("listView2"); }
-        };
+        var manager2 = new TemplateManager(listView2, null, null, () -> trace.add("listView2"));
 
         var root = new Group(listView1, listView2);
         var scene = new Scene(root);
@@ -146,9 +133,7 @@ public class TemplateManagerTest {
         var listView = new ListViewImpl(factory, List.of("foo", "bar", "baz"));
         var template = new Template<>(String.class);
         listView.getProperties().put("t1", template);
-        var manager = new TemplateManager(listView) {
-            @Override protected void onApplyTemplate() { count[0]++; }
-        };
+        var manager = new TemplateManager(listView, null, null, () -> count[0]++);
 
         var scene = new Scene(listView);
         listView.applyCss();
@@ -163,13 +148,49 @@ public class TemplateManagerTest {
     }
 
     @Test
-    public void testInactiveTemplateManagerDoesNotObserveTemplates() {
+    public void testTemplatesAreAppliedWhenTemplateDependencyIsInvalidated() {
+        int[] count = new int[1];
+        var templateProp = new SimpleObjectProperty<Template<?>>();
+        var manager = new TemplateManager(null, null, new ObservableValue[] { templateProp }, () -> count[0]++);
+
+        var template = new Template<>(String.class);
+        assertEquals(0, count[0]);
+
+        templateProp.set(template);
+        assertEquals(1, count[0]);
+
+        template.setContent(x -> null);
+        assertEquals(2, count[0]);
+    }
+
+    @Test
+    public void testExplicitTemplateListenerIsRemovedWhenTemplateDependencyIsChanged() {
+        var template = new Template<>(String.class);
+        var templateProp = new SimpleObjectProperty<Template<?>>(template);
+        var manager = new TemplateManager(null, null, new ObservableValue[] { templateProp }, null);
+
+        assertEquals(1, TemplateShim.getListeners(template).size());
+        templateProp.set(new Template<>(String.class));
+        assertEquals(0, TemplateShim.getListeners(template).size());
+    }
+
+    @Test
+    public void testExplicitTemplateListenerIsRemovedWhenTemplateManagerIsDisposed() {
+        var template = new Template<>(String.class);
+        var templateProp = new SimpleObjectProperty<Template<?>>(template);
+        var manager = new TemplateManager(null, null, new ObservableValue[] { templateProp }, null);
+
+        assertEquals(1, TemplateShim.getListeners(template).size());
+        manager.dispose();
+        assertEquals(0, TemplateShim.getListeners(template).size());
+    }
+
+    @Test
+    public void testInactiveTemplateManagerDoesNotObserveTemplatesInSceneGraph() {
         var factory = new TemplatedCellFactoryImpl();
         var listView = new ListViewImpl(factory, List.of("foo", "bar", "baz"));
         var active = new SimpleBooleanProperty(false);
-        var manager = new TemplateManager(listView, active) {
-            @Override protected void onApplyTemplate() {}
-        };
+        var manager = new TemplateManager(listView, active, null, null);
 
         var scene = new Scene(listView);
         listView.applyCss();
@@ -183,29 +204,6 @@ public class TemplateManagerTest {
         assertNull(listView.getProperties().get(TemplateObserver.class));
     }
 
-    @Test
-    public void testControlIsNotReferencedByDisposedTemplateManager() {
-        JMemoryBuddy.memoryTest(test -> {
-            var template = new Template<>(String.class);
-            var factory = new TemplatedCellFactoryImpl();
-            var listView = new ListViewImpl(factory, List.of("foo", "bar", "baz"));
-            var manager = new TemplateManager(listView) {
-                @Override protected void onApplyTemplate() {}
-            };
-
-            var root = new Group(listView);
-            var scene = new Scene(root);
-            listView.applyCss();
-            listView.layout();
-            manager.dispose();
-
-            test.setAsReferenced(manager);
-            test.assertCollectable(listView);
-            test.assertCollectable(factory);
-            test.assertCollectable(template);
-        });
-    }
-
     private static class ListViewImpl extends ListView<String> {
         ListViewImpl(TemplatedCellFactoryImpl factory, List<String> items) {
             super(FXCollections.observableList(items));
@@ -214,7 +212,7 @@ public class TemplateManagerTest {
 
         @Override
         protected Skin<?> createDefaultSkin() {
-            return null;
+            return new SkinBase<>(this) {};
         }
     }
 
@@ -223,7 +221,7 @@ public class TemplateManagerTest {
         @Override
         protected ListCell<String> createCell(ListView<String> item) {
             return new ListCell<>() {
-                final CellWrapper<String> cellWrapper = new CellWrapper<>(this) {
+                final CellWrapper cellWrapper = new CellWrapper(this) {
                     @Override
                     protected Node getControl() {
                         return getListView();

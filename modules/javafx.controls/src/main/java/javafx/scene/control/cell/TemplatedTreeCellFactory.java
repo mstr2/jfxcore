@@ -44,7 +44,7 @@ public final class TemplatedTreeCellFactory<T> extends TemplatedCellFactory<T, T
     @Override
     protected TreeCell<T> createCell(TreeView<T> listView) {
         return new TreeCell<>() {
-            final CellWrapper<T> cellWrapper = new CellWrapper<>(this) {
+            final CellWrapper cellWrapper = new CellWrapper(this) {
                 @Override
                 protected Node getControl() {
                     return getTreeView();

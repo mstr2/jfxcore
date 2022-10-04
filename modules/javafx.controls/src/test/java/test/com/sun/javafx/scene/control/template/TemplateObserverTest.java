@@ -47,11 +47,6 @@ public class TemplateObserverTest {
         return (TemplateObserver)node.getProperties().get(TemplateObserver.class);
     }
 
-    private static class TemplateManagerMock extends TemplateManager {
-        TemplateManagerMock(Node node) { super(node); }
-        @Override protected void onApplyTemplate() {}
-    }
-
     private static class NGroup extends Group {
         NGroup(String name, Node... children) {
             super(children);
@@ -67,7 +62,7 @@ public class TemplateObserverTest {
                 b = new Group(
                     c = new Group())));
 
-        new TemplateManagerMock(c);
+        new TemplateManager(c, null, null, null);
 
         assertNotNull(getTemplateObserver(root));
         assertNotNull(getTemplateObserver(a));
@@ -83,19 +78,19 @@ public class TemplateObserverTest {
                 b = new Group(
                     c = new Group())));
 
-        new TemplateManagerMock(b);
+        new TemplateManager(b, null, null, null);
         assertEquals(1, getUseCount(root));
         assertEquals(1, getUseCount(a));
         assertEquals(1, getUseCount(b));
         assertNull(getTemplateObserver(c));
 
-        new TemplateManagerMock(c);
+        new TemplateManager(c, null, null, null);
         assertEquals(1, getUseCount(root));
         assertEquals(1, getUseCount(a));
         assertEquals(2, getUseCount(b));
         assertEquals(1, getUseCount(c));
 
-        new TemplateManagerMock(a);
+        new TemplateManager(a, null, null, null);
         assertEquals(1, getUseCount(root));
         assertEquals(2, getUseCount(a));
         assertEquals(2, getUseCount(b));
@@ -110,13 +105,13 @@ public class TemplateObserverTest {
                 b = new Group(
                     c = new Group())));
 
-        new TemplateManagerMock(c);
+        new TemplateManager(c, null, null, null);
         assertEquals(1, getUseCount(root));
         assertEquals(1, getUseCount(a));
         assertEquals(1, getUseCount(b));
         assertEquals(1, getUseCount(c));
 
-        var b_manager = new TemplateManagerMock(b);
+        var b_manager = new TemplateManager(b, null, null, null);
         assertEquals(1, getUseCount(root));
         assertEquals(1, getUseCount(a));
         assertEquals(2, getUseCount(b));
@@ -137,8 +132,8 @@ public class TemplateObserverTest {
                 b = new Group(
                     c = new Group())));
 
-        var c_manager = new TemplateManagerMock(c);
-        new TemplateManagerMock(a);
+        var c_manager = new TemplateManager(c, null, null, null);
+        new TemplateManager(a, null, null, null);
         assertNotNull(getTemplateObserver(root));
         assertNotNull(getTemplateObserver(a));
         assertNotNull(getTemplateObserver(b));
@@ -159,13 +154,13 @@ public class TemplateObserverTest {
                 b = new NGroup("b")));
         c = new NGroup("c");
 
-        new TemplateManagerMock(a);
+        new TemplateManager(a, null, null, null);
         assertEquals(1, getUseCount(root));
         assertEquals(1, getUseCount(a));
         assertNull(getTemplateObserver(b));
 
         // Adding the unrelated 'c' node as a child of 'b' should increase the use count of b's TemplateObserver.
-        new TemplateManagerMock(c);
+        new TemplateManager(c, null, null, null);
         b.getChildren().add(c);
         assertEquals(1, getUseCount(root));
         assertEquals(2, getUseCount(a));
@@ -192,7 +187,7 @@ public class TemplateObserverTest {
         assertEquals(0, TemplateShim.getListeners(t1).size());
 
         // When a TemplateObserver is installed (by TemplateManager), it adds a listener to the existing template.
-        var manager = new TemplateManagerMock(b);
+        var manager = new TemplateManager(b, null, null, null);
         assertEquals(1, TemplateShim.getListeners(t1).size());
 
         // When the TemplateObserver is disposed, the listener is removed from the template.
@@ -211,7 +206,7 @@ public class TemplateObserverTest {
         // Add a template at the root, as otherwise no event would be fired.
         root.getProperties().put("test", new Template<>(String.class));
 
-        new TemplateManagerMock(c);
+        new TemplateManager(c, null, null, null);
         boolean[] flag = new boolean[1];
         getTemplateObserver(c).addListener(() -> flag[0] = true);
         b.getChildren().add(c);
@@ -229,7 +224,7 @@ public class TemplateObserverTest {
         var template = new Template<>(String.class);
         root.getProperties().put("test", template);
 
-        new TemplateManagerMock(b);
+        new TemplateManager(b, null, null, null);
         int[] count = new int[1];
         getTemplateObserver(b).addListener(() -> count[0]++);
         assertEquals(0, count[0]);

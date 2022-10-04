@@ -21,6 +21,8 @@
 
 package javafx.scene.control.cell;
 
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Cell;
@@ -32,6 +34,7 @@ import javafx.util.Callback;
 import javafx.util.Incubating;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Base class for template-based cell factories.
@@ -52,6 +55,33 @@ public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<
      * Initializes a new instance of {@code TemplatedCellFactory}.
      */
     protected TemplatedCellFactory() {}
+
+    /**
+     * Specifies the template that is used to visualize the data items.
+     * <p>
+     * If this property is set, the specified template is always selected, but might not be
+     * instantiated if the template's {@link Template#selectorProperty() selector} rejects the
+     * data item. If this property is {@code null}, the cell factory tries to find a suitable
+     * template in the control's {@link Node#getProperties()} map (or any of its parents).
+     */
+    private ObjectProperty<Template<? super T>> template;
+
+    public final ObjectProperty<Template<? super T>> templateProperty() {
+        if (template == null) {
+            template = new SimpleObjectProperty<>(this, "template");
+        }
+        return template;
+    }
+
+    public final Template<? super T> getTemplate() {
+        return template != null ? template.get() : null;
+    }
+
+    public final void setTemplate(Template<? super T> template) {
+        if (template != null || this.template != null) {
+            templateProperty().set(template);
+        }
+    }
 
     @Override
     public final C call(V param) {
@@ -168,7 +198,7 @@ public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<
      * }
      * }</pre>
      */
-    protected abstract static class CellWrapper<T> {
+    protected abstract class CellWrapper {
         private final Cell<T> cell;
         private TemplateContent<? super T> currentTemplateContent;
         private Node currentTemplateNode;
@@ -290,8 +320,17 @@ public abstract class TemplatedCellFactory<T, V extends Control, C extends Cell<
         }
 
         private boolean applyTemplate(T item, boolean editing) {
-            Node listView = getControl();
-            Template<? super T> selectedTemplate = listView != null ? Template.find(listView, item) : null;
+            Template<? super T> selectedTemplate = getTemplate();
+            if (selectedTemplate != null) {
+                Predicate<? super T> selector = selectedTemplate.getSelector();
+                if (selector != null && !selector.test(item)) {
+                    selectedTemplate = null;
+                }
+            } else {
+                Node listView = getControl();
+                selectedTemplate = listView != null ? Template.find(listView, item) : null;
+            }
+
             if (selectedTemplate == null) {
                 currentTemplateContent = null;
                 currentTemplateNode = null;

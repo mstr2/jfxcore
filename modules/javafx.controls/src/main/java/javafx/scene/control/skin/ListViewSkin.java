@@ -115,7 +115,6 @@ public class ListViewSkin<T> extends VirtualContainerBase<ListView<T>, ListCell<
 
     private int itemCount = -1;
     private ListViewBehavior<T> behavior;
-    private TemplateManager templateManager;
 
 
 
@@ -195,13 +194,12 @@ public class ListViewSkin<T> extends VirtualContainerBase<ListView<T>, ListCell<
     public ListViewSkin(final ListView<T> control) {
         super(control);
 
-        templateManager = new TemplateManager(control, control.cellFactoryProperty().map(
-                value -> value instanceof TemplatedCellFactory<?, ?, ?>)) {
-            @Override
-            protected void onApplyTemplate() {
-                control.getProperties().put(Properties.RECREATE, Boolean.TRUE);
-            }
-        };
+        registerTemplateHandler(
+            () -> control.getProperties().put(Properties.RECREATE, Boolean.TRUE),
+            control.cellFactoryProperty().map(value -> value instanceof TemplatedCellFactory<?, ?, ?>),
+            control.cellFactoryProperty()
+                .map(value -> value instanceof TemplatedCellFactory<?, ?, ?> f ? f : null)
+                .flatMap(TemplatedCellFactory::templateProperty));
 
         // install default input map for the ListView control
         behavior = new ListViewBehavior<>(control);
@@ -290,8 +288,6 @@ public class ListViewSkin<T> extends VirtualContainerBase<ListView<T>, ListCell<
         if (behavior != null) {
             behavior.dispose();
         }
-
-        templateManager.dispose();
     }
 
     /** {@inheritDoc} */

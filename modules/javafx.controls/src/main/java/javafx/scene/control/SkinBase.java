@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, JFXcore. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.sun.javafx.scene.control.LambdaMultiplePropertyChangeListenerHandler;
+import com.sun.javafx.scene.control.template.TemplateManager;
 
 import javafx.beans.Observable;
 import javafx.beans.value.ObservableValue;
@@ -47,6 +49,7 @@ import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
+import javafx.util.Incubating;
 
 /**
  * Base implementation class for defining the visual representation of user
@@ -84,6 +87,11 @@ public abstract class SkinBase<C extends Control> implements Skin<C> {
      */
     private LambdaMultiplePropertyChangeListenerHandler lambdaChangeListenerHandler;
 
+    /**
+     * For controls that use templating, {@link TemplateManager} notifies the control
+     * that a template may need to be re-applied.
+     */
+    private TemplateManager templateManager;
 
 
     /* *************************************************************************
@@ -156,6 +164,10 @@ public abstract class SkinBase<C extends Control> implements Skin<C> {
         // unhook listeners
         if (lambdaChangeListenerHandler != null) {
             lambdaChangeListenerHandler.dispose();
+        }
+
+        if (templateManager != null) {
+            templateManager.dispose();
         }
 
         this.control = null;
@@ -315,6 +327,51 @@ public abstract class SkinBase<C extends Control> implements Skin<C> {
             return null;
         }
         return lambdaChangeListenerHandler.unregisterListChangeListeners(observableList);
+    }
+
+    /**
+     * Registers a handler that receives notifications when templates need to be re-applied.
+     * <p>
+     * Skins that support templating must provide the logic that selects and instantiates a template:
+     * <ol>
+     *     <li><em>Selection</em>
+     *         <p>A skin can either choose a template from the list of explicit templates, or it can call
+     *         {@link Template#find(Node, Object)} to find a template in the scene graph that matches
+     *         the data object.
+     *         <p>If a template is selected from the list of explicit templates, it is the responsibility
+     *         of the implementation to make sure that the template is applicable for the data object by
+     *         testing the data object against the template's {@link Template#selectorProperty() selector}.
+     *
+     *
+     *     <li><em>Instantiation</em><br/>
+     *         After a template has been selected, its {@link Template#contentProperty() content} must be
+     *         instantiated by calling {@link TemplateContent#newInstance(Object)} and specifying the
+     *         data object as the parameter. The returned {@link Node} should then be added to the control's
+     *         scene graph.
+     * </ol>
+     *
+     * @param applyTemplate invoked when the control needs to re-apply its template
+     * @param observeImplicitTemplates specifies whether implicit templates that are defined in the
+     *                                 {@link Node#getProperties()} map of this control or any of its
+     *                                 parents are observed and can trigger re-apply notifications
+     * @param explicitTemplates a list of explicit templates that are always observed for changes
+     *
+     * @since JFXcore 19
+     */
+    @Incubating
+    @SafeVarargs
+    protected final void registerTemplateHandler(Runnable applyTemplate,
+                                                 ObservableValue<Boolean> observeImplicitTemplates,
+                                                 ObservableValue<Template<?>>... explicitTemplates) {
+        if (applyTemplate == null) {
+            throw new IllegalArgumentException("applyTemplate cannot be null");
+        }
+
+        if (templateManager != null) {
+            templateManager.dispose();
+        }
+
+        templateManager = new TemplateManager(control, observeImplicitTemplates, explicitTemplates, applyTemplate);
     }
 
 
