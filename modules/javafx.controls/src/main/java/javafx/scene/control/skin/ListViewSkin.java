@@ -52,7 +52,6 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionModel;
-import com.sun.javafx.scene.control.template.TemplateManager;
 import com.sun.javafx.scene.control.behavior.ListViewBehavior;
 import javafx.scene.control.cell.TemplatedCellFactory;
 import javafx.scene.input.MouseEvent;

@@ -30,6 +30,8 @@ import javafx.util.Incubating;
 /**
  * {@code TextFieldCellBehavior} adds several default behaviors to a {@link TextField}
  * that is placed in a {@link CellTemplate}.
+ *
+ * @since JFXcore 19
  */
 @Incubating
 public class TextFieldCellBehavior extends CellBehavior<TextField> {
